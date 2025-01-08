@@ -1,5 +1,4 @@
 import { messageResult, readHandler, spawnProcess } from '@/permaweb';
-import { AO } from '@/permaweb/config';
 import { Document, DocumentSignature } from '@/permaweb/types';
 
 export async function getDocumentById(documentId: string): Promise<Document | null> {
@@ -14,6 +13,7 @@ export async function getDocumentById(documentId: string): Promise<Document | nu
 			return {
 				id: documentId,
                 content: {
+                    data: fetchedDocument.Data || null,
                     owner: fetchedDocument.Owner || null,
                     signer: fetchedDocument.Signer || null,
                 },
@@ -31,7 +31,7 @@ export async function createDocument(document: Omit<Document, 'id'>, wallet: any
     try {
         // Create new AO process for the document
         const result = await spawnProcess({
-            module: AO.module,
+            module: process.env.MODULE,
             wallet,
             data: {
                 // biome-ignore lint/style/useNamingConvention: AO convention

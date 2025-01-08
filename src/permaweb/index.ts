@@ -3,7 +3,6 @@ import {
     TagType,
 } from '@/permaweb/types';
 import { getTagValue } from '@/permaweb/utils';
-import { AO } from '@/permaweb/config';
 
 export async function messageResult(args: {
     processId: string;
@@ -205,7 +204,7 @@ export async function spawnProcess(args: {
         // Spawn the process
         const processId = await spawn({
             module: args.module,
-            scheduler: AO.scheduler,
+            scheduler: process.env.SCHEDULER,
             signer: createDataItemSigner(args.wallet),
             tags,
             data

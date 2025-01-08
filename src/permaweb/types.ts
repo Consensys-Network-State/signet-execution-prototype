@@ -3,6 +3,7 @@ export type TagType = { name: string; value: string };
 export type Document = {
     id: string;
     content: {
+        data: string;
         owner: string;
         signer: string;
     }
