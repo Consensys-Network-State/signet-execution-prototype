@@ -1,0 +1,20 @@
+{
+    "linter": {
+        "rules": {
+            "suspicious": {
+                "noDebugger": "off",
+                "noConsoleLog": "info"
+            },
+            "style": {
+                "noShoutyConstants": "warn",
+                "useNamingConvention": "error",
+                "useImportType": "off"
+            }
+        }
+    },
+    "javascript": {
+        "parser": {
+            "unsafeParameterDecoratorsEnabled": true
+        }
+    }
+}
