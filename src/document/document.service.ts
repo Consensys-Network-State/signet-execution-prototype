@@ -1,34 +1,27 @@
-// src/document/document.service.ts
 import { Injectable } from '@nestjs/common';
-import { CreateDocumentDto, SignDocumentDto } from './document.dto';
+import { Document, DocumentSignature } from '@/permaweb/types';
+import { createDocument, signDocument, getDocumentById } from '@/permaweb/documents';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class DocumentService {
-  async createDocument(createDocumentDto: CreateDocumentDto) {
-    // Implementation for document creation
-    return {
-      id: 'generated-id',
-      status: 'created',
-      ...createDocumentDto,
-    };
+  private wallet: any;
+
+  constructor(private configService: ConfigService) {
+    this.wallet = this.configService.get('wallet');
   }
 
-  async signDocument(signDocumentDto: SignDocumentDto) {
-    // Implementation for document signing
-    return {
-      id: signDocumentDto.documentId,
-      status: 'signed',
-      signedAt: new Date(),
-    };
+  async createDocument(document: Omit<Document, 'id'>) {
+    const wallet = this.wallet;
+    return createDocument(document, wallet);
+  }
+
+  async signDocument(signature: DocumentSignature) {
+    const wallet = this.wallet;
+    return signDocument(signature, wallet);
   }
 
   async getDocument(id: string) {
-    // Implementation for document retrieval
-    return {
-      id,
-      title: 'Sample Document 2',
-      content: 'Document content here',
-      status: 'created',
-    };
+    return getDocumentById(id); 
   }
 }

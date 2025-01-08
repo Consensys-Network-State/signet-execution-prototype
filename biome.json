@@ -3,7 +3,8 @@
         "rules": {
             "suspicious": {
                 "noDebugger": "off",
-                "noConsoleLog": "info"
+                "noConsoleLog": "info",
+                "noExplicitAny": "off"
             },
             "style": {
                 "noShoutyConstants": "warn",

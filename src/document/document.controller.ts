@@ -1,6 +1,6 @@
 import { Controller, Post, Body, Param, Get } from '@nestjs/common';
 import { DocumentService } from './document.service';
-import { CreateDocumentDto, SignDocumentDto } from './document.dto';
+import { Document, DocumentSignature } from '@/permaweb/types';
 
 @Controller('document')
 export class DocumentController {
@@ -12,12 +12,12 @@ export class DocumentController {
     }
 
     @Post('create')
-    async createDocument(@Body() createDocumentDto: CreateDocumentDto) {
-        return this.documentService.createDocument(createDocumentDto);
+    async createDocument(@Body() document: Document) {
+        return this.documentService.createDocument(document);
     }
 
     @Post('sign')
-    async signDocument(@Body() signDocumentDto: SignDocumentDto) {
-        return this.documentService.signDocument(signDocumentDto);
+    async signDocument(@Body() signature: DocumentSignature) {
+        return this.documentService.signDocument(signature);
     }
 }
