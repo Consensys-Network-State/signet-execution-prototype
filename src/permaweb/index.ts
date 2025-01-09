@@ -220,9 +220,3 @@ export async function spawnProcess(args: {
         return null;
     }
 }
-
-// export * from './assets';
-// export * from './collections';
-// export * from './profiles';
-// export * as stamps from './stamps';
-// export * from './vouch';
