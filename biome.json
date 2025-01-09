@@ -8,8 +8,12 @@
             },
             "style": {
                 "noShoutyConstants": "warn",
-                "useNamingConvention": "error",
-                "useImportType": "off"
+                "useImportType": "off",
+                "useNamingConvention": {
+                    "options": {
+                        "strictCase": false
+                    }
+                }
             }
         }
     },

@@ -26,6 +26,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@othent/kms": "^2.1.1",
     "@permaweb/aoconnect": "^0.0.62",
+    "@veramo/core": "^6.0.0",
     "arweave": "^1.15.5",
     "dotenv": "^16.4.7",
     "reflect-metadata": "^0.2.0",

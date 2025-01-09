@@ -4,28 +4,29 @@ import {
 } from '@/permaweb/types';
 import { getTagValue } from '@/permaweb/utils';
 
+const AgreementTag = { name: 'DocumentType', value: 'AgreementDocument' };
+
 export async function messageResult(args: {
     processId: string;
     wallet: any;
     action: string;
-    tags: TagType[] | null;
+    tags: TagType[] | [];
     data: any;
     useRawData?: boolean;
 }): Promise<any> {
     try {
-        const tags = [{ name: 'Action', value: args.action }];
-        if (args.tags) tags.push(...args.tags);
-
-        const data = args.useRawData ? args.data : JSON.stringify(args.data);
-
         const txId = await message({
             process: args.processId,
+            tags: [
+              { name: "Action", value: args.action },
+                ...args.tags,
+            ],
             signer: createDataItemSigner(args.wallet),
-            tags: tags,
-            data: data,
+            data: JSON.stringify(args.data),
         });
 
-        const { Messages } = await result({ message: txId, process: args.processId });
+        const response = await result({ message: txId, process: args.processId.toString() });
+        const { Messages } = response;
 
         if (Messages?.length) {
             const response = {};
@@ -57,6 +58,11 @@ export async function messageResult(args: {
 
             return response;
         }
+
+        if (response.Output) {
+            return response.Output;
+        }
+
         return null;
     } catch (e) {
         console.error(e);
@@ -157,7 +163,10 @@ export async function readHandler(args: {
     tags?: TagType[];
     data?: any;
 }): Promise<any> {
-    const tags = [{ name: 'Action', value: args.action }];
+    // const tags = [{ name: 'Action', value: args.action }];
+    const tags = [AgreementTag];
+    
+
     if (args.tags) tags.push(...args.tags);
     const data = JSON.stringify(args.data || {});
 
@@ -166,6 +175,8 @@ export async function readHandler(args: {
         tags: tags,
         data: data,
     });
+
+    console.log(response);
 
     if (response.Messages?.length) {
         if (response.Messages[0].Data) {
@@ -187,42 +198,24 @@ export async function spawnProcess(args: {
     data?: any;
 }): Promise<{ processId: string } | null> {
     try {
-        // Create base tags for the spawn message
-        const tags = [
-            { name: 'Action', value: 'Spawn' },
-            { name: 'Module', value: args.module }
-        ];
-
-        // Add any additional tags
-        if (args.tags) {
-            tags.push(...args.tags);
-        }
-
-        // Prepare data
-        const data = args.data ? JSON.stringify(args.data) : '';
-
-        // Spawn the process
         const processId = await spawn({
             module: args.module,
             scheduler: process.env.SCHEDULER,
             signer: createDataItemSigner(args.wallet),
-            tags,
-            data
+            tags: [
+                AgreementTag,
+                { name: "Authority", value: process.env.MU },
+                ...(args.tags ? args.tags : [])
+            ],
+            data: JSON.stringify(args.data || {}),
         });
 
         if (!processId) {
             throw new Error('Failed to spawn process - no processId returned');
         }
-
         return { processId };
     } catch (error) {
         console.error('Error spawning process:', error);
         return null;
     }
 }
-
-// export * from './assets';
-// export * from './collections';
-// export * from './profiles';
-// export * as stamps from './stamps';
-// export * from './vouch';

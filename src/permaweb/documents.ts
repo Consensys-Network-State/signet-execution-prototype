@@ -1,33 +1,56 @@
 import { messageResult, readHandler, spawnProcess } from '@/permaweb';
-import { Document, DocumentSignature } from '@/permaweb/types';
+import { Document, DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
 
 export async function getDocumentById(documentId: string): Promise<Document | null> {
-	try {
-		const fetchedDocument = await readHandler({
-			processId: documentId,
-			action: 'Info',
-			data: null,
-		});
+    try {
+        const fetchedDocument = await readHandler({
+            processId: documentId,
+            action: 'Info',
+            data: null,
+        });
 
-		if (fetchedDocument) {
-			return {
-				id: documentId,
-                content: {
-                    data: fetchedDocument.Data || null,
-                    owner: fetchedDocument.Owner || null,
-                    signer: fetchedDocument.Signer || null,
+        if (fetchedDocument) {
+            // If the VerifiableCredential is stored directly in the process
+            if (fetchedDocument.VerifiableCredential) {
+                return {
+                    documentVC: fetchedDocument.VerifiableCredential,
+                    isSigned: fetchedDocument.IsSigned || false
+                };
+            }
+
+            // If we need to reconstruct the VC from individual fields
+            const documentVC: DocumentVC = {
+                '@context': ['https://www.w3.org/2018/credentials/v1'],
+                type: ['VerifiableCredential', 'SignedAgreement'],
+                credentialSubject: {
+                    documentHash: fetchedDocument.DocumentHash,
+                    timeStamp: fetchedDocument.TimeStamp,
+                    id: fetchedDocument.Owner
                 },
-                ownerSignature: fetchedDocument.OwnerSignature || null,
-                isSigned: fetchedDocument.IsSigned || false,
-			};
-		} 
+                issuer: { id: fetchedDocument.Owner },
+                id: documentId,
+                issuanceDate: fetchedDocument.TimeStamp,
+                proof: {
+                    type: 'JwtProof2020',
+                    jwt: fetchedDocument.Signature || ''
+                }
+            };
+
+            return {
+                documentVC,
+                isSigned: fetchedDocument.IsSigned || false
+            };
+        }
         return null;
-	} catch (e: any) {
-		throw new Error(e);
-	}
+    } catch (e: any) {
+        throw new Error(`Failed to fetch document: ${e.message}`);
+    }
 }
 
-export async function createDocument(document: Omit<Document, 'id'>, wallet: any): Promise<{ processId: string }> {
+export async function createDocument(
+    documentVC: DocumentVC,
+    wallet: any
+): Promise<{ processId: string }> {
     try {
         // Create new AO process for the document
         const result = await spawnProcess({
@@ -35,13 +58,19 @@ export async function createDocument(document: Omit<Document, 'id'>, wallet: any
             wallet,
             data: {
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                Owner: document.content.owner,
+                Owner: documentVC.credentialSubject.id,
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                OwnerSignature: document.ownerSignature,
+                DocumentHash: documentVC.credentialSubject.documentHash,
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                Signer: document.content.signer,
+                Issuer: typeof documentVC.issuer === 'string' 
+                    ? documentVC.issuer 
+                    : documentVC.issuer.id,
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                IsSigned: false
+                VerifiableCredential: documentVC,
+                // biome-ignore lint/style/useNamingConvention: AO convention
+                IsSigned: false,
+                // biome-ignore lint/style/useNamingConvention: AO convention
+                TimeStamp: documentVC.credentialSubject.timeStamp
             }
         });
 
@@ -55,12 +84,18 @@ export async function createDocument(document: Omit<Document, 'id'>, wallet: any
     }
 }
 
-export async function signDocument(signature: DocumentSignature, wallet: any): Promise<boolean> {
+export async function signDocument(
+    counterSignatureVC: DocumentSignatureVC,
+    processId: string,
+    wallet: any
+): Promise<boolean> {
     try {
         // Verify document exists first
-        const document = await readHandler({
-            processId: signature.documentId,
-            action: 'Info',
+        const document = await messageResult({
+            processId,
+            wallet,
+            action: 'GetDocument',
+            tags: [],
             data: null,
         });
 
@@ -68,18 +103,24 @@ export async function signDocument(signature: DocumentSignature, wallet: any): P
             throw new Error('Document not found');
         }
 
-        // Send signature to the document process
+        // Send counter-signature to the document process
         const result = await messageResult({
-            processId: signature.documentId,
+            processId,
             wallet,
             action: 'Sign',
             data: {
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                DocumentHash: signature.documentHash,
+                DocumentHash: counterSignatureVC.credentialSubject.originalDocumentHash,
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                Signer: signature.signer,
+                Signer: typeof counterSignatureVC.issuer === 'string' 
+                    ? counterSignatureVC.issuer 
+                    : counterSignatureVC.issuer.id,
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                Signature: signature.signature
+                VerifiableCredential: counterSignatureVC,
+                // biome-ignore lint/style/useNamingConvention: AO convention
+                TimeStamp: counterSignatureVC.credentialSubject.timeStamp,
+                // biome-ignore lint/style/useNamingConvention: AO convention
+                OriginalVcId: counterSignatureVC.credentialSubject.originalVcId
             },
             tags: [],
         });

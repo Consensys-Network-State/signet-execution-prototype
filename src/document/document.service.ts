@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Document, DocumentSignature } from '@/permaweb/types';
+import { DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
 import { createDocument, signDocument, getDocumentById } from '@/permaweb/documents';
 import { ConfigService } from '@nestjs/config';
 
@@ -11,14 +11,14 @@ export class DocumentService {
     this.wallet = this.configService.get('wallet');
   }
 
-  async createDocument(document: Omit<Document, 'id'>) {
+  async createDocument(documentVC: DocumentVC) {
     const wallet = this.wallet;
-    return createDocument(document, wallet);
+    return createDocument(documentVC, wallet);
   }
 
-  async signDocument(signature: DocumentSignature) {
+  async signDocument(signatureVC: DocumentSignatureVC, processId: string) {
     const wallet = this.wallet;
-    return signDocument(signature, wallet);
+    return signDocument(signatureVC, processId, wallet);
   }
 
   async getDocument(id: string) {
