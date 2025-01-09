@@ -1,5 +1,5 @@
 import { messageResult, readHandler, spawnProcess } from '@/permaweb';
-import { Document, DocumentVC, DocumentSignature } from '@/permaweb/types';
+import { Document, DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
 
 export async function getDocumentById(documentId: string): Promise<Document | null> {
     try {
@@ -85,15 +85,17 @@ export async function createDocument(
 }
 
 export async function signDocument(
-    counterSignature: DocumentSignature,
+    counterSignatureVC: DocumentSignatureVC,
     processId: string,
     wallet: any
 ): Promise<boolean> {
     try {
         // Verify document exists first
-        const document = await readHandler({
+        const document = await messageResult({
             processId,
-            action: 'Info',
+            wallet,
+            action: 'GetDocument',
+            tags: [],
             data: null,
         });
 
@@ -108,17 +110,17 @@ export async function signDocument(
             action: 'Sign',
             data: {
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                DocumentHash: counterSignature.counterSignatureVC.credentialSubject.originalDocumentHash,
+                DocumentHash: counterSignatureVC.credentialSubject.originalDocumentHash,
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                Signer: typeof counterSignature.counterSignatureVC.issuer === 'string' 
-                    ? counterSignature.counterSignatureVC.issuer 
-                    : counterSignature.counterSignatureVC.issuer.id,
+                Signer: typeof counterSignatureVC.issuer === 'string' 
+                    ? counterSignatureVC.issuer 
+                    : counterSignatureVC.issuer.id,
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                VerifiableCredential: counterSignature.counterSignatureVC,
+                VerifiableCredential: counterSignatureVC,
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                TimeStamp: counterSignature.counterSignatureVC.credentialSubject.timeStamp,
+                TimeStamp: counterSignatureVC.credentialSubject.timeStamp,
                 // biome-ignore lint/style/useNamingConvention: AO convention
-                OriginalVcId: counterSignature.counterSignatureVC.credentialSubject.originalVcId
+                OriginalVcId: counterSignatureVC.credentialSubject.originalVcId
             },
             tags: [],
         });

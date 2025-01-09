@@ -3,19 +3,83 @@
 
 Agreements backend, using AO.
 
-## Endpoints
+## Endpoints with samples
 
-Sample document:
+Take two sample Ethereum key pairs:
+
+First key pair (Document Creator):
+
+Private Key: `0x3183e8014bc3176f4d17430c664f8d6fd01a9da456c18362161f3b9a083f4968`
+Address: `0x8164e32201D9c07564cE3DD16F01E35D323C82A4`
+
+Second key pair (Counter-signer):
+
+Private Key: `0x572a478f808a4be3e520c08d41ef05a80e4b8440617d9559227ac6f53bf3c4a8`
+Address: `0xB94C718BFc699E4f20e9C9E66EA596A562C2D3d4`
+
+### POST /document/create
+
+Sample body:
 ```
 {
-    "id": "",
-    "content": {
-        "data": "This is a sample document that needs to be signed by both parties",
-        "owner": "0x71C7656EC7ab88b098defB751B7401B5f6d8976F",
-        "signer": "0x2546BcD3c84621e976D8185a91A922aE77ECEc30"
+    "@context": [
+        "https://www.w3.org/2018/credentials/v1"
+    ],
+    "type": [
+        "VerifiableCredential",
+        "SignedAgreement"
+    ],
+    "id": "urn:uuid:d35238cf-8559-4451-b487-2b8d612d817e",
+    "issuer": {
+        "id": "did:pkh:eip155:1:0x8164e32201D9c07564cE3DD16F01E35D323C82A4"
     },
-    "ownerSignature": "0x8a1db9847b5d68c7c4a7f2f07af3924218ab25fff2a2ee6cca60a4825c00f03223c9ee34bcf3b9051f66bb2cdba1719ba104cefcae744e9baf0ce457ef84e5351c",
-    "isSigned": false
+    "issuanceDate": "2025-01-09T16:57:54.299Z",
+    "credentialSubject": {
+        "documentHash": "0xeb3e65fb2fcbef25208795aeeed4979d3ece4fe5285683157ee99a6248ba598d",
+        "timeStamp": "2025-01-09T16:57:54.299Z",
+        "id": "did:pkh:eip155:1:0x8164e32201D9c07564cE3DD16F01E35D323C82A4"
+    },
+    "proof": {
+        "type": "JwtProof2020",
+        "jwt": "eyJhbGciOiJFUzI1NksifQ.eyJ2YyI6eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiU2lnbmVkQWdyZWVtZW50Il0sImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImRvY3VtZW50SGFzaCI6IjB4ZWIzZTY1ZmIyZmNiZWYyNTIwODc5NWFlZWVkNDk3OWQzZWNlNGZlNTI4NTY4MzE1N2VlOTlhNjI0OGJhNTk4ZCIsInRpbWVTdGFtcCI6IjIwMjUtMDEtMDlUMTY6NTc6NTQuMjk5WiIsImlkIjoiZGlkOnBraDplaXAxNTU6MToweDgxNjRlMzIyMDFEOWMwNzU2NGNFM0REMTZGMDFFMzVEMzIzQzgyQTQifX0sInN1YiI6ImRpZDpwa2g6ZWlwMTU1OjE6MHg4MTY0ZTMyMjAxRDljMDc1NjRjRTNERDE2RjAxRTM1RDMyM0M4MkE0IiwibmJmIjoxNzM2NDQxODc0LCJpc3MiOiJkaWQ6cGtoOmVpcDE1NToxOjB4ODE2NGUzMjIwMUQ5YzA3NTY0Y0UzREQxNkYwMUUzNUQzMjNDODJBNCJ9.0x1b94c718bfc699e4f20e9c9e66ea596a562c2d3d4f158c4c5cafbb56e1d5fbb5e0b89d54cde72a1c87b3d9e2c4f9b9e8b7c6d5e4f3b2a1"
+    }
+}
+```
+
+Expected response: 200 
+```
+{
+	"processId": "hoUMDW52BSNzgE3vKVQbzZEYwvcqPSQjF_DWOthpBcI"
+}
+```
+### POST /document/sign
+
+Sample body:
+
+```
+{
+    "@context": [
+        "https://www.w3.org/2018/credentials/v1"
+    ],
+    "type": [
+        "VerifiableCredential",
+        "CounterSignature"
+    ],
+    "id": "urn:uuid:f7284cf6-98b2-4f24-9876-543210fedcba",
+    "issuer": {
+        "id": "did:pkh:eip155:1:0xB94C718BFc699E4f20e9C9E66EA596A562C2D3d4"
+    },
+    "issuanceDate": "2025-01-09T16:57:54.299Z",
+    "credentialSubject": {
+        "originalDocumentHash": "0xeb3e65fb2fcbef25208795aeeed4979d3ece4fe5285683157ee99a6248ba598d",
+        "originalVcId": "urn:uuid:d35238cf-8559-4451-b487-2b8d612d817e",
+        "timeStamp": "2025-01-09T16:57:54.299Z",
+        "id": "did:pkh:eip155:1:0xB94C718BFc699E4f20e9C9E66EA596A562C2D3d4"
+    },
+    "proof": {
+        "type": "JwtProof2020",
+        "jwt": "eyJhbGciOiJFUzI1NksifQ.eyJ2YyI6eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiQ291bnRlclNpZ25hdHVyZSJdLCJjcmVkZW50aWFsU3ViamVjdCI6eyJvcmlnaW5hbERvY3VtZW50SGFzaCI6IjB4ZWIzZTY1ZmIyZmNiZWYyNTIwODc5NWFlZWVkNDk3OWQzZWNlNGZlNTI4NTY4MzE1N2VlOTlhNjI0OGJhNTk4ZCIsIm9yaWdpbmFsVmNJZCI6InVybjp1dWlkOmQzNTIzOGNmLTg1NTktNDQ1MS1iNDg3LTJiOGQ2MTJkODE3ZSIsInRpbWVTdGFtcCI6IjIwMjUtMDEtMDlUMTY6NTc6NTQuMjk5WiIsImlkIjoiZGlkOnBraDplaXAxNTU6MToweDgxNjRlMzIyMDFEOWMwNzU2NGNFM0REMTZGMDFFMzVEMzIzQzgyQTQifX0sInN1YiI6ImRpZDpwa2g6ZWlwMTU1OjE6MHg4MTY0ZTMyMjAxRDljMDc1NjRjRTNERDE2RjAxRTM1RDMyM0M4MkE0IiwibmJmIjoxNzM2NDQxODc0LCJpc3MiOiJkaWQ6cGtoOmVpcDE1NToxOjB4ODE2NGUzMjIwMUQ5YzA3NTY0Y0UzREQxNkYwMUUzNUQzMjNDODJBNCJ9.0x572a478f808a4be3e520c08d41ef05a80e4b8440617d9559227ac6f53bf3c4a8"
+    }
 }
 ```
 

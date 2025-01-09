@@ -32,7 +32,7 @@ interface CounterSignatureCredentialSubject {
     id: string
 }
 
-interface CounterSignatureVC extends Omit<VerifiableCredential, 'issuer' | 'type' | '@context' | 'credentialSubject'> {
+interface DocumentSignatureVC extends Omit<VerifiableCredential, 'issuer' | 'type' | '@context' | 'credentialSubject'> {
     '@context': ['https://www.w3.org/2018/credentials/v1']
     type: ['VerifiableCredential', 'CounterSignature']
     credentialSubject: CounterSignatureCredentialSubject
@@ -43,16 +43,10 @@ interface CounterSignatureVC extends Omit<VerifiableCredential, 'issuer' | 'type
     }
 }
 
-interface DocumentSignature {
-    counterSignatureVC: CounterSignatureVC
-    isSigned: boolean
-}
-
 export type {
     Document,
     DocumentVC,
-    DocumentSignature,
-    CounterSignatureVC,
+    DocumentSignatureVC,
 }
 
 export type TagType = { name: string; value: string };
