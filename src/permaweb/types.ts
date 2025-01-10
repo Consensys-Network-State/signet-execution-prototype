@@ -13,7 +13,8 @@ interface DocumentVC extends Omit<VerifiableCredential, 'issuer' | 'type' | '@co
     '@context': ['https://www.w3.org/2018/credentials/v1']
     type: ['VerifiableCredential', 'SignedAgreement']
     credentialSubject: DocumentCredentialSubject
-    issuer: IssuerType
+    issuer: IssuerType,
+    issuanceDate: string,
     proof: {
         type: 'JwtProof2020'
         jwt: string
@@ -36,7 +37,8 @@ interface DocumentSignatureVC extends Omit<VerifiableCredential, 'issuer' | 'typ
     '@context': ['https://www.w3.org/2018/credentials/v1']
     type: ['VerifiableCredential', 'CounterSignature']
     credentialSubject: CounterSignatureCredentialSubject
-    issuer: IssuerType
+    issuer: IssuerType,
+    issuanceDate: string,
     proof: {
         type: 'JwtProof2020'
         jwt: string
