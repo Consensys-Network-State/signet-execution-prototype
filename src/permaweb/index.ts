@@ -204,6 +204,7 @@ export async function spawnProcess(args: {
             signer: createDataItemSigner(args.wallet),
             tags: [
                 AgreementTag,
+                { name: 'Action', value: 'Eval' },
                 { name: "Authority", value: process.env.MU },
                 ...(args.tags ? args.tags : [])
             ],
