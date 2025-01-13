@@ -20,29 +20,60 @@ export class VeramoService {
             if (!this.agent) {
                 await this.initializeAgent();
             }
-
-            // Add debug step to check DID resolution
-            const did = 'did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198';
-            const resolution = await this.agent.resolveDid({ didUrl: did });
-            console.log('DID Resolution result:', JSON.stringify(resolution, null, 2));
-
-
+    
+            console.log('Credential to verify:', JSON.stringify(credential, null, 2));
+            console.log('JWT to verify:', credential.proof.jwt);
+    
+            const issuerDid = typeof credential.issuer === 'string' 
+                ? credential.issuer 
+                : credential.issuer.id;
+    
+            const didDoc = await this.agent.resolveDid({ 
+                didUrl: issuerDid,
+                options: { 
+                    publicKeyFormat: ['ES256K', 'Secp256k1', 'EcdsaSecp256k1RecoveryMethod2020'],
+                    accept: 'application/did+ld+json'
+                }
+            });
+            console.log('Resolved DID Document:', JSON.stringify(didDoc, null, 2));
+    
             const result = await this.agent.verifyCredential({
                 credential: credential as W3CVerifiableCredential,
-                fetchRemoteContexts: true
+                fetchRemoteContexts: true,
+                policies: {
+                    now: new Date('2025-01-10T18:41:00.214Z'),
+                    credentialStatus: false
+                },
+                verification: {
+                    // Add specific verification options
+                    jwt: {
+                        algorithms: ['ES256K'],
+                        audience: credential.credentialSubject.id
+                    },
+                    verificationMethod: {
+                        publicKeyFormat: 'ES256K',
+                        methods: ['ES256K', 'EcdsaSecp256k1RecoveryMethod2020'],
+                        recovery: true
+                    }
+                }
             });
-
-            console.log(result);
-
+    
+            console.log('Full verification result:', JSON.stringify(result, null, 2));
+    
             return {
                 verified: result.verified,
-                error: result.verified ? undefined : 'Credential verification failed'
+                error: result.verified ? undefined : `Credential verification failed: ${JSON.stringify(result.error)}`
             };
         } catch (error) {
             console.error('Verification error:', error);
+            if (error instanceof Error) {
+                console.error('Full error stack:', error.stack);
+            }
             return {
                 verified: false,
-                error: error instanceof Error ? error.message : 'Unknown verification error'
+                error: error instanceof Error ? 
+                    `${error.name}: ${error.message}` : 
+                    'Unknown verification error'
             };
         }
     }
@@ -56,37 +87,14 @@ export class VeramoService {
 
             this.agent = this.modules.core.createAgent({
                 plugins: [
-                    new this.modules.credential.CredentialPlugin({
-                        suites: ['EcdsaSecp256k1RecoverySignature2020']  // Explicitly add support for the signature type
-                    }),
+                    new this.modules.credential.CredentialPlugin(),
                     new this.modules.didResolver.DIDResolverPlugin({
-                        ...this.modules.PkhDIDProvider.getDidPkhResolver(),
-                        'eip155': async (did: string) => {
-                            // Add debugging
-                            console.log('Resolving EIP155 DID:', did);
-                            return this.modules.PkhDIDProvider.getDidPkhResolver().resolve(did);
-                        }
+                        resolver: new this.modules.resolver.Resolver({
+                            ...this.modules.PkhDIDProvider.getDidPkhResolver()
+                        })
                     }),
-                    new this.modules.keyManager.KeyManager({
-                        store: new this.modules.keyManager.MemoryKeyStore(),
-                        kms: {
-                            local: new this.modules.keyManagementSystem.KeyManagementSystem({
-                                // Explicitly enable ES256K
-                                keyTypes: ['Secp256k1'],
-                                operations: ['sign', 'verify']
-                            })
-                        }
-                    }),
-                    new this.modules.didManager.DIDManager({
-                        store: new this.modules.didManager.MemoryDIDStore(),
-                        defaultProvider: 'did:pkh',
-                        providers: {
-                            'did:pkh': new this.modules.PkhDIDProvider.PkhDIDProvider({
-                                defaultKms: 'local',
-                                chainId: '1',  // Explicitly set chainId for mainnet
-                            })
-                        }
-                    }),
+                    new this.modules.credentialIssuerEIP712.CredentialIssuerEIP712()
+                    
                 ]
             });
         } catch (error) {

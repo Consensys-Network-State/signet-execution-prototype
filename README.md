@@ -21,29 +21,7 @@ Address: `0xB94C718BFc699E4f20e9C9E66EA596A562C2D3d4`
 
 Sample body:
 ```
-{
-    "@context": [
-        "https://www.w3.org/2018/credentials/v1"
-    ],
-    "type": [
-        "VerifiableCredential",
-        "SignedAgreement"
-    ],
-    "id": "urn:uuid:d35238cf-8559-4451-b487-2b8d612d817e",
-    "issuer": {
-        "id": "did:pkh:eip155:1:0x8164e32201D9c07564cE3DD16F01E35D323C82A4"
-    },
-    "issuanceDate": "2025-01-09T16:57:54.299Z",
-    "credentialSubject": {
-        "documentHash": "0xeb3e65fb2fcbef25208795aeeed4979d3ece4fe5285683157ee99a6248ba598d",
-        "timeStamp": "2025-01-09T16:57:54.299Z",
-        "id": "did:pkh:eip155:1:0x8164e32201D9c07564cE3DD16F01E35D323C82A4"
-    },
-    "proof": {
-        "type": "JwtProof2020",
-        "jwt": "eyJhbGciOiJFUzI1NksifQ.eyJ2YyI6eyJAY29udGV4dCI6WyJodHRwczovL3d3dy53My5vcmcvMjAxOC9jcmVkZW50aWFscy92MSJdLCJ0eXBlIjpbIlZlcmlmaWFibGVDcmVkZW50aWFsIiwiU2lnbmVkQWdyZWVtZW50Il0sImNyZWRlbnRpYWxTdWJqZWN0Ijp7ImRvY3VtZW50SGFzaCI6IjB4ZWIzZTY1ZmIyZmNiZWYyNTIwODc5NWFlZWVkNDk3OWQzZWNlNGZlNTI4NTY4MzE1N2VlOTlhNjI0OGJhNTk4ZCIsInRpbWVTdGFtcCI6IjIwMjUtMDEtMDlUMTY6NTc6NTQuMjk5WiIsImlkIjoiZGlkOnBraDplaXAxNTU6MToweDgxNjRlMzIyMDFEOWMwNzU2NGNFM0REMTZGMDFFMzVEMzIzQzgyQTQifX0sInN1YiI6ImRpZDpwa2g6ZWlwMTU1OjE6MHg4MTY0ZTMyMjAxRDljMDc1NjRjRTNERDE2RjAxRTM1RDMyM0M4MkE0IiwibmJmIjoxNzM2NDQxODc0LCJpc3MiOiJkaWQ6cGtoOmVpcDE1NToxOjB4ODE2NGUzMjIwMUQ5YzA3NTY0Y0UzREQxNkYwMUUzNUQzMjNDODJBNCJ9.0x1b94c718bfc699e4f20e9c9e66ea596a562c2d3d4f158c4c5cafbb56e1d5fbb5e0b89d54cde72a1c87b3d9e2c4f9b9e8b7c6d5e4f3b2a1"
-    }
-}
+{"id":"c7b19a48-b664-425d-ae24-5e42dcf943bf","issuer":{"id":"did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198"},"@context":["https://www.w3.org/2018/credentials/v1"],"type":["VerifiableCredential","SignedAgreement"],"issuanceDate":"2025-01-13T18:04:28.879Z","credentialSubject":{"id":"did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198","documentHash":"0x8964d34dda2371369e03231148a9fcc3c29d991ed68967690f11e2eca92c3ecd","timeStamp":"2025-01-13T18:04:28.880Z"},"proof":{"verificationMethod":"did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198#blockchainAccountId","created":"2025-01-13T18:04:28.879Z","proofPurpose":"assertionMethod","type":"EthereumEip712Signature2021","proofValue":"0x410938df9302264517da4aa2874d2fcc82553a115b500ef90356df6c6df939537784eee09d113b1a1bc7c3cb00b900a37e8e45d0901e11bf3f1430f6182be3ad1c","eip712":{"domain":{"chainId":1,"name":"VerifiableCredential","version":"1"},"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"}],"CredentialSubject":[{"name":"documentHash","type":"string"},{"name":"id","type":"string"},{"name":"timeStamp","type":"string"}],"Issuer":[{"name":"id","type":"string"}],"Proof":[{"name":"created","type":"string"},{"name":"proofPurpose","type":"string"},{"name":"type","type":"string"},{"name":"verificationMethod","type":"string"}],"VerifiableCredential":[{"name":"@context","type":"string[]"},{"name":"credentialSubject","type":"CredentialSubject"},{"name":"id","type":"string"},{"name":"issuanceDate","type":"string"},{"name":"issuer","type":"Issuer"},{"name":"proof","type":"Proof"},{"name":"type","type":"string[]"}]},"primaryType":"VerifiableCredential"}}}
 ```
 
 Expected response: 200 
