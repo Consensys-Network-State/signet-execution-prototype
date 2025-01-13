@@ -1,7 +1,6 @@
 import { DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
 import { Injectable } from '@nestjs/common';
 import type {
-    ICredentialVerifier,
     W3CVerifiableCredential,
 } from '@veramo/core';
 
@@ -21,8 +20,8 @@ export class VeramoService {
                 await this.initializeAgent();
             }
     
-            console.log('Credential to verify:', JSON.stringify(credential, null, 2));
-            console.log('JWT to verify:', credential.proof.jwt);
+            // console.log('Credential to verify:', JSON.stringify(credential, null, 2));
+            // console.log('JWT to verify:', credential.proof.jwt);
     
             const issuerDid = typeof credential.issuer === 'string' 
                 ? credential.issuer 
@@ -35,7 +34,7 @@ export class VeramoService {
                     accept: 'application/did+ld+json'
                 }
             });
-            console.log('Resolved DID Document:', JSON.stringify(didDoc, null, 2));
+            // console.log('Resolved DID Document:', JSON.stringify(didDoc, null, 2));
     
             const result = await this.agent.verifyCredential({
                 credential: credential as W3CVerifiableCredential,
@@ -58,7 +57,7 @@ export class VeramoService {
                 }
             });
     
-            console.log('Full verification result:', JSON.stringify(result, null, 2));
+            // console.log('Full verification result:', JSON.stringify(result, null, 2));
     
             return {
                 verified: result.verified,
