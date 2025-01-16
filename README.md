@@ -3,6 +3,25 @@
 
 Agreements backend, using AO.
 
+## Proposed Overall Flow
+
+1. Creator uses UI to draft agreement.
+2. Creator configures requested signature addresses.
+3. Creator signs off for publishing, generating a VC.
+4. UI Encrypts credentialSubject.document portion of the VC with public key of signer and sends to backend.
+5. Backend spawns AO actor with agreement code and stores the VC.
+6. AO actor verifies VC integrity and stores it.
+7. Creator sends a generated signature link to the signer.
+8. Signer loads link which renders UI that fetches document VC from AO through backend.
+9. Signer decrypts VC using wallet.
+10. Signer reviews the decrypted document and signs a new signature VC against the document VC.
+11. UI sends the VC to the backend and thus AO.
+12. AO actor verified signature VC integrity and marks the document as signed.
+13. UI that was polling backend for completion detects completion and marks the document as signed.
+
+![image](https://github.com/user-attachments/assets/15b04ace-a10f-49e6-a3ab-5e89c96413e1)
+Source: https://www.figma.com/board/FLZ211bOwAS2eehIbIHPRw/Agreements-End-to-End-MVP?node-id=1-467&t=isZzmkmUNBsStMJ2-1
+
 ## Endpoints with samples
 
 Take two sample Ethereum key pairs:
