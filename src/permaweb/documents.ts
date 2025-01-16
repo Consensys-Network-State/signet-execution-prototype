@@ -1,12 +1,21 @@
 import { messageResult, readHandler, spawnProcess } from '@/permaweb';
-import { message, result, results, spawn } from '@permaweb/aoconnect';
 import { Document, DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
+import * as fs from 'node:fs/promises';
+import { join } from 'node:path';
+
+function getRootPath(): string {
+    // In production, files are typically in the 'dist' directory
+    // In development, they're in the project root
+    return process.env.NODE_ENV === 'production' 
+      ? join(process.cwd(), 'dist') 
+      : join(process.cwd(), 'src') ;
+  }
 
 export async function getDocumentById(documentId: string): Promise<Document | null> {
     try {
         const fetchedDocument = await readHandler({
             processId: documentId,
-            action: 'RetrieveDocument',
+            action: 'GetState',
             data: null,
         });
 
@@ -64,37 +73,25 @@ export async function createDocument(
             throw new Error('Failed to create document process');
         }
 
+        // Get the code from local file system
+        const path = join(getRootPath(), 'permaweb/ao/actors/apoc.lua');
+        const code = await fs.readFile(path, 'utf-8');
+
         // Send the actor code
         const codeUploadResult = await messageResult({
             processId: result.processId,
             wallet,
             action: 'Eval',
-            data: `
-                Document = Document or nil
-
-                Handlers.add(
-                    "StoreDocument",
-                    Handlers.utils.hasMatchingTag("Action", "StoreDocument"),
-                    function (msg)
-                        Document = msg.Data
-                    end
-                )
-                Handlers.add(
-                    "RetrieveDocument",
-                    Handlers.utils.hasMatchingTag("Action", "RetrieveDocument"),
-                    function (msg)
-                        msg.reply({ Data = Document })
-                    end
-                )
-            `,
+            data: code,
             tags: [],
         });
+        console.log(codeUploadResult);
 
         // Store the document
         const docResult = await messageResult({
             processId: result.processId,
             wallet,
-            action: 'StoreDocument',
+            action: 'Init',
             data: JSON.stringify(documentVC),
             tags: [],
         });
@@ -114,7 +111,7 @@ export async function signDocument(
         // Verify document exists first
         const document = await readHandler({
             processId,
-            action: 'RetrieveDocument',
+            action: 'GetState',
             data: null,
         });
 
@@ -126,7 +123,7 @@ export async function signDocument(
         const result = await messageResult({
             processId,
             wallet,
-            action: 'SignDocument',
+            action: 'Sign',
             data: JSON.stringify({
                 // biome-ignore lint/style/useNamingConvention: AO convention
                 DocumentHash: counterSignatureVC.credentialSubject.originalDocumentHash,
