@@ -12,13 +12,11 @@ export class DocumentService {
   }
 
   async createDocument(documentVC: DocumentVC) {
-    const wallet = this.wallet;
-    return createDocument(documentVC, wallet);
+    return createDocument(documentVC, this.wallet);
   }
 
   async signDocument(signatureVC: DocumentSignatureVC, processId: string) {
-    const wallet = this.wallet;
-    return signDocument(signatureVC, processId, wallet);
+    return signDocument(signatureVC, processId, this.wallet);
   }
 
   async getDocument(id: string) {

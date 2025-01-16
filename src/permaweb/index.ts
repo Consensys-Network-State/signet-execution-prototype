@@ -22,7 +22,7 @@ export async function messageResult(args: {
                 ...args.tags,
             ],
             signer: createDataItemSigner(args.wallet),
-            data: JSON.stringify(args.data),
+            data: args.data,
         });
 
         const response = await result({ message: txId, process: args.processId.toString() });
@@ -163,9 +163,7 @@ export async function readHandler(args: {
     tags?: TagType[];
     data?: any;
 }): Promise<any> {
-    // const tags = [{ name: 'Action', value: args.action }];
-    const tags = [AgreementTag];
-    
+    const tags = [AgreementTag, { name: 'Action', value: args.action }];
 
     if (args.tags) tags.push(...args.tags);
     const data = JSON.stringify(args.data || {});
@@ -204,6 +202,7 @@ export async function spawnProcess(args: {
             signer: createDataItemSigner(args.wallet),
             tags: [
                 AgreementTag,
+                { name: 'Action', value: 'Eval' },
                 { name: "Authority", value: process.env.MU },
                 ...(args.tags ? args.tags : [])
             ],

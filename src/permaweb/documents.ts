@@ -1,11 +1,12 @@
 import { messageResult, readHandler, spawnProcess } from '@/permaweb';
+import { message, result, results, spawn } from '@permaweb/aoconnect';
 import { Document, DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
 
 export async function getDocumentById(documentId: string): Promise<Document | null> {
     try {
         const fetchedDocument = await readHandler({
             processId: documentId,
-            action: 'Info',
+            action: 'RetrieveDocument',
             data: null,
         });
 
@@ -56,27 +57,47 @@ export async function createDocument(
         const result = await spawnProcess({
             module: process.env.MODULE,
             wallet,
-            data: {
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                Owner: documentVC.credentialSubject.id,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                DocumentHash: documentVC.credentialSubject.documentHash,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                Issuer: typeof documentVC.issuer === 'string' 
-                    ? documentVC.issuer 
-                    : documentVC.issuer.id,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                VerifiableCredential: documentVC,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                IsSigned: false,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                TimeStamp: documentVC.credentialSubject.timeStamp
-            }
+            data: null,
         });
 
         if (!result?.processId) {
             throw new Error('Failed to create document process');
         }
+
+        // Send the actor code
+        const codeUploadResult = await messageResult({
+            processId: result.processId,
+            wallet,
+            action: 'Eval',
+            data: `
+                Document = Document or nil
+
+                Handlers.add(
+                    "StoreDocument",
+                    Handlers.utils.hasMatchingTag("Action", "StoreDocument"),
+                    function (msg)
+                        Document = msg.Data
+                    end
+                )
+                Handlers.add(
+                    "RetrieveDocument",
+                    Handlers.utils.hasMatchingTag("Action", "RetrieveDocument"),
+                    function (msg)
+                        msg.reply({ Data = Document })
+                    end
+                )
+            `,
+            tags: [],
+        });
+
+        // Store the document
+        const docResult = await messageResult({
+            processId: result.processId,
+            wallet,
+            action: 'StoreDocument',
+            data: JSON.stringify(documentVC),
+            tags: [],
+        });
 
         return { processId: result.processId };
     } catch (e: any) {
@@ -91,11 +112,9 @@ export async function signDocument(
 ): Promise<boolean> {
     try {
         // Verify document exists first
-        const document = await messageResult({
+        const document = await readHandler({
             processId,
-            wallet,
-            action: 'GetDocument',
-            tags: [],
+            action: 'RetrieveDocument',
             data: null,
         });
 
@@ -107,8 +126,8 @@ export async function signDocument(
         const result = await messageResult({
             processId,
             wallet,
-            action: 'Sign',
-            data: {
+            action: 'SignDocument',
+            data: JSON.stringify({
                 // biome-ignore lint/style/useNamingConvention: AO convention
                 DocumentHash: counterSignatureVC.credentialSubject.originalDocumentHash,
                 // biome-ignore lint/style/useNamingConvention: AO convention
@@ -121,7 +140,7 @@ export async function signDocument(
                 TimeStamp: counterSignatureVC.credentialSubject.timeStamp,
                 // biome-ignore lint/style/useNamingConvention: AO convention
                 OriginalVcId: counterSignatureVC.credentialSubject.originalVcId
-            },
+            }),
             tags: [],
         });
 
