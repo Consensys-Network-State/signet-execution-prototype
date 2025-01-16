@@ -1,11 +1,12 @@
 import { messageResult, readHandler, spawnProcess } from '@/permaweb';
+import { message, result, results, spawn } from '@permaweb/aoconnect';
 import { Document, DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
 
 export async function getDocumentById(documentId: string): Promise<Document | null> {
     try {
         const fetchedDocument = await readHandler({
             processId: documentId,
-            action: 'Info',
+            action: 'RetrieveDocument',
             data: null,
         });
 
@@ -56,23 +57,7 @@ export async function createDocument(
         const result = await spawnProcess({
             module: process.env.MODULE,
             wallet,
-            data: documentVC,
-            // data: {
-            //     // biome-ignore lint/style/useNamingConvention: AO convention
-            //     Owner: documentVC.credentialSubject.id,
-            //     // biome-ignore lint/style/useNamingConvention: AO convention
-            //     DocumentHash: documentVC.credentialSubject.documentHash,
-            //     // biome-ignore lint/style/useNamingConvention: AO convention
-            //     Issuer: typeof documentVC.issuer === 'string' 
-            //         ? documentVC.issuer 
-            //         : documentVC.issuer.id,
-            //     // biome-ignore lint/style/useNamingConvention: AO convention
-            //     VerifiableCredential: documentVC,
-            //     // biome-ignore lint/style/useNamingConvention: AO convention
-            //     IsSigned: false,
-            //     // biome-ignore lint/style/useNamingConvention: AO convention
-            //     TimeStamp: documentVC.credentialSubject.timeStamp
-            // }
+            data: null,
         });
 
         if (!result?.processId) {
@@ -85,50 +70,34 @@ export async function createDocument(
             wallet,
             action: 'Eval',
             data: `
-                local state = { 
-                    document = nil,
-                    signature = nill
-                }
-                Handlers.add("StoreDocument", function(data)
-                    state.document = data
-                end)
+                Document = Document or nil
 
-                Handlers.add("SignDocument", function(data)
-                    state.signature = data
-                end)
-
-                Handlers.add("RetrieveDocument", function(data)
-                    return state.document
-                end)
-
-                Handlers.add("RetrieveSignature", function(data)
-                    return state.signature
-                end)
+                Handlers.add(
+                    "StoreDocument",
+                    Handlers.utils.hasMatchingTag("Action", "StoreDocument"),
+                    function (msg)
+                        Document = msg.Data
+                    end
+                )
+                Handlers.add(
+                    "RetrieveDocument",
+                    Handlers.utils.hasMatchingTag("Action", "RetrieveDocument"),
+                    function (msg)
+                        msg.reply({ Data = Document })
+                    end
+                )
             `,
             tags: [],
         });
-
-        console.log(codeUploadResult);
 
         // Store the document
         const docResult = await messageResult({
             processId: result.processId,
             wallet,
             action: 'StoreDocument',
-            data: documentVC,
+            data: JSON.stringify(documentVC),
             tags: [],
         });
-        console.log(docResult);
-
-        // Retrieve the document to see if it worked
-        const downloadResult = await messageResult({
-            processId: result.processId,
-            wallet,
-            action: 'RetrieveDocument',
-            data: null,
-            tags: [],
-        });
-        console.log(downloadResult);
 
         return { processId: result.processId };
     } catch (e: any) {
