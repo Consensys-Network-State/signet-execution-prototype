@@ -112,11 +112,9 @@ export async function signDocument(
 ): Promise<boolean> {
     try {
         // Verify document exists first
-        const document = await messageResult({
+        const document = await readHandler({
             processId,
-            wallet,
-            action: 'GetDocument',
-            tags: [],
+            action: 'RetrieveDocument',
             data: null,
         });
 
@@ -128,8 +126,8 @@ export async function signDocument(
         const result = await messageResult({
             processId,
             wallet,
-            action: 'Sign',
-            data: {
+            action: 'SignDocument',
+            data: JSON.stringify({
                 // biome-ignore lint/style/useNamingConvention: AO convention
                 DocumentHash: counterSignatureVC.credentialSubject.originalDocumentHash,
                 // biome-ignore lint/style/useNamingConvention: AO convention
@@ -142,7 +140,7 @@ export async function signDocument(
                 TimeStamp: counterSignatureVC.credentialSubject.timeStamp,
                 // biome-ignore lint/style/useNamingConvention: AO convention
                 OriginalVcId: counterSignatureVC.credentialSubject.originalVcId
-            },
+            }),
             tags: [],
         });
 
@@ -150,35 +148,4 @@ export async function signDocument(
     } catch (e: any) {
         throw new Error(`Failed to sign document: ${e.message}`);
     }
-}
-
-export async function test(wallet: any) {
-    // Send the actor code
-    const codeUploadResult = await messageResult({
-        processId: 'WJDj96YM7qXgnynpGNRIJmG5ANUcfqKQJs5M5YgiibA',
-        wallet,
-        action: 'Eval',
-        data: `
-            local state = { 
-                document = nil,
-                signature = nill
-            }
-            Handlers.add("storeDocument", function(data)
-                state.document = data
-            end)
-
-            Handlers.add("signDocument", function(data)
-                state.signature = data
-            end)
-
-            Handlers.add("retrieveDocument", function(data)
-                return state.document
-            end)
-
-            Handlers.add("retrieveSignature", function(data)
-                return state.signature
-            end)
-        `,
-        tags: [],
-    });
 }

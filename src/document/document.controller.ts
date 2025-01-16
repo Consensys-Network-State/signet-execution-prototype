@@ -11,11 +11,6 @@ export class DocumentController {
         private readonly veramoService: VeramoService
     ) {}
 
-    @Get('test')
-    async test(@Body() data: any) {
-        this.documentService.test();
-    }
-
     @Get(':id')
     async getDocument(@Param('id') id: string) {
         return this.documentService.getDocument(id);
