@@ -13,11 +13,13 @@ function getRootPath(): string {
 
 export async function getDocumentById(documentId: string): Promise<Document | null> {
     try {
-        const fetchedDocument = await readHandler({
+        const state = await readHandler({
             processId: documentId,
             action: 'GetState',
             data: null,
         });
+
+        const fetchedDocument = state?.Document;
 
         if (fetchedDocument) {
             // If the VerifiableCredential is stored directly in the process
