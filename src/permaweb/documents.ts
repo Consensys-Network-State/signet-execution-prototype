@@ -126,20 +126,7 @@ export async function signDocument(
             processId,
             wallet,
             action: 'Sign',
-            data: JSON.stringify({
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                DocumentHash: counterSignatureVC.credentialSubject.originalDocumentHash,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                Signer: typeof counterSignatureVC.issuer === 'string' 
-                    ? counterSignatureVC.issuer 
-                    : counterSignatureVC.issuer.id,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                VerifiableCredential: counterSignatureVC,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                TimeStamp: counterSignatureVC.credentialSubject.timeStamp,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                OriginalVcId: counterSignatureVC.credentialSubject.originalVcId
-            }),
+            data: JSON.stringify(counterSignatureVC),
             tags: [],
         });
 
