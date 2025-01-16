@@ -527,6 +527,11 @@ local function init(document)
   return is_valid
 end
 
+local function reply_error(msg, error_msg)
+  msg.reply({ Data = { success = false, error = error_msg } })
+  error(error_msg)
+end
+
 Handlers.add(
   "Init",
   Handlers.utils.hasMatchingTag("Action", "Init"),
@@ -538,8 +543,7 @@ Handlers.add(
 
     print("Agreement VC verification result: " .. (is_valid and "VALID" or "INVALID"))
 
-    ao.send({ Target = msg.From, Action = "Create-Result", Data = { is_valid = is_valid }})
-    return { is_valid = is_valid }
+    msg.reply({ Data = { success = is_valid } })
   end
 )
 
@@ -556,11 +560,11 @@ Handlers.add(
       if utils.includes(owner_eth_address)(Signatories) then
         local sig_document_hash = strip_hex_prefix(vc_json.credentialSubject.documentHash or '')
         if sig_document_hash ~= DocumentHash then
-          error('Signature VC does not contain a matching documentHash: "' .. sig_document_hash)
+          reply_error(msg, 'Signature VC does not contain a matching documentHash: "' .. sig_document_hash)
         end
         Signatures[owner_eth_address] = signature_vc
       else
-        error('Signature VC from unexpected signatory ' .. owner_eth_address)
+        reply_error(msg, 'Signature VC from unexpected signatory ' .. owner_eth_address)
       end
 
       if all_signatories_signed(Signatories, Signatures) then
@@ -569,8 +573,7 @@ Handlers.add(
     end
     print("Signature VC verification result: " .. (is_valid and "VALID" or "INVALID"))
 
-    ao.send({ Target = msg.From, Action = "Create-Result", Data = { is_valid = is_valid }})
-    return { is_valid = is_valid }
+    msg.reply({ Data = { success = is_valid } })
   end
 )
 
@@ -588,7 +591,6 @@ Handlers.add(
       IsComplete = IsComplete,
     }
     -- print(state)
-    ao.send({ Target = msg.From, Action = "Create-Result", Data = state })
-    return state
+    msg.reply({ Data = state })
   end
 )
