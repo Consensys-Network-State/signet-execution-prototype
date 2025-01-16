@@ -393,6 +393,13 @@ local eip712 = { -- pretend export and import statements all in one line
 -- ====== BEGIN es256k.lua ======
 -- ==============================
 
+local function strip_hex_prefix(hex_str)
+  if hex_str:sub(1, 2) == "0x" then
+    return hex_str:sub(3)
+  end
+  return hex_str
+end
+
 local function pubkey_to_eth_address(pubkey_hex)
   if #pubkey_hex ~= 130 or pubkey_hex:sub(1, 2) ~= '04' then
     error('toEthereumAddress: Expecting an uncompressed public key')
@@ -405,10 +412,7 @@ local function pubkey_to_eth_address(pubkey_hex)
 end
 
 local function decode_signature(signature)
-  local sanitized_sig = signature
-  if sanitized_sig:sub(1, 2) == "0x" then
-    sanitized_sig = signature:sub(3)
-  end
+  local sanitized_sig = strip_hex_prefix(signature)
 
   if #sanitized_sig ~= 130 then
     error("Invalid signature length: expected 130 hex chars (65 bytes)")
@@ -490,10 +494,19 @@ end
 Document = Document or nil
 DocumentHash = DocumentHash or nil
 DocumentOwner = DocumentOwner or nil
-Signatories = Signatories or nil
+Signatories = Signatories or {}
 Signatures = Signatures or {}
 IsComplete = IsComplete or false
 -- END: actor's internal state
+
+local function all_signatories_signed(signatories, signatures)
+  for _, value in ipairs(signatories) do
+      if not signatures[value] then
+          return false
+      end
+  end
+  return true
+end
 
 local function init(document)
   local is_valid, vc_json, owner_eth_address = vc_validate(document)
@@ -503,8 +516,12 @@ local function init(document)
     local agreement_doc = vc_json.credentialSubject.document
     DocumentHash = crypto.digest.keccak256(agreement_doc).asHex()
     DocumentOwner = owner_eth_address
+
     -- TODO: validate the signatories list. Make sure at least one is present.
-    Signatories = vc_json.credentialSubject.signatories or {} -- should already be in the form of eth addresses?
+
+    -- forcing lowercase on the received eth addresses to avoid comparison confusion down the road
+    local sigs = utils.map(function(x) return string.lower(x) end)(vc_json.credentialSubject.signatories)
+    Signatories = sigs
   end
 
   return is_valid
@@ -537,14 +554,18 @@ Handlers.add(
     if is_valid then
       -- validate that the VC comes from one of the expected signatories
       if utils.includes(owner_eth_address)(Signatories) then
-        
-        -- TODO: validate that the VC payload contains a document hash matching our agreement document (that the user indeed viewed and signed this agreement)
-
+        local sig_document_hash = strip_hex_prefix(vc_json.credentialSubject.documentHash or '')
+        if sig_document_hash ~= DocumentHash then
+          error('Signature VC does not contain a matching documentHash: "' .. sig_document_hash)
+        end
         Signatures[owner_eth_address] = signature_vc
       else
         error('Signature VC from unexpected signatory ' .. owner_eth_address)
       end
-      -- TODO: check if this is the last signatory required for the agreement to be considered completed
+
+      if all_signatories_signed(Signatories, Signatures) then
+        IsComplete = true
+      end
     end
     print("Signature VC verification result: " .. (is_valid and "VALID" or "INVALID"))
 
