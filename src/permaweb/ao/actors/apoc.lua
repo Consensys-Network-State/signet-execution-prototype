@@ -508,15 +508,15 @@ local function all_signatories_signed(signatories, signatures)
   return true
 end
 
-local function reply_error(msg, error_msg)
+local function reply_error(msg, error)
   msg.reply(
   {
     Data = {
       success = false,
-      error_msg = error_msg
+      error = error
     }
   })
-  print("Error during execution: " .. error_msg)
+  print("Error during execution: " .. error)
   -- throwing errors seems to somehow get in the way of msg.reply going through, even though it happens strictly after...
   -- error(error_msg)
 end
