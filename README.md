@@ -19,7 +19,8 @@ Agreements backend, using AO.
 12. AO actor verified signature VC integrity and marks the document as signed.
 13. UI that was polling backend for completion detects completion and marks the document as signed.
 
-![image](https://github.com/user-attachments/assets/15b04ace-a10f-49e6-a3ab-5e89c96413e1)
+![image](https://github.com/user-attachments/assets/bfec7f77-d609-4232-8156-2517a048119f)
+
 Source: https://www.figma.com/board/FLZ211bOwAS2eehIbIHPRw/Agreements-End-to-End-MVP?node-id=1-467&t=isZzmkmUNBsStMJ2-1
 
 ## Endpoints with samples
