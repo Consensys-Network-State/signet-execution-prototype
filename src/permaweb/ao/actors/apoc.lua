@@ -508,38 +508,49 @@ local function all_signatories_signed(signatories, signatures)
   return true
 end
 
-local function init(document)
-  local is_valid, vc_json, owner_eth_address = vc_validate(document)
-
-  if is_valid then
-    Document = document
-    local agreement_doc = vc_json.credentialSubject.document
-    DocumentHash = crypto.digest.keccak256(agreement_doc).asHex()
-    DocumentOwner = owner_eth_address
-
-    -- TODO: validate the signatories list. Make sure at least one is present.
-
-    -- forcing lowercase on the received eth addresses to avoid comparison confusion down the road
-    local sigs = utils.map(function(x) return string.lower(x) end)(vc_json.credentialSubject.signatories)
-    Signatories = sigs
-  end
-
-  return is_valid
-end
-
 local function reply_error(msg, error_msg)
-  msg.reply({ Data = { success = false, error = error_msg } })
-  error(error_msg)
+  msg.reply(
+  {
+    Data = {
+      success = false,
+      error_msg = error_msg
+    }
+  })
+  print("Error during execution: " .. error_msg)
+  -- throwing errors seems to somehow get in the way of msg.reply going through, even though it happens strictly after...
+  -- error(error_msg)
 end
 
 Handlers.add(
   "Init",
   Handlers.utils.hasMatchingTag("Action", "Init"),
   function (msg)
-    -- TODO: should we guard against 'Init' being called more than once?
-
     -- expecting msg.Data to contain a valid agreement VC
-    local is_valid = init(msg.Data)
+    local document = msg.Data
+
+    if Document then
+      reply_error(msg, 'Document is already initialized and cannot be overwritten')
+      return
+    end
+    
+    local is_valid, vc_json, owner_eth_address = vc_validate(document)
+
+    if is_valid then
+      Document = document
+      DocumentHash = crypto.digest.keccak256(document).asHex()
+      DocumentOwner = owner_eth_address
+
+      -- TODO: validate the signatories list is a valid list of eth addresses?
+      local signatories = vc_json.credentialSubject.signatories or {}
+      if #signatories == 0 then
+        reply_error(msg, 'Must have at least one signatory specified')
+        return
+      end
+
+      -- forcing lowercase on the received eth addresses to avoid comparison confusion down the road
+      local sigs_lowercase = utils.map(function(x) return string.lower(x) end)(signatories)
+      Signatories = sigs_lowercase
+    end
 
     print("Agreement VC verification result: " .. (is_valid and "VALID" or "INVALID"))
 
@@ -551,6 +562,10 @@ Handlers.add(
   "Sign",
   Handlers.utils.hasMatchingTag("Action", "Sign"),
   function (msg)
+    if IsComplete then
+      reply_error(msg, 'The agreement has completed signing.')
+      return
+    end
     -- expecting msg.Data to contain a valid Areement Signature VC
     local signature_vc = msg.Data
     local is_valid, vc_json, owner_eth_address = vc_validate(signature_vc)
@@ -560,11 +575,13 @@ Handlers.add(
       if utils.includes(owner_eth_address)(Signatories) then
         local sig_document_hash = strip_hex_prefix(vc_json.credentialSubject.documentHash or '')
         if sig_document_hash ~= DocumentHash then
-          reply_error(msg, 'Signature VC does not contain a matching documentHash: "' .. sig_document_hash)
+          reply_error(msg, 'Signature VC does not contain a matching documentHash: "' .. sig_document_hash.. '"')
+          return
         end
         Signatures[owner_eth_address] = signature_vc
       else
-        reply_error(msg, 'Signature VC from unexpected signatory ' .. owner_eth_address)
+        reply_error(msg, 'Signature VC from unexpected signatory: "' .. owner_eth_address .. '"')
+        return
       end
 
       if all_signatories_signed(Signatories, Signatures) then
