@@ -1,5 +1,5 @@
 import { messageResult, readHandler, spawnProcess } from '@/permaweb';
-import { Document, DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
+import { DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -11,7 +11,7 @@ function getRootPath(): string {
       : join(process.cwd(), 'src') ;
   }
 
-export async function getDocumentById(documentId: string): Promise<Document | null> {
+export async function getDocumentById(documentId: string): Promise<DocumentVC> {
     try {
         const state = await readHandler({
             processId: documentId,
@@ -19,41 +19,7 @@ export async function getDocumentById(documentId: string): Promise<Document | nu
             data: null,
         });
 
-        const fetchedDocument = state?.Document;
-
-        if (fetchedDocument) {
-            // If the VerifiableCredential is stored directly in the process
-            if (fetchedDocument.VerifiableCredential) {
-                return {
-                    documentVC: fetchedDocument.VerifiableCredential,
-                    isSigned: fetchedDocument.IsSigned || false
-                };
-            }
-
-            // If we need to reconstruct the VC from individual fields
-            const documentVC: DocumentVC = {
-                '@context': ['https://www.w3.org/2018/credentials/v1'],
-                type: ['VerifiableCredential', 'SignedAgreement'],
-                credentialSubject: {
-                    documentHash: fetchedDocument.DocumentHash,
-                    timeStamp: fetchedDocument.TimeStamp,
-                    id: fetchedDocument.Owner
-                },
-                issuer: { id: fetchedDocument.Owner },
-                id: documentId,
-                issuanceDate: fetchedDocument.TimeStamp,
-                proof: {
-                    type: 'JwtProof2020',
-                    jwt: fetchedDocument.Signature || ''
-                }
-            };
-
-            return {
-                documentVC,
-                isSigned: fetchedDocument.IsSigned || false
-            };
-        }
-        return null;
+        return JSON.parse(state?.Document) as DocumentVC;
     } catch (e: any) {
         throw new Error(`Failed to fetch document: ${e.message}`);
     }
