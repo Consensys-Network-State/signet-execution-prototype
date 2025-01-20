@@ -1,48 +1,26 @@
 import { messageResult, readHandler, spawnProcess } from '@/permaweb';
-import { message, result, results, spawn } from '@permaweb/aoconnect';
-import { Document, DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
+import { DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
+import * as fs from 'node:fs/promises';
+import { join } from 'node:path';
 
-export async function getDocumentById(documentId: string): Promise<Document | null> {
+function getRootPath(): string {
+    // In production, files are typically in the 'dist' directory
+    // In development, they're in the project root
+    return process.env.NODE_ENV === 'production' 
+      ? join(process.cwd(), 'dist') 
+      : join(process.cwd(), 'src') ;
+  }
+
+  // TODO: could define a type that describes the whole actor state being returned
+export async function getDocumentById(documentId: string): Promise<any> {
     try {
-        const fetchedDocument = await readHandler({
+        const state = await readHandler({
             processId: documentId,
-            action: 'RetrieveDocument',
+            action: 'GetState',
             data: null,
         });
 
-        if (fetchedDocument) {
-            // If the VerifiableCredential is stored directly in the process
-            if (fetchedDocument.VerifiableCredential) {
-                return {
-                    documentVC: fetchedDocument.VerifiableCredential,
-                    isSigned: fetchedDocument.IsSigned || false
-                };
-            }
-
-            // If we need to reconstruct the VC from individual fields
-            const documentVC: DocumentVC = {
-                '@context': ['https://www.w3.org/2018/credentials/v1'],
-                type: ['VerifiableCredential', 'SignedAgreement'],
-                credentialSubject: {
-                    documentHash: fetchedDocument.DocumentHash,
-                    timeStamp: fetchedDocument.TimeStamp,
-                    id: fetchedDocument.Owner
-                },
-                issuer: { id: fetchedDocument.Owner },
-                id: documentId,
-                issuanceDate: fetchedDocument.TimeStamp,
-                proof: {
-                    type: 'JwtProof2020',
-                    jwt: fetchedDocument.Signature || ''
-                }
-            };
-
-            return {
-                documentVC,
-                isSigned: fetchedDocument.IsSigned || false
-            };
-        }
-        return null;
+        return state;
     } catch (e: any) {
         throw new Error(`Failed to fetch document: ${e.message}`);
     }
@@ -64,37 +42,25 @@ export async function createDocument(
             throw new Error('Failed to create document process');
         }
 
+        // Get the code from local file system
+        const path = join(getRootPath(), 'permaweb/ao/actors/apoc.lua');
+        const code = await fs.readFile(path, 'utf-8');
+
         // Send the actor code
         const codeUploadResult = await messageResult({
             processId: result.processId,
             wallet,
             action: 'Eval',
-            data: `
-                Document = Document or nil
-
-                Handlers.add(
-                    "StoreDocument",
-                    Handlers.utils.hasMatchingTag("Action", "StoreDocument"),
-                    function (msg)
-                        Document = msg.Data
-                    end
-                )
-                Handlers.add(
-                    "RetrieveDocument",
-                    Handlers.utils.hasMatchingTag("Action", "RetrieveDocument"),
-                    function (msg)
-                        msg.reply({ Data = Document })
-                    end
-                )
-            `,
+            data: code,
             tags: [],
         });
+        console.log(codeUploadResult);
 
         // Store the document
         const docResult = await messageResult({
             processId: result.processId,
             wallet,
-            action: 'StoreDocument',
+            action: 'Init',
             data: JSON.stringify(documentVC),
             tags: [],
         });
@@ -114,7 +80,7 @@ export async function signDocument(
         // Verify document exists first
         const document = await readHandler({
             processId,
-            action: 'RetrieveDocument',
+            action: 'GetState',
             data: null,
         });
 
@@ -126,21 +92,8 @@ export async function signDocument(
         const result = await messageResult({
             processId,
             wallet,
-            action: 'SignDocument',
-            data: JSON.stringify({
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                DocumentHash: counterSignatureVC.credentialSubject.originalDocumentHash,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                Signer: typeof counterSignatureVC.issuer === 'string' 
-                    ? counterSignatureVC.issuer 
-                    : counterSignatureVC.issuer.id,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                VerifiableCredential: counterSignatureVC,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                TimeStamp: counterSignatureVC.credentialSubject.timeStamp,
-                // biome-ignore lint/style/useNamingConvention: AO convention
-                OriginalVcId: counterSignatureVC.credentialSubject.originalVcId
-            }),
+            action: 'Sign',
+            data: JSON.stringify(counterSignatureVC),
             tags: [],
         });
 

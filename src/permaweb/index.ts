@@ -26,6 +26,11 @@ export async function messageResult(args: {
         });
 
         const response = await result({ message: txId, process: args.processId.toString() });
+
+        if (response.Error) {
+            throw new Error(response.Error);
+        }
+
         const { Messages } = response;
 
         if (Messages?.length) {
@@ -69,94 +74,6 @@ export async function messageResult(args: {
     }
 }
 
-export async function messageResults(args: {
-    processId: string;
-    wallet: any;
-    action: string;
-    tags: TagType[] | null;
-    data: any;
-    responses?: string[];
-    handler?: string;
-}): Promise<any> {
-    try {
-        const tags = [{ name: 'Action', value: args.action }];
-        if (args.tags) tags.push(...args.tags);
-
-        await message({
-            process: args.processId,
-            signer: createDataItemSigner(args.wallet),
-            tags: tags,
-            data: JSON.stringify(args.data),
-        });
-
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        const messageResults = await results({
-            process: args.processId,
-            sort: 'DESC',
-            limit: 100,
-        });
-
-        if (messageResults?.edges?.length) {
-            const response = {};
-
-            for (const result of messageResults.edges) {
-                if (result.node?.Messages?.length) {
-                    const resultSet = [args.action];
-                    if (args.responses) resultSet.push(...args.responses);
-
-                    for (const message of result.node.Messages) {
-                        const action = getTagValue(message.Tags, 'Action');
-
-                        if (action) {
-                            let responseData = null;
-                            const messageData = message.Data;
-
-                            if (messageData) {
-                                try {
-                                    responseData = JSON.parse(messageData);
-                                } catch {
-                                    responseData = messageData;
-                                }
-                            }
-
-                            const responseStatus = getTagValue(message.Tags, 'Status');
-                            const responseMessage = getTagValue(message.Tags, 'Message');
-
-                            if (action === 'Action-Response') {
-                                const responseHandler = getTagValue(message.Tags, 'Handler');
-                                if (args.handler && args.handler === responseHandler) {
-                                    response[action] = {
-                                        status: responseStatus,
-                                        message: responseMessage,
-                                        data: responseData,
-                                    };
-                                }
-                            } else {
-                                if (resultSet.includes(action)) {
-                                    response[action] = {
-                                        status: responseStatus,
-                                        message: responseMessage,
-                                        data: responseData,
-                                    };
-                                }
-                            }
-
-                            if (Object.keys(response).length === resultSet.length) break;
-                        }
-                    }
-                }
-            }
-
-            return response;
-        }
-
-        return null;
-    } catch (e) {
-        console.error(e);
-    }
-}
-
 export async function readHandler(args: {
     processId: string;
     action: string;
@@ -174,7 +91,9 @@ export async function readHandler(args: {
         data: data,
     });
 
-    console.log(response);
+    if (response.Error) {
+        throw new Error(response.Error);
+    }
 
     if (response.Messages?.length) {
         if (response.Messages[0].Data) {

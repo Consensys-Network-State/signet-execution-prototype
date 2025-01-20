@@ -4,7 +4,7 @@ import { VeramoService } from '@/document/veramo.service';
 import { DocumentService } from '@/document/document.service';
 import { DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
 
-@Controller('document')
+@Controller('documents')
 export class DocumentController {
     constructor(
         private readonly documentService: DocumentService,
@@ -13,10 +13,11 @@ export class DocumentController {
 
     @Get(':id')
     async getDocument(@Param('id') id: string) {
+        // id here is actually the process/actorId
         return this.documentService.getDocument(id);
     }
 
-    @Post('create')
+    @Post()
     async createDocument(@Body() documentVC: DocumentVC) {
         const verificationResult = await this.veramoService.verifyCredential(documentVC);
         if (!verificationResult.verified) {
@@ -25,15 +26,16 @@ export class DocumentController {
         return this.documentService.createDocument(documentVC);
     }
 
-    @Post('sign/:processId')
+    @Post(':id/sign')
     async signDocument(
         @Body() signatureVC: DocumentSignatureVC,
-        @Param('processId') processId: string
+        @Param('id') id: string
     ) {
+        // id here is actually the process/actorId
         const verificationResult = await this.veramoService.verifyCredential(signatureVC);
         if (!verificationResult.verified) {
             throw new Error(verificationResult.error);
         }
-        return this.documentService.signDocument(signatureVC, processId);
+        return this.documentService.signDocument(signatureVC, id);
     }
 }
