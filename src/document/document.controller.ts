@@ -13,6 +13,7 @@ export class DocumentController {
 
     @Get(':id')
     async getDocument(@Param('id') id: string) {
+        // id here is actually the process/actorId
         return this.documentService.getDocument(id);
     }
 
@@ -25,15 +26,16 @@ export class DocumentController {
         return this.documentService.createDocument(documentVC);
     }
 
-    @Post(':processId/sign')
+    @Post(':id/sign')
     async signDocument(
         @Body() signatureVC: DocumentSignatureVC,
-        @Param('processId') processId: string
+        @Param('id') id: string
     ) {
+        // id here is actually the process/actorId
         const verificationResult = await this.veramoService.verifyCredential(signatureVC);
         if (!verificationResult.verified) {
             throw new Error(verificationResult.error);
         }
-        return this.documentService.signDocument(signatureVC, processId);
+        return this.documentService.signDocument(signatureVC, id);
     }
 }

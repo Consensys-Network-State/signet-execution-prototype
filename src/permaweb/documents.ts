@@ -11,7 +11,8 @@ function getRootPath(): string {
       : join(process.cwd(), 'src') ;
   }
 
-export async function getDocumentById(documentId: string): Promise<DocumentVC> {
+  // TODO: could define a type that describes the whole actor state being returned
+export async function getDocumentById(documentId: string): Promise<any> {
     try {
         const state = await readHandler({
             processId: documentId,
@@ -19,7 +20,7 @@ export async function getDocumentById(documentId: string): Promise<DocumentVC> {
             data: null,
         });
 
-        return JSON.parse(state?.Document) as DocumentVC;
+        return state;
     } catch (e: any) {
         throw new Error(`Failed to fetch document: ${e.message}`);
     }

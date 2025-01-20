@@ -36,7 +36,7 @@ Second key pair (Counter-signer):
 Private Key: `0x572a478f808a4be3e520c08d41ef05a80e4b8440617d9559227ac6f53bf3c4a8`
 Address: `0xB94C718BFc699E4f20e9C9E66EA596A562C2D3d4`
 
-### POST /document/create
+### POST /documents
 
 Sample body:
 ```
@@ -49,13 +49,17 @@ Expected response: 200
 	"processId": "hoUMDW52BSNzgE3vKVQbzZEYwvcqPSQjF_DWOthpBcI"
 }
 ```
-### POST /document/sign
+### POST /documents/:id/sign
 
 Sample body:
 
 ```
 {"id":"88c462e8-6e31-4b11-89cf-1b07ee55a9ee","issuer":{"id":"did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198"},"@context":["https://www.w3.org/2018/credentials/v1"],"type":["VerifiableCredential","SignedAgreement"],"issuanceDate":"2025-01-17T16:20:56.890Z","credentialSubject":{"id":"did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198","documentHash":"0xffd5a7e0a0d9c44a3ae77e7fa7983773cf00d6983197d9fded357123bcd7f09d","timeStamp":"2025-01-17T16:20:56.892Z"},"proof":{"verificationMethod":"did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198#blockchainAccountId","created":"2025-01-17T16:20:56.890Z","proofPurpose":"assertionMethod","type":"EthereumEip712Signature2021","proofValue":"0xd31952ad00f830fa94e2fa2c7953eeef2145b51eba71e20262ee75b298f5daef1f718c935f4207eedf3ef54089313de812bec8967f54ade3bd8754e41baf30461c","eip712":{"domain":{"chainId":1,"name":"VerifiableCredential","version":"1"},"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"}],"CredentialSubject":[{"name":"documentHash","type":"string"},{"name":"id","type":"string"},{"name":"timeStamp","type":"string"}],"Issuer":[{"name":"id","type":"string"}],"Proof":[{"name":"created","type":"string"},{"name":"proofPurpose","type":"string"},{"name":"type","type":"string"},{"name":"verificationMethod","type":"string"}],"VerifiableCredential":[{"name":"@context","type":"string[]"},{"name":"credentialSubject","type":"CredentialSubject"},{"name":"id","type":"string"},{"name":"issuanceDate","type":"string"},{"name":"issuer","type":"Issuer"},{"name":"proof","type":"Proof"},{"name":"type","type":"string[]"}]},"primaryType":"VerifiableCredential"}}}
 ```
+
+### GET /documents/:id
+
+To fetch an existing document at any point after creation to see the content and the status of signature submission
 
 ## Project setup
 
