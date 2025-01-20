@@ -65,7 +65,12 @@ export async function createDocument(
             tags: [],
         });
 
-        return { processId: result.processId };
+        const processResult = { processId: result.processId, success: true }
+        // Check for errors during agreement doc initialization
+        if (docResult?.Init?.data && !docResult.Init.data.success) { 
+            return { ...processResult, ...docResult.Init.data } // data should contain an 'error' field
+        }
+        return processResult;
     } catch (e: any) {
         throw new Error(`Failed to create document: ${e.message}`);
     }
@@ -96,8 +101,8 @@ export async function signDocument(
             data: JSON.stringify(counterSignatureVC),
             tags: [],
         });
-
-        return true;
+        // forward on the signing result (may or may not be a success)
+        return result?.Sign?.data;
     } catch (e: any) {
         throw new Error(`Failed to sign document: ${e.message}`);
     }
