@@ -575,12 +575,12 @@ Handlers.add(
       if utils.includes(owner_eth_address)(Signatories) then
         local sig_document_hash = strip_hex_prefix(vc_json.credentialSubject.documentHash or '')
         if sig_document_hash ~= DocumentHash then
-          reply_error(msg, 'Signature VC does not contain a matching documentHash: "' .. sig_document_hash.. '"')
+          reply_error(msg, "Signature VC does not contain a matching documentHash: '" .. DocumentHash .. "'")
           return
         end
         Signatures[owner_eth_address] = signature_vc
       else
-        reply_error(msg, 'Signature VC from unexpected signatory: "' .. owner_eth_address .. '"')
+        reply_error(msg, "Signature VC from unexpected signatory: '" .. owner_eth_address .. "'")
         return
       end
 
