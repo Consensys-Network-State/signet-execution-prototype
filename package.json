@@ -12,7 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "docker-build": "docker build -t agreements-backend",
+    "docker-build": "docker build -t agreements-backend .",
     "docker-up": "docker run -d --name apoc-backend -p 3000:3000 agreements-backend",
     "docker-down": "docker rm -f apoc-backend",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
