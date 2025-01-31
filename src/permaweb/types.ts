@@ -64,8 +64,8 @@ interface Document {
 
 interface CounterSignatureCredentialSubject {
     id: string
-    originalDocumentHash: string
-    originalVcId: string
+    documentHash: string
+    signatureBlocks: string
     timeStamp: string
 }
 
