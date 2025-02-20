@@ -13,7 +13,7 @@
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "docker-build": "docker build -t agreements-backend .",
-    "docker-up": "docker run -d --name apoc-backend -p 80:3000 agreements-backend",
+    "docker-up": "docker run -d --name apoc-backend --network tipster-twitter_default -p 4000:4000 -e PORT=4000 agreements-backend",
     "docker-down": "docker rm -f apoc-backend",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
