@@ -18,5 +18,7 @@ COPY . .
 # Expose the port your Nest.js application is listening on
 EXPOSE ${PORT:-4000}
 
+RUN yarn run build
+
 # Command to start your Nest.js application
 CMD [ "yarn", "start:prod" ]
