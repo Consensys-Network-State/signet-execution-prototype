@@ -2,6 +2,10 @@ FROM node:22.11.0
 
 WORKDIR /usr/local/dist/
 
+ENV YARN_VERSION 4.1.0
+RUN yarn policies set-version $YARN_VERSION
+RUN yarn config set nodeLinker node-modules
+
 # cache packages
 COPY package.json ./
 COPY yarn.lock ./
