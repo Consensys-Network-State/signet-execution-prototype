@@ -3,13 +3,11 @@ Install the following vscode extensions:
 - Lua Debug
 
 Install lua and lua rocks:
-`brew install lua@5.3`
+`brew install lua`
 `brew install luarocks`
 
 Install lua lib depends:
 `luarocks install --tree=./rocks --only-deps lua-actor-dev-1.rockspec`
-
-
 
 To run the test suite command-line from within `lua-actor/src`:
 `LUA_INIT=@setup.lua lua test.lua`
