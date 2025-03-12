@@ -8,7 +8,7 @@ description = {
    license = "*** please specify a license ***"
 }
 dependencies = {
-   "lua = 5.3",
+   "lua = 5.4",
    "bit32 >= 5.3",
 }
 build = {
