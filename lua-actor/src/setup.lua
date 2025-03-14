@@ -43,4 +43,5 @@ package.path =
   package.path
 package.cpath =
   parent_dir .. '/rocks/lib/lua/' .. version .. '/?.so;' ..
+  parent_dir .. '/src/secp256k1-lua/?.so;' ..
   package.cpath

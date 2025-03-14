@@ -11,6 +11,7 @@
       },
       {
         "type": "lua",
+        "luaVersion": "lua54",
         "request": "launch",
         "name": "Debug Lua",
         "cwd": "${workspaceFolder}/lua-actor/src",
