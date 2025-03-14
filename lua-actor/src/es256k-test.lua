@@ -2,6 +2,8 @@ require("setup")
 local crypto = require(".crypto.init")
 local es256k = require(".es256k")
 
+-- This is a test suite for the lua es256k lib, which we no longer use for our actor code. It's included here for posterity.
+
 local function r(bool)
   if bool then
     return '\x1b[6;30;42m'..'SUCCESS'..'\x1b[0m'

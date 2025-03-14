@@ -36,12 +36,16 @@ end
 local parent_dir = get_parent_dir()
 
 package.path =
+  -- this part allows libraries installed via luarocks to be resolved at runtime. Currently only bit32 lib is installed this way to
+  -- make one of the AO libs happy.
   parent_dir .. '/rocks/lib/lua/' .. version .. '/?.lua;' ..
   parent_dir .. '/rocks/lib/lua/' .. version .. '/?/init.lua;'..
+  -- this part allows requiring the libraries available inside of the AO execution environment via matching paths
   parent_dir .. '/src/ao-libs/?.lua;' ..
   parent_dir .. '/src/ao-libs/?/init.lua;' ..
   package.path
 package.cpath =
-  parent_dir .. '/rocks/lib/lua/' .. version .. '/?.so;' ..
+  parent_dir .. '/rocks/lib/lua/' .. version .. '/?.so;' .. -- C libs installed via luarocks
+  -- this part allows requiring 'secp256k1' without additional pathing
   parent_dir .. '/src/secp256k1-lua/?.so;' ..
   package.cpath

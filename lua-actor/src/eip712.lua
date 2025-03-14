@@ -1,6 +1,8 @@
 local crypto = require(".crypto.init")
 local Array = require(".crypto.util.array")
 
+-- A pure Lua implementation of the EIP-712 encoding logic. Used in actor logic to validate VCs using 
+
 -- Forward declarations for functions with circular dependencies
 local encodeParameter
 local isDynamicType

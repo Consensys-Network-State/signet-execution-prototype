@@ -9,7 +9,8 @@ local eip712 = require('.eip712')
 
 local DEBUG = false
 
--- A library for working with JWTs secured with ES256K signatures
+-- A PURE-Lua library for working with JWTs secured with ES256K signatures. It's not used in our actor code anymore, but is included here for posterity.
+
 -- More or less a direct lua port of the 'did-jwt' npm package and its dependency on '@noble/curves/secp256k1'
 -- The only external dependencies are AO's own json, bigint and crypto libraries.
 

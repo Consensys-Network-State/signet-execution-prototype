@@ -1,9 +1,17 @@
 require("setup")
 
+-- This is a copy of our Lua actor code, minus the message Handlers.
+-- Because it is convenient to upload Lua actor code as a single file via the `aos` CLI, some library code is inlined here
+-- to mirror the actor code exactly. We could change this in our dev envs, and import the code from separate library files instead (eg. eip712)
+
+-- these library imports are matching the AO environment exactly
 local json = require("json")
 local Array = require(".crypto.util.array")
 local crypto = require(".crypto.init")
 -- local utils = require(".utils")
+
+-- this lib functionality is available via global functions in the AO runtime (eg 'recover_public_key'),
+-- so actual actors would not need to require it
 local secp256k1 = require("secp256k1")
 
 -- ==============================
@@ -482,7 +490,10 @@ local function vc_validate(vc)
   -- by pefrorming the recovery of the public key from the signature, then derriving from it the owner ethereum address,
   -- and finally matching that address against the expected owner address.
   -- print('signingInput: "'..signingInput..'", signature_hex: "'..signature_hex..'"')
-  local pubkey_hex = secp256k1.recover_public_key(signature_hex, signingInput) -- using the global function provided by our custom wasm module
+
+  -- this would look like the following for actors executing in the AO runtime using our custom wasm module:
+  -- local pubkey_hex = recover_public_key(signature_hex, signingInput) 
+  local pubkey_hex = secp256k1.recover_public_key(signature_hex, signingInput)
   local eth_address = pubkey_to_eth_address(pubkey_hex)
   local success = eth_address == owner_eth_address
 
