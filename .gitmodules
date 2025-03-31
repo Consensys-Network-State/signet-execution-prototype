@@ -1,0 +1,3 @@
+[submodule "lua-actor/externals/agreements-protocol"]
+	path = lua-actor/externals/agreements-protocol
+	url = https://github.com/ConsenSysMesh/agreements-protocol.git
