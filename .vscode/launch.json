@@ -33,6 +33,18 @@
         //   "LUA_PATH_5_3": "${workspaceFolder}/lua-actor/src/?.lua;${workspaceFolder}/lua-actor/rocks/share/lua/5.3/?.lua;${workspaceFolder}/lua-actor/rocks/share/lua/5.3/?/init.lua",
         //   "LUA_CPATH_5_3": "${workspaceFolder}/lua-actor/src/?.so;${workspaceFolder}/lua-actor/rocks/lib/lua/5.3/?.so"
         // }
+      },
+      {
+        "type": "lua",
+        "luaVersion": "lua54",
+        "request": "launch",
+        "name": "Debug apoc-test",
+        "cwd": "${workspaceFolder}/lua-actor/src",
+        "program": "${workspaceFolder}/lua-actor/src/apoc-test.lua",
+        "path": [
+          "${workspaceFolder}/lua-actor/src/?.lua",
+          "${workspaceFolder}/lua-actor/src/?/init.lua",
+        ],
       }
     ]
   }
