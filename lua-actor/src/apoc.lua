@@ -600,7 +600,7 @@ Handlers.add(
         IsComplete = true
       end
     end
-    print("Signature VC verification result: " .. (is_valid and "VALID" or "INVALID"))
+    -- print("Signature VC verification result: " .. (is_valid and "VALID" or "INVALID"))
 
     msg.reply({ Data = { success = is_valid } })
   end

@@ -1,513 +1,90 @@
 require("setup")
 
--- This is a copy of our Lua actor code, minus the message Handlers.
--- Because it is convenient to upload Lua actor code as a single file via the `aos` CLI, some library code is inlined here
--- to mirror the actor code exactly. We could change this in our dev envs, and import the code from separate library files instead (eg. eip712)
+local TestUtils = require("test-utils")
+local tablesEqual = TestUtils.tablesEqual
+local printTable = TestUtils.printTable
+local printResult = TestUtils.formatResult
 
--- these library imports are matching the AO environment exactly
-local json = require("json")
-local Array = require(".crypto.util.array")
-local crypto = require(".crypto.init")
--- local utils = require(".utils")
+-- this effectively imports the actor code. We get the Handlers object, which allows us to send messages its way.
+local Handlers = require("apoc")
 
--- this lib functionality is available via global functions in the AO runtime (eg 'recover_public_key'),
--- so actual actors would not need to require it
-local secp256k1 = require("secp256k1")
+local agreementDoc = '{"id":"468cd235-f225-4e8f-b999-71c954f3bbad","issuer":{"id":"did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198"},"@context":["https://www.w3.org/2018/credentials/v1"],"type":["VerifiableCredential","Agreement"],"issuanceDate":"2025-01-20T17:53:04.220Z","credentialSubject":{"id":"did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198","document":"W3siaWQiOiJkOWQ1OTJhNC1hZTQ3LTQzOWEtODIyMC1kMTYxNTNiMmNmYzUiLCJ0eXBlIjoicGFyYWdyYXBoIiwicHJvcHMiOnsidGV4dENvbG9yIjoiZGVmYXVsdCIsImJhY2tncm91bmRDb2xvciI6ImRlZmF1bHQiLCJ0ZXh0QWxpZ25tZW50IjoibGVmdCJ9LCJjb250ZW50IjpbeyJ0eXBlIjoidGV4dCIsInRleHQiOiJURVNUIERPQ1VNRU5UXG4iLCJzdHlsZXMiOnsiYm9sZCI6dHJ1ZX19XSwiY2hpbGRyZW4iOltdfSx7ImlkIjoiZTk5YTI4MjAtZTVhZS00ZWE1LTkwMGQtN2RmYTdjYzQ4NjY2IiwidHlwZSI6InBhcmFncmFwaCIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiVGhlIEdyYW50IFJlY2lwaWVudCBoYXMgYmVlbiBzZWxlY3RlZCBieSB0aGUgRm91bmRhdGlvbiBEZXNpZ25hdGVkIFRva2VuIEFsbG9jYXRvciA8RFdBVCBOYW1lPiAoIiwic3R5bGVzIjp7fX0seyJ0eXBlIjoidGV4dCIsInRleHQiOiLigJxUb2tlbiBBbGxvY2F0b3LigJ0iLCJzdHlsZXMiOnsiYm9sZCI6dHJ1ZX19LHsidHlwZSI6InRleHQiLCJ0ZXh0IjoiKSB3aXRoIGFkZHJlc3MgPFNlbGVjdCBEMyBJRD4gdG8gcmVjZWl2ZSBhIGdyYW50IHN1YmplY3QgYW5kIGluIGFjY29yZGFuY2Ugd2l0aCB0aGUgdGVybXMgYW5kIGNvbmRpdGlvbnMgb2YgdGhpcyBBZ3JlZW1lbnQuXG4iLCJzdHlsZXMiOnt9fV0sImNoaWxkcmVuIjpbXX0seyJpZCI6ImRkMGY0NDFhLTkwZjYtNGQ1NC04M2JhLTc3NmQ4MDBjYWJiOCIsInR5cGUiOiJwYXJhZ3JhcGgiLCJwcm9wcyI6eyJ0ZXh0Q29sb3IiOiJkZWZhdWx0IiwiYmFja2dyb3VuZENvbG9yIjoiZGVmYXVsdCIsInRleHRBbGlnbm1lbnQiOiJsZWZ0In0sImNvbnRlbnQiOlt7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IlRIRVJFRk9SRSwgdGhlIHBhcnRpZXMgYWdyZWUgYXMgZm9sbG93czpcbiIsInN0eWxlcyI6e319XSwiY2hpbGRyZW4iOltdfSx7ImlkIjoiYTllOTgwMWUtZjA1Mi00NDY3LTk5YjUtNDIwZjVhYjBlMDdhIiwidHlwZSI6InBhcmFncmFwaCIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiMS4gR1JBTlQgUkVDSVBJRU5UIEFDVElWSVRJRVNcbiIsInN0eWxlcyI6eyJib2xkIjp0cnVlfX1dLCJjaGlsZHJlbiI6W119LHsiaWQiOiIzY2IwYTE4Yy0wZTZiLTRhMjMtYjIxOS01NDg1N2MwODg4ZDIiLCJ0eXBlIjoicGFyYWdyYXBoIiwicHJvcHMiOnsidGV4dENvbG9yIjoiZGVmYXVsdCIsImJhY2tncm91bmRDb2xvciI6ImRlZmF1bHQiLCJ0ZXh0QWxpZ25tZW50IjoibGVmdCJ9LCJjb250ZW50IjpbeyJ0eXBlIjoidGV4dCIsInRleHQiOiIxLjEgIiwic3R5bGVzIjp7fX0seyJ0eXBlIjoidGV4dCIsInRleHQiOiJHcmFudHMiLCJzdHlsZXMiOnsidW5kZXJsaW5lIjp0cnVlfX0seyJ0eXBlIjoidGV4dCIsInRleHQiOiIuIEZvdW5kYXRpb24gYW5kIEdyYW50IFJlY2lwaWVudCBhcmUgZW50ZXJpbmcgaW50byB0aGlzIEFncmVlbWVudCBpbiBjb25uZWN0aW9uIHdpdGggUkZQIzogPFdSRlAgTnVtYmVyPiAsIGFzIHNldCBmb3J0aCBhdCA8U2VsZWN0IEQzIExpbms+ICwgd2hpY2ggZGVzY3JpYmVzIHRoZSBzcGVjaWZpYyBhY3Rpdml0aWVzIHRvIGJlIHBlcmZvcm1lZCBieSBHcmFudCBSZWNpcGllbnQgKHRoZSIsInN0eWxlcyI6e319LHsidHlwZSI6InRleHQiLCJ0ZXh0IjoiIOKAnEdyYW504oCdIiwic3R5bGVzIjp7ImJvbGQiOnRydWV9fSx7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IikuXG4iLCJzdHlsZXMiOnt9fV0sImNoaWxkcmVuIjpbXX0seyJpZCI6IjFkMGFiMTJkLWU0NDAtNDA5OC04NGVjLWYxOTUxODZmMGZlNyIsInR5cGUiOiJwYXJhZ3JhcGgiLCJwcm9wcyI6eyJ0ZXh0Q29sb3IiOiJkZWZhdWx0IiwiYmFja2dyb3VuZENvbG9yIjoiZGVmYXVsdCIsInRleHRBbGlnbm1lbnQiOiJsZWZ0In0sImNvbnRlbnQiOlt7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IjEuMiAiLCJzdHlsZXMiOnt9fSx7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IlBlcmZvcm1hbmNlIG9mIEdyYW50IFJlY2lwaWVudCBBY3Rpdml0aWVzLiIsInN0eWxlcyI6eyJ1bmRlcmxpbmUiOnRydWV9fSx7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IiBHcmFudCBSZWNpcGllbnQgd2lsbCBwZXJmb3JtIHRoZSBhY3Rpdml0aWVzIGRlc2NyaWJlZCBpbiB0aGUgR3JhbnQgKHRoZSAiLCJzdHlsZXMiOnt9fSx7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IuKAnEdyYW50IFJlY2lwaWVudCBBY3Rpdml0aWVz4oCdIiwic3R5bGVzIjp7ImJvbGQiOnRydWV9fSx7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IikgaW4gYWNjb3JkYW5jZSB3aXRoIHRoZSB0ZXJtcyBhbmQgY29uZGl0aW9ucyBzZXQgZm9ydGggaW4gZWFjaCBzdWNoIEdyYW50IGFuZCB0aGlzIEFncmVlbWVudCBhbmQgd2l0aCBhbnkgYXBwbGljYWJsZSBsYXdzLiBHcmFudCBSZWNpcGllbnQgd2lsbCBub3QgcGFydGljaXBhdGUgaW4gb3IgZW5jb3VyYWdlIGFueSBhdHRhY2tzIG9uIHRoZSBXb3JrVG9rZW4gQ29tbXVuaXR5LCBpbmNsdWRpbmcgYnV0IG5vdCBsaW1pdGVkIHRvOiIsInN0eWxlcyI6e319XSwiY2hpbGRyZW4iOltdfSx7ImlkIjoiN2EyYWM1MWYtZWM4Yy00ZDU1LWFjYzQtNzhiNmZjZTk5OGQ3IiwidHlwZSI6ImJ1bGxldExpc3RJdGVtIiwicHJvcHMiOnsidGV4dENvbG9yIjoiZGVmYXVsdCIsImJhY2tncm91bmRDb2xvciI6ImRlZmF1bHQiLCJ0ZXh0QWxpZ25tZW50IjoibGVmdCJ9LCJjb250ZW50IjpbeyJ0eXBlIjoidGV4dCIsInRleHQiOiJUZWNobmljYWwgYXR0YWNrcywgaGFja2luZywgdGhlZnQgb2YgdGhlIFdPUksgQ29tbXVuaXR5IGZ1bmRzLCBvciBmcmF1ZCwiLCJzdHlsZXMiOnt9fV0sImNoaWxkcmVuIjpbXX0seyJpZCI6IjAzNTBlOTEwLWRmYzQtNDdjZC1iYjcxLTQxYmZjOWFkYTlmMCIsInR5cGUiOiJidWxsZXRMaXN0SXRlbSIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiQW55IGNvbmR1Y3QgcmVhc29uYWJseSBhbnRpY2lwYXRlZCB0byBjYXVzZSBoYXJtIHRvIHRoZSBXT1JLIENvbW11bml0eSBvciB0aGUgRm91bmRhdGlvbiwgb3IiLCJzdHlsZXMiOnt9fV0sImNoaWxkcmVuIjpbXX0seyJpZCI6ImNkNjcwNmYxLWEwNjgtNDgzZS1iYjJjLTFkYzEyNTBkY2Y5NiIsInR5cGUiOiJidWxsZXRMaXN0SXRlbSIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiQW55IG90aGVyIGFjdGl2aXR5IHRoYXQgRm91bmRhdGlvbiBjb25zaWRlcnMgdG8gYmUgbWFsaWNpb3VzIG9yIHVubGF3ZnVsIGFjdGl2aXR5LCBpbiBpdHMgc29sZSBkaXNjcmV0aW9uLiIsInN0eWxlcyI6e319XSwiY2hpbGRyZW4iOltdfSx7ImlkIjoiYzU2ZTkwZmEtYjM2Zi00MDI2LTkzNmMtNjUzMmRiMWYyNGYxIiwidHlwZSI6InBhcmFncmFwaCIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W10sImNoaWxkcmVuIjpbXX0seyJpZCI6ImE3YjQ2NjhiLWQ0NjUtNGU3Zi05MGZlLWQwYjA3YWE2MmViNyIsInR5cGUiOiJwYXJhZ3JhcGgiLCJwcm9wcyI6eyJ0ZXh0Q29sb3IiOiJkZWZhdWx0IiwiYmFja2dyb3VuZENvbG9yIjoiZGVmYXVsdCIsInRleHRBbGlnbm1lbnQiOiJsZWZ0In0sImNvbnRlbnQiOlt7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IjIuIEdSQU5UIERJU1RSSUJVVElPTlxuIiwic3R5bGVzIjp7ImJvbGQiOnRydWV9fV0sImNoaWxkcmVuIjpbXX0seyJpZCI6ImQxMmM0NmQ5LTUwM2MtNGRlYS05YzI0LTAzMjMwM2JkMzM1YiIsInR5cGUiOiJwYXJhZ3JhcGgiLCJwcm9wcyI6eyJ0ZXh0Q29sb3IiOiJkZWZhdWx0IiwiYmFja2dyb3VuZENvbG9yIjoiZGVmYXVsdCIsInRleHRBbGlnbm1lbnQiOiJsZWZ0In0sImNvbnRlbnQiOlt7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IlRoZSBUb2tlbiBBbGxvY2F0b3Igd2lsbCBwYXkgR3JhbnQgUmVjaXBpZW50IG9uIGJlaGFsZiBvZiB0aGUgRm91bmRhdGlvbiB0aGUgYW1vdW50cyBzcGVjaWZpZWQgaW4gZWFjaCBHcmFudCBpbiBhY2NvcmRhbmNlIHdpdGggdGhlIHRlcm1zIHNldCBmb3J0aCBpbiAiLCJzdHlsZXMiOnt9fSx7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IlNDSEVEVUxFIEEiLCJzdHlsZXMiOnsiYm9sZCI6dHJ1ZX19LHsidHlwZSI6InRleHQiLCJ0ZXh0IjoiICh0aGUgIiwic3R5bGVzIjp7fX0seyJ0eXBlIjoidGV4dCIsInRleHQiOiLigJxQYXltZW50IFNjaGVkdWxl4oCdIiwic3R5bGVzIjp7ImJvbGQiOnRydWV9fSx7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IikgdGhlcmVpbiB1c2luZzoiLCJzdHlsZXMiOnt9fV0sImNoaWxkcmVuIjpbXX0seyJpZCI6IjdjYTMxM2UyLTQ3MmQtNDllNi05OWEyLWIyMmY2NTYwODFjOCIsInR5cGUiOiJwYXJhZ3JhcGgiLCJwcm9wcyI6eyJ0ZXh0Q29sb3IiOiJkZWZhdWx0IiwiYmFja2dyb3VuZENvbG9yIjoiZGVmYXVsdCIsInRleHRBbGlnbm1lbnQiOiJsZWZ0In0sImNvbnRlbnQiOltdLCJjaGlsZHJlbiI6W119LHsiaWQiOiIxZmUxNTg3NS0wODQwLTQyMjgtOTZhYS0zZTRjNmNiNjk5ODYiLCJ0eXBlIjoic2FibGllciIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJ0ZXh0QWxpZ25tZW50IjoibGVmdCIsInNoYXBlIjoibW9udGhseSIsImNoYWluIjoxLCJ0b2tlbiI6IiIsImFtb3VudCI6MCwiZHVyYXRpb24iOjEsImZpcnN0VW5sb2NrIjoiZGVmYXVsdCJ9LCJjb250ZW50IjpbeyJ0eXBlIjoidGV4dCIsInRleHQiOiJUZXN0Iiwic3R5bGVzIjp7fX1dLCJjaGlsZHJlbiI6W119LHsiaWQiOiI2ZTM0NDdjMy0yOWRmLTRmNWYtYTdlMy05Y2MwMDU4NDM2MTIiLCJ0eXBlIjoicGFyYWdyYXBoIiwicHJvcHMiOnsidGV4dENvbG9yIjoiZGVmYXVsdCIsImJhY2tncm91bmRDb2xvciI6ImRlZmF1bHQiLCJ0ZXh0QWxpZ25tZW50IjoibGVmdCJ9LCJjb250ZW50IjpbXSwiY2hpbGRyZW4iOltdfSx7ImlkIjoiYjIyY2JmMGUtZjY4OC00ODA3LTgxZjQtM2ZlODM0ZmM4MzVmIiwidHlwZSI6InBhcmFncmFwaCIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiQWxsIG90aGVyIGFtb3VudHMgc2V0IGZvcnRoIGluIHRoZSBHcmFudCwgaWYgYW55LCBhcmUgc3RhdGVkIGluIGFuZCBhcmUgcGF5YWJsZSBpbiBXT1JLLiBUaGUgcGFydGllcyB3aWxsIHVzZSB0aGVpciByZXNwZWN0aXZlIGNvbW1lcmNpYWxseSByZWFzb25hYmxlIGVmZm9ydHMgdG8gcHJvbXB0bHkgcmVzb2x2ZSBhbnkgcGF5bWVudCBkaXNwdXRlcy4gR3JhbnQgUmVjaXBpZW50IHVuZGVyc3RhbmRzIGFuZCBhY2tub3dsZWRnZXMgdGhhdDoiLCJzdHlsZXMiOnt9fV0sImNoaWxkcmVuIjpbXX0seyJpZCI6Ijg2OGNmYjU4LWEzMTQtNDhkMi04NjA4LWEyNzE5NjU2MWVhOCIsInR5cGUiOiJidWxsZXRMaXN0SXRlbSIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiRm91bmRhdGlvbiB3aWxsIG5vdCBiZSBpbnZvbHZlZCBpbiB0aGUgb3BlcmF0aW9uIG9mIGFueSBHcmFudCBSZWNpcGllbnQgQWN0aXZpdGllczsiLCJzdHlsZXMiOnt9fV0sImNoaWxkcmVuIjpbXX0seyJpZCI6Ijg5MGQwYTVjLWZmNWYtNGE1ZC05NWM4LTZmMzdiZGEzNmVlZSIsInR5cGUiOiJidWxsZXRMaXN0SXRlbSIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiQnkgcHJvdmlkaW5nIHRoZSBHcmFudCwgRm91bmRhdGlvbiBpcyBvbmx5IGdyYW50aW5nIFdPUksgdG8gR3JhbnQgUmVjaXBpZW50IGFuZCBpcyBub3QgY29uZHVjdGluZyBhbnkgR3JhbnQgUmVjaXBpZW50IEFjdGl2aXRpZXM7Iiwic3R5bGVzIjp7fX1dLCJjaGlsZHJlbiI6W119LHsiaWQiOiIzMDgzMWFiNy0zZjU3LTRmMDMtYmYyNi1jNzg4ZGE5MGU1YmUiLCJ0eXBlIjoiYnVsbGV0TGlzdEl0ZW0iLCJwcm9wcyI6eyJ0ZXh0Q29sb3IiOiJkZWZhdWx0IiwiYmFja2dyb3VuZENvbG9yIjoiZGVmYXVsdCIsInRleHRBbGlnbm1lbnQiOiJsZWZ0In0sImNvbnRlbnQiOlt7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IkZvdW5kYXRpb24gaXMgbm90LCBhbmQgd2lsbCBub3QgYmUsIHJlZ2lzdGVyZWQgYXMgYSB2aXJ0dWFsIGFzc2V0IHNlcnZpY2UgcHJvdmlkZXIgdW5kZXIgdGhlIFZpcnR1YWwgQXNzZXRzIFNlcnZpY2VzIFByb3ZpZGVycyBBY3Qgb2YgdGhlIFtKdXJpc2RpY3Rpb25dIGFuZCB0aGUgV09SSyB0b2tlbnMgaGF2ZSBub3QgYmVlbiwgYW5kIHdpbGwgbm90IGJlLCByZWdpc3RlcmVkIHdpdGggdGhlIFtKdXJpc2RpY3Rpb25dIE1vbmV0YXJ5IEF1dGhvcml0eTsgYW5kIiwic3R5bGVzIjp7fX1dLCJjaGlsZHJlbiI6W119LHsiaWQiOiJhOTk3OGJkMy1hNmMwLTQ4MzYtYWQ1Mi0zOTJmY2FmZDMwY2UiLCJ0eXBlIjoiYnVsbGV0TGlzdEl0ZW0iLCJwcm9wcyI6eyJ0ZXh0Q29sb3IiOiJkZWZhdWx0IiwiYmFja2dyb3VuZENvbG9yIjoiZGVmYXVsdCIsInRleHRBbGlnbm1lbnQiOiJsZWZ0In0sImNvbnRlbnQiOlt7InR5cGUiOiJ0ZXh0IiwidGV4dCI6IlRoaXMgQWdyZWVtZW50IGRvZXMgbm90IGNvbnN0aXR1dGUgYSBzYWxlIG9mIHZpcnR1YWwgYXNzZXRzIHRvIHRoZSBwdWJsaWMuIiwic3R5bGVzIjp7fX1dLCJjaGlsZHJlbiI6W119LHsiaWQiOiI0ZTAyMTUyZC1iMzZhLTQ4ZGMtYTQwNy04YmM2NTNkZGIwNGYiLCJ0eXBlIjoicGFyYWdyYXBoIiwicHJvcHMiOnsidGV4dENvbG9yIjoiZGVmYXVsdCIsImJhY2tncm91bmRDb2xvciI6ImRlZmF1bHQiLCJ0ZXh0QWxpZ25tZW50IjoibGVmdCJ9LCJjb250ZW50IjpbXSwiY2hpbGRyZW4iOltdfSx7ImlkIjoiN2YzOGZkYzMtNjNiZS00YjVlLTk5ZGUtYWQyMTZjYzZlMmZmIiwidHlwZSI6InBhcmFncmFwaCIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiSU4gV0lUTkVTUyBXSEVSRU9GLCB0aGUgR3JhbnQgUmVjaXBpZW50IGhhcyBleGVjdXRlZCB0aGlzIEFncmVlbWVudCBvbiB0aGUgZGF0ZSBmaXJzdCB3cml0dGVuIGFib3ZlLlxuIiwic3R5bGVzIjp7fX1dLCJjaGlsZHJlbiI6W119LHsiaWQiOiI0ZTJhN2YyYy1hY2ZiLTQ1NWQtYjU1MC1jNGRiMGJmZGQ0ODIiLCJ0eXBlIjoic2lnbmF0dXJlIiwicHJvcHMiOnsidGV4dENvbG9yIjoiZGVmYXVsdCIsInRleHRBbGlnbm1lbnQiOiJsZWZ0In0sImNvbnRlbnQiOltdLCJjaGlsZHJlbiI6W119LHsiaWQiOiIxNTEzMzllMy0yNDhmLTRjYTYtYThmZi1jNGJhYTdkYTBlOTMiLCJ0eXBlIjoicGFyYWdyYXBoIiwicHJvcHMiOnsidGV4dENvbG9yIjoiZGVmYXVsdCIsImJhY2tncm91bmRDb2xvciI6ImRlZmF1bHQiLCJ0ZXh0QWxpZ25tZW50IjoibGVmdCJ9LCJjb250ZW50IjpbeyJ0eXBlIjoidGV4dCIsInRleHQiOiJOYW1lOiBTdXBDMEQzUiIsInN0eWxlcyI6e319XSwiY2hpbGRyZW4iOltdfSx7ImlkIjoiNzBlMDg5ZGEtYmFkZi00N2QwLWEyYzctMGRmODE3N2VmYWQ2IiwidHlwZSI6InBhcmFncmFwaCIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiVGl0bGU6IFRlY2ggTGVhZCIsInN0eWxlcyI6e319XSwiY2hpbGRyZW4iOltdfSx7ImlkIjoiNDgwNmZkYmUtYTJhYy00MTVkLWFiZDktYzQ2OWU1Mzk2Yzc5IiwidHlwZSI6InBhcmFncmFwaCIsInByb3BzIjp7InRleHRDb2xvciI6ImRlZmF1bHQiLCJiYWNrZ3JvdW5kQ29sb3IiOiJkZWZhdWx0IiwidGV4dEFsaWdubWVudCI6ImxlZnQifSwiY29udGVudCI6W3sidHlwZSI6InRleHQiLCJ0ZXh0IjoiXG4iLCJzdHlsZXMiOnt9fV0sImNoaWxkcmVuIjpbXX0seyJpZCI6ImY2ZGZjZDhkLTliNmItNDA4Mi05NmFhLWRjYmU4MTQyNDVkOCIsInR5cGUiOiJwYXJhZ3JhcGgiLCJwcm9wcyI6eyJ0ZXh0Q29sb3IiOiJkZWZhdWx0IiwiYmFja2dyb3VuZENvbG9yIjoiZGVmYXVsdCIsInRleHRBbGlnbm1lbnQiOiJsZWZ0In0sImNvbnRlbnQiOltdLCJjaGlsZHJlbiI6W119XQ==","timeStamp":"2025-01-20T17:53:04.222Z","signatories":["0x057ef20Ed09fc34Da5af791376F4447ba0B8cDE6"]},"proof":{"verificationMethod":"did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198#blockchainAccountId","created":"2025-01-20T17:53:04.220Z","proofPurpose":"assertionMethod","type":"EthereumEip712Signature2021","proofValue":"0x9efe565518e797b38615da9eacd01cda9ad68d81c941f0cac06e33ad3e90a11b63d2eb6919c4fbf57de3f3020b7ded1047d66de38df08899ba77271df23fc7d71c","eip712":{"domain":{"chainId":1,"name":"VerifiableCredential","version":"1"},"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"}],"CredentialSubject":[{"name":"document","type":"string"},{"name":"id","type":"string"},{"name":"signatories","type":"string[]"},{"name":"timeStamp","type":"string"}],"Issuer":[{"name":"id","type":"string"}],"Proof":[{"name":"created","type":"string"},{"name":"proofPurpose","type":"string"},{"name":"type","type":"string"},{"name":"verificationMethod","type":"string"}],"VerifiableCredential":[{"name":"@context","type":"string[]"},{"name":"credentialSubject","type":"CredentialSubject"},{"name":"id","type":"string"},{"name":"issuanceDate","type":"string"},{"name":"issuer","type":"Issuer"},{"name":"proof","type":"Proof"},{"name":"type","type":"string[]"}]},"primaryType":"VerifiableCredential"}}}'
 
--- ==============================
--- ====== BEGIN eip712.lua ======
--- ==============================
+local signatureDoc = '{"id":"bec67f93-3eb3-4049-92b1-2da610199f93","issuer":{"id":"did:pkh:eip155:1:0x057ef20Ed09fc34Da5af791376F4447ba0B8cDE6"},"@context":["https://www.w3.org/2018/credentials/v1"],"type":["VerifiableCredential","SignedAgreement"],"issuanceDate":"2025-01-20T17:53:56.492Z","credentialSubject":{"id":"did:pkh:eip155:1:0x057ef20Ed09fc34Da5af791376F4447ba0B8cDE6","documentHash":"0xdbfb72b26d40750ece76dedff097277f0e37f62b10eab12371a1b865be71de89","timeStamp":"2025-01-20T17:53:56.496Z"},"proof":{"verificationMethod":"did:pkh:eip155:1:0x057ef20Ed09fc34Da5af791376F4447ba0B8cDE6#blockchainAccountId","created":"2025-01-20T17:53:56.492Z","proofPurpose":"assertionMethod","type":"EthereumEip712Signature2021","proofValue":"0xb3889b39721aa3ece0fc0995b2629ba4a873d66992d295f5d2ff22e2d33fab5a6147801d396a3a4db77b9e17a4fe1d6d7dc577a4225a8a0df1c095a09ab6b4bc1b","eip712":{"domain":{"chainId":1,"name":"VerifiableCredential","version":"1"},"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"}],"CredentialSubject":[{"name":"documentHash","type":"string"},{"name":"id","type":"string"},{"name":"timeStamp","type":"string"}],"Issuer":[{"name":"id","type":"string"}],"Proof":[{"name":"created","type":"string"},{"name":"proofPurpose","type":"string"},{"name":"type","type":"string"},{"name":"verificationMethod","type":"string"}],"VerifiableCredential":[{"name":"@context","type":"string[]"},{"name":"credentialSubject","type":"CredentialSubject"},{"name":"id","type":"string"},{"name":"issuanceDate","type":"string"},{"name":"issuer","type":"Issuer"},{"name":"proof","type":"Proof"},{"name":"type","type":"string[]"}]},"primaryType":"VerifiableCredential"}}}'
 
--- Forward declarations for functions with circular dependencies
-local encodeParameter
-local isDynamicType
-local encodeField
-local encodeData
-local hashStruct
 
-local function padLeft(str, length, char)
-    char = char or '0'
-    local padding = string.rep(char, length - #str)
-    return padding .. str
-end
-
--- Basic type encoders
-local function encodeUint256(value)
-    local hex = string.format("%x", value)
-    return padLeft(hex, 64)
-end
-
-local function encodeAddress(value)
-    value = string.gsub(value, "^0x", "")
-    return padLeft(value, 64)
-end
-
-local function encodeBool(value)
-    return encodeUint256(value and 1 or 0)
-end
-
-local function encodeBytes(value)
-  local length = encodeUint256(#value)
-  local paddedData = value .. string.rep(string.char(0), (32 - (#value % 32)) % 32)
-  return length .. paddedData
-end
-
-local function encodeFixedBytes(value, size)
-    if #value > size * 2 then -- hex string expected, 2 hex chars per byte
-        error(string.format("Value too long for bytes%d: got %d bytes", size, #value))
-    end
-    return value .. string.rep(string.char(0), size - #value)
-end
-
-local function encodeString(value)
-    local bytes = string.char(string.byte(value, 1, -1))
-    return encodeBytes(bytes)
-end
-
-local function encodeArray(baseType, array, size)
-    local result = ""
-    if #size == 0 then
-        result = encodeUint256(#array)
-    end
-    
-    for _, value in ipairs(array) do
-        result = result .. encodeParameter(baseType, value)
-    end
-    
-    return result
-end
-
-function isDynamicType(typ)
-    -- Check for basic dynamic types
-    if typ == "string" or typ == "bytes" then
-        return true
-    end
-    
-    -- Check for fixed-size bytes (bytes1 to bytes32)
-    local bytesMatch = string.match(typ, "^bytes(%d+)$")
-    if bytesMatch then
-        local size = tonumber(bytesMatch)
-        if size then
-            return false  -- Fixed-size bytes are static
-        end
-        error("Invalid bytes size: " .. bytesMatch)
-    end
-    
-    -- Check for arrays - pattern needs to handle the full type including numbers
-    local baseType, size = string.match(typ, "^([%a%d]+)%[(%d*)%]$")
-    if baseType then
-        -- Dynamic if it's an unbounded array or contains dynamic types
-        return #size == 0 or isDynamicType(baseType)
-    end
-    
-    return false
-end
-
--- Parameter encoding
-function encodeParameter(typ, value)
-    if typ == "uint256" then
-        return encodeUint256(value)
-    elseif typ == "address" then
-        return encodeAddress(value)
-    elseif typ == "bool" then
-        return encodeBool(value)
-    elseif typ == "string" then
-        return encodeString(value)
-    elseif typ == "bytes" then
-        return encodeBytes(value)
-    end
-    
-    -- Handle fixed-size bytes
-    local bytesMatch = string.match(typ, "^bytes(%d+)$")
-    if bytesMatch then
-        local size = tonumber(bytesMatch)
-        if size then
-            return encodeFixedBytes(value, size)
-        end
-    end
-
-    local baseType, size = string.match(typ, "^([%a%d]+)%[(%d*)%]$")
-    if baseType then
-        return encodeArray(baseType, value, size)
-    end
-    
-    error("Unsupported type: " .. typ)
-end
-
--- ABI encoding
-local function abiEncode(types, values)
-    local headLength = 0
-    local heads = {}
-    local tails = {}
-    local dynamicCount = 0
-    
-    for i, typ in ipairs(types) do
-        local value = values[i]
-        
-        if isDynamicType(typ) then
-            table.insert(heads, "")
-            dynamicCount = dynamicCount + 1
-        else
-            local encoded = encodeParameter(typ, value)
-            table.insert(heads, encoded)
-        end
-        
-        headLength = headLength + 32
-    end
-    
-    local currentDynamicPointer = headLength
-    for i, typ in ipairs(types) do
-        if isDynamicType(typ) then
-            local value = values[i]
-            local encoded = encodeParameter(typ, value)
-            
-            heads[i] = encodeUint256(currentDynamicPointer)
-            table.insert(tails, encoded)
-            
-            currentDynamicPointer = currentDynamicPointer + #encoded
-        end
-    end
-    
-    return table.concat(heads) .. table.concat(tails)
-end
-
--- EIP-712 specific functions
-local function keccak256(input)
-    return crypto.digest.keccak256(input).asHex()
-end
-
-local function findTypeDependencies(typeName, types, deps)
-    deps = deps or {}
-    
-    if not deps[typeName] then
-        deps[typeName] = true
-        
-        for _, field in ipairs(types[typeName]) do
-            local match = string.match(field.type, "^([A-Z][A-Za-z0-9]*)$")
-            if match then
-                findTypeDependencies(match, types, deps)
-            end
-        end
-    end
-    
-    local result = {}
-    for dep in pairs(deps) do
-        table.insert(result, dep)
-    end
-    return result
-end
-
-local function encodeParameters(type)
-    local params = {}
-    for _, param in ipairs(type) do
-        table.insert(params, param.type .. " " .. param.name)
-    end
-    return table.concat(params, ",")
-end
-
-local function encodeType(typeName, types)
-    local deps = findTypeDependencies(typeName, types)
-    local index
-    for i, v in ipairs(deps) do
-        if v == typeName then
-            index = i
-            break
-        end
-    end
-    table.remove(deps, index)
-    table.sort(deps)
-    table.insert(deps, 1, typeName)
-    
-    local encodedTypes = ""
-    for _, dep in ipairs(deps) do
-        local type = types[dep]
-        encodedTypes = encodedTypes .. dep .. "(" .. encodeParameters(type) .. ")"
-    end
-    
-    return encodedTypes
-end
-
-local function typeHash(typeName, types)
-    return keccak256(encodeType(typeName, types))
-end
-
-function encodeField(type, value, types)
-    if types[type] then
-        -- value is of a nested type
-        return {
-            type = "bytes32",
-            value = hashStruct(type, value, types)
-        }
-    end
-    -- Handle arrays
-    local baseType = string.match(type, "^([%a%d]+)%[(%d*)%]$")
-    if baseType then
-        local types = {}
-        local values = {}
-        
-        -- Process each array item through encodeField to handle type conversion
-        for _, item in ipairs(value or {}) do
-            local itemEncoded = encodeField(baseType, item, types)
-            -- For values already encoded as bytes32, use them directly
-            if itemEncoded.type == "bytes32" then
-                table.insert(types, itemEncoded.type)
-                table.insert(values, itemEncoded.value)
-            else
-                -- For other types, encode and hash them
-                table.insert(types, 'bytes32')
-                local itemAbiEncoded = abiEncode({itemEncoded.type}, {itemEncoded.value})
-                local itemAbiEncodeBytes = Array.fromHex(itemAbiEncoded)
-                local itemEncodedBunaryStr = Array.toString(itemAbiEncodeBytes)
-                table.insert(values, keccak256(itemEncodedBunaryStr))
-            end
-        end
-        
-        -- Array values are already bytes32, just encode them as an array and hash
-        local apiEncoded = abiEncode(types, values)
-        local abiEncodeBytes = Array.fromHex(apiEncoded)
-        local apiEncodedBunaryStr = Array.toString(abiEncodeBytes)
-        return {
-            type = "bytes32",
-            value = keccak256(apiEncodedBunaryStr)
-        }
-    end
-    
-    -- Handle structs
-    if string.match(type, "^[A-Z]") then
-        return {
-            type = "bytes32",
-            value = keccak256(encodeData(type, value, types))
-        }
-    end
-
-    -- Handle strings by hashing them to bytes32
-    if type == "string" then
-        return {
-            type = "bytes32",
-            value = keccak256(value or "")
-        }
-    end
-
-    -- Handle basic types
-    return {
-        type = type,
-        value = value
-    }
-end
-
-local function getDefaultValue(typ)
-    -- Handle basic types
-    if typ == "uint256" or typ == "int256" then
-        return 0
-    elseif typ == "address" then
-        return "0x0000000000000000000000000000000000000000"
-    elseif typ == "bool" then
-        return false
-    elseif typ == "string" then
-        return ""
-    elseif typ == "bytes" then
-        return ""
-    end
-    
-    -- Handle fixed-size bytes
-    local bytesMatch = string.match(typ, "^bytes(%d+)$")
-    if bytesMatch then
-        local n = tonumber(bytesMatch)
-        if n then
-            local size = math.floor(n)
-            return string.rep("\0", size)
-        end
-        error("Invalid bytes size: " .. bytesMatch)
-    end
-    
-    -- Handle arrays
-    local baseType = string.match(typ, "^([%a%d]+)%[")
-    if baseType then
-        return {}
-    end
-    
-    -- Handle structs (starting with uppercase)
-    if string.match(typ, "^[A-Z]") then
-        return {}
-    end
-    
-    error("Unsupported type for default value: " .. typ)
-end
-
-function encodeData(typeName, data, types)
-    local encTypes = {}
-    local encValues = {}
-    
-    table.insert(encTypes, "bytes32")
-    table.insert(encValues, typeHash(typeName, types))
-    
-    for _, field in ipairs(types[typeName]) do
-        local value = data[field.name]
-        if value == nil then
-            value = getDefaultValue(field.type)
-        end
-        local encoded = encodeField(field.type, value, types)
-        table.insert(encTypes, encoded.type)
-        table.insert(encValues, encoded.value)
-    end
-    
-    local abiEncodedData = abiEncode(encTypes, encValues)
-    return abiEncodedData
-end
-
-function hashStruct(primaryType, data, types)
-    local encodedData = encodeData(primaryType, data, types)
-    local bytes = Array.fromHex(encodedData)
-    local binary_string = Array.toString(bytes)
-    return keccak256(binary_string)
-end
-
-local function getSigningInput(domainSeparator, structHash)
-    local fullInputHexString = '1901' .. domainSeparator .. structHash
-    local fullInputBytes = Array.fromHex(fullInputHexString)
-    local fullInputBinaryStr = Array.toString(fullInputBytes)
-    return keccak256(fullInputBinaryStr)
-end
-
-local function createDomainSeparator(domain)
-    local domainData = {
-        name = domain.name,
-        version = domain.version,
-        chainId = domain.chainId,
-        -- verifyingContract = domain.verifyingContract
-    }
-    
-    return hashStruct("EIP712Domain", domainData, {
-        EIP712Domain = {
-            {name = "name", type = "string"},
-            {name = "version", type = "string"},
-            {name = "chainId", type = "uint256"},
-            -- {name = "verifyingContract", type = "address"}
-        }
-    })
-end
-
-local eip712 = { -- pretend export and import statements all in one line
-    createDomainSeparator = createDomainSeparator,
-    hashStruct = hashStruct,
-    getSigningInput = getSigningInput,
-    encodeType = encodeType,
-    typeHash = typeHash,
-    abiEncode = abiEncode
-}
-
--- ==============================
--- ======= END eip712.lua =======
--- ==============================
-
--- ==============================
--- ====== BEGIN es256k.lua ======
--- ==============================
-
-local function strip_hex_prefix(hex_str)
-  if hex_str:sub(1, 2) == "0x" then
-    return hex_str:sub(3)
+-- Evaluate a message
+local response = Handlers.evaluate({
+  Tags = { Action = 'Init' },
+  Data = agreementDoc,
+  reply = function (response)
+    -- printTable(response.Data)
+    local success = response.Data.success
+    print("Init message processing:", printResult(success))
   end
-  return hex_str
-end
+  },
+  { envKey = "envValue" }
+)
+assert(response == true)
 
-local function pubkey_to_eth_address(pubkey_hex)
-  if #pubkey_hex ~= 130 or pubkey_hex:sub(1, 2) ~= '04' then
-    error('toEthereumAddress: Expecting an uncompressed public key')
+response = Handlers.evaluate({
+  Tags = { Action = 'GetState' },
+  Data = agreementDoc,
+  reply = function (response)
+    -- printTable(response.Data)
+    local docSaved = response.Data.Document == agreementDoc
+    print("Init Document match:", printResult(docSaved))
+    -- expect lower-cased address
+    local docOwnerSaved = response.Data.DocumentOwner == "0x1e8564a52fc67a68fee78fc6422f19c07cfae198"
+    print("Init DocumentOwner match:", printResult(docOwnerSaved))
+    -- Expected signatories (all lowercase as the actor converts them)
+    local signatoriesMatch = tablesEqual(response.Data.Signatories, { "0x057ef20ed09fc34da5af791376f4447ba0b8cde6" })
+    print("Init Signatories match:", printResult(signatoriesMatch))
+    local signaturesMatch = tablesEqual(response.Data.Signatures, {})
+    print("Init Signatures match:", printResult(signaturesMatch))
+    local isCompleteMatch = tablesEqual(response.Data.IsComplete, false)
+    print("Init IsCompleteMatch match:", printResult(isCompleteMatch))
   end
-  local pubkey_hex_clean = pubkey_hex:sub(3) -- dropping the leading '04' indicating an uncompressed public key format
-  local pubkey_binary_bytes = Array.fromHex(pubkey_hex_clean)
-  local pubkey_binary_str = Array.toString(pubkey_binary_bytes)
-  local keccak_hash = crypto.digest.keccak256(pubkey_binary_str).asHex()
-  return '0x'..string.sub(keccak_hash, -40, -1); -- last 40 hex chars, aka 20 bytes
-end
+  },
+  { envKey = "envValue" }
+)
+assert(response == true)
 
-local function decode_signature(signature)
-  local sanitized_sig = strip_hex_prefix(signature)
-
-  if #sanitized_sig ~= 130 then
-    error("Invalid signature length: expected 130 hex chars (65 bytes)")
+response = Handlers.evaluate({
+  Tags = { Action = 'Sign' },
+  Data = signatureDoc,
+  reply = function (response)
+    -- printTable(response.Data)
+    local success = response.Data.success
+    print("Sign message processing:", printResult(success))
   end
+  },
+  { envKey = "envValue" }
+)
+assert(response == true)
 
-  return sanitized_sig
-end
-
-local function string_split(inputstr, sep)
-  if sep == nil then
-    sep = "%s"
+response = Handlers.evaluate({
+  Tags = { Action = 'GetState' },
+  Data = agreementDoc,
+  reply = function (response)
+    -- printTable(response.Data)
+    local docSaved = response.Data.Document == agreementDoc
+    print("Post-Sign Document match:", printResult(docSaved))
+    
+    -- expect lower-cased address
+    local docOwnerSaved = response.Data.DocumentOwner == "0x1e8564a52fc67a68fee78fc6422f19c07cfae198"
+    print("Post-Sign DocumentOwner match:", printResult(docOwnerSaved))
+    -- Expected signatories (all lowercase as the actor converts them)
+    local signatoriesMatch = tablesEqual(response.Data.Signatories, { "0x057ef20ed09fc34da5af791376f4447ba0b8cde6" })
+    print("Post-Sign Signatories match:", printResult(signatoriesMatch))
+    local expected_signatures = {}
+    expected_signatures["0x057ef20ed09fc34da5af791376f4447ba0b8cde6"] = signatureDoc
+    local signaturesMatch = tablesEqual(response.Data.Signatures, expected_signatures)
+    print("Post-Sign Signatures match:", printResult(signaturesMatch))
+    local isCompleteMatch = tablesEqual(response.Data.IsComplete, true)
+    print("Post-Sign IsCompleteMatch match:", printResult(isCompleteMatch))
   end
-  local t = {}
-  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
-    table.insert(t, str)
-  end
-  return t
-end
-
-local function get_authority(issuer)
-  local eth_address = nil
-  if (issuer) then
-    local parts = string_split(issuer, ':')
-    -- eg. 'did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198'
-    if (parts[1] == 'did' and parts[2] == 'pkh' and parts[3] == 'eip155' and parts[4] == '1') then
-      eth_address = parts[5]
-    else
-      error('Only supporting did:pkh issuers')
-    end
-    return string.lower(eth_address or '')
-  end
-  error('No issuer found')
-end
-
-local function vc_validate(vc)
-  local vc_json = json.decode(vc)
-  local owner_eth_address = get_authority(vc_json.issuer.id)
-  local proof = vc_json.proof
-  local proofValue = nil
-  local signature_hex = nil
-  if proof.type == 'EthereumEip712Signature2021' then
-    proofValue = proof.proofValue
-    signature_hex = decode_signature(proofValue)
-  else
-    error('Only supporting EthereumEip712Signature2021 proof type')
-  end
-
-  local eip712data = vc_json.proof.eip712
-  local domain = eip712data.domain
-  local types = eip712data.types
-  local primaryType = eip712data.primaryType
-  local domainSeparator = eip712.createDomainSeparator(domain)
-
-  local message = Array.copy(vc_json)
-  local proof_copy = Array.copy(vc_json.proof)
-  proof_copy.proofValue = nil
-  proof_copy.eip712 = nil
-  proof_copy.eip712Domain = nil
-  message.proof = proof_copy
-
-  local structHash = eip712.hashStruct(primaryType, message, types)
-  local signingInput = eip712.getSigningInput(domainSeparator, structHash)
-  -- given a 65-byte signature (containing an extra recovery byte), and only the ethereum address of the signer, we verify the signature
-  -- by pefrorming the recovery of the public key from the signature, then derriving from it the owner ethereum address,
-  -- and finally matching that address against the expected owner address.
-  -- print('signingInput: "'..signingInput..'", signature_hex: "'..signature_hex..'"')
-
-  -- this would look like the following for actors executing in the AO runtime using our custom wasm module:
-  -- local pubkey_hex = recover_public_key(signature_hex, signingInput) 
-  local pubkey_hex = secp256k1.recover_public_key(signature_hex, signingInput)
-  local eth_address = pubkey_to_eth_address(pubkey_hex)
-  local success = eth_address == owner_eth_address
-
-  return success, vc_json, owner_eth_address
-end
-
--- ==============================
--- ======= END es256k.lua =======
--- ==============================
-
-local expected_owner_eth_address = '0x057ef20ed09fc34da5af791376f4447ba0b8cde6'
-local document = '{"id":"bec67f93-3eb3-4049-92b1-2da610199f93","issuer":{"id":"did:pkh:eip155:1:0x057ef20Ed09fc34Da5af791376F4447ba0B8cDE6"},"@context":["https://www.w3.org/2018/credentials/v1"],"type":["VerifiableCredential","SignedAgreement"],"issuanceDate":"2025-01-20T17:53:56.492Z","credentialSubject":{"id":"did:pkh:eip155:1:0x057ef20Ed09fc34Da5af791376F4447ba0B8cDE6","documentHash":"0xdbfb72b26d40750ece76dedff097277f0e37f62b10eab12371a1b865be71de89","timeStamp":"2025-01-20T17:53:56.496Z"},"proof":{"verificationMethod":"did:pkh:eip155:1:0x057ef20Ed09fc34Da5af791376F4447ba0B8cDE6#blockchainAccountId","created":"2025-01-20T17:53:56.492Z","proofPurpose":"assertionMethod","type":"EthereumEip712Signature2021","proofValue":"0xb3889b39721aa3ece0fc0995b2629ba4a873d66992d295f5d2ff22e2d33fab5a6147801d396a3a4db77b9e17a4fe1d6d7dc577a4225a8a0df1c095a09ab6b4bc1b","eip712":{"domain":{"chainId":1,"name":"VerifiableCredential","version":"1"},"types":{"EIP712Domain":[{"name":"name","type":"string"},{"name":"version","type":"string"},{"name":"chainId","type":"uint256"}],"CredentialSubject":[{"name":"documentHash","type":"string"},{"name":"id","type":"string"},{"name":"timeStamp","type":"string"}],"Issuer":[{"name":"id","type":"string"}],"Proof":[{"name":"created","type":"string"},{"name":"proofPurpose","type":"string"},{"name":"type","type":"string"},{"name":"verificationMethod","type":"string"}],"VerifiableCredential":[{"name":"@context","type":"string[]"},{"name":"credentialSubject","type":"CredentialSubject"},{"name":"id","type":"string"},{"name":"issuanceDate","type":"string"},{"name":"issuer","type":"Issuer"},{"name":"proof","type":"Proof"},{"name":"type","type":"string[]"}]},"primaryType":"VerifiableCredential"}}}'
-local is_valid, vc_json, owner_eth_address = vc_validate(document)
-
-print("is_valid: " .. tostring(is_valid) .. ", owner address equal: " .. tostring(expected_owner_eth_address == owner_eth_address))
--- print("vc_json: " .. json.encode(vc_json))
--- print("owner_eth_address: " .. owner_eth_address)
+  },
+  { envKey = "envValue" }
+)
+assert(response == true)
