@@ -215,6 +215,11 @@ function DFSM:processInput(inputId, inputValue)
         return false, "State machine is complete"
     end
 
+    -- Check if input has already been processed
+    if self.receivedInputs[inputId] then
+        return false, string.format("Input %s has already been processed", inputId)
+    end
+
     -- Get input definition
     local inputDef = self.inputs[inputId]
     if not inputDef then

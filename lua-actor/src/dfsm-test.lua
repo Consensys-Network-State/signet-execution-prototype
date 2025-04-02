@@ -144,10 +144,38 @@ print(formatFSMSummary(dfsm))
 
 print(renderDFSMState(dfsm))
 
-dfsm:processInput("grantRecipientSignature", json.decode([[{
+-- Helper function to process input and display results
+local function processInputAndDisplay(dfsm, inputId, inputValue)
+    print("\nProcessing input:", inputId)
+    local success, result = dfsm:processInput(inputId, inputValue)
+    
+    if success then
+    print("✅ Success:", result)
+    else
+    print("❌ Error:", result)
+    end
+    
+    print(renderDFSMState(dfsm))
+end
+
+-- Test the state machine transitions
+processInputAndDisplay(dfsm, "grantRecipientSignature", json.decode([[{
     "isGrantRecipientApproved": true
 }]]))
 
-print(renderDFSMState(dfsm))
+-- Test duplicate input handling
+processInputAndDisplay(dfsm, "grantRecipientSignature", json.decode([[{
+    "isGrantRecipientApproved": true
+}]]))
 
-assert(true == true)
+-- Test invalid input handling
+processInputAndDisplay(dfsm, "invalidInput", json.decode([[{
+    "someValue": true
+}]]))
+
+-- Test work approval signature
+processInputAndDisplay(dfsm, "workApprovedSignature", json.decode([[{
+    "isApproved": true
+}]]))
+
+-- assert(true == true)
