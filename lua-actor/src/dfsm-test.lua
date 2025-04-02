@@ -147,12 +147,15 @@ print(renderDFSMState(dfsm))
 -- Helper function to process input and display results
 local function processInputAndDisplay(dfsm, inputId, inputValue)
     print("\nProcessing input:", inputId)
+    print("Input value:")
+    printTable(inputValue)
+    
     local success, result = dfsm:processInput(inputId, inputValue)
     
     if success then
-    print("✅ Success:", result)
+        print("✅ Success:", result)
     else
-    print("❌ Error:", result)
+        print("❌ Error:", result)
     end
     
     print(renderDFSMState(dfsm))
@@ -173,9 +176,16 @@ processInputAndDisplay(dfsm, "invalidInput", json.decode([[{
     "someValue": true
 }]]))
 
--- Test work approval signature
+-- Invalid work approval signature
+processInputAndDisplay(dfsm, "workApprovedSignature", json.decode([[{
+    "isApproved": false
+}]]))
+
+-- Valid work approval signature
 processInputAndDisplay(dfsm, "workApprovedSignature", json.decode([[{
     "isApproved": true
 }]]))
+
+print(formatFSMSummary(dfsm))
 
 -- assert(true == true)

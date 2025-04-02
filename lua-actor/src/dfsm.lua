@@ -232,13 +232,11 @@ function DFSM:processInput(inputId, inputValue)
         return false, string.format("Unsupported input type: %s", inputDef.type)
     end
 
+    -- Verify input validity (not specific contents)
     local isValid, errorMsg = verifier(inputDef, inputValue)
     if not isValid then
         return false, string.format("Input validation failed: %s", errorMsg)
     end
-
-    -- Store the input
-    self.receivedInputs[inputId] = inputValue
 
     -- Check all transitions from current state
     for _, transition in ipairs(self.transitions) do
@@ -247,25 +245,13 @@ function DFSM:processInput(inputId, inputValue)
             local canTransition = true
             for _, condition in ipairs(transition.conditions) do
                 if condition.type == "isValid" then
-                    -- Check if all required inputs are present and valid
+                    -- Check if all required inputs are present and match the specified values
                     for _, requiredInput in ipairs(condition.inputs) do
-                        if not self.receivedInputs[requiredInput] then
-                            canTransition = false
-                            break
-                        end
-
-                        -- Get the input definition
-                        local inputDef = self.inputs[requiredInput]
-                        if not inputDef then
-                            canTransition = false
-                            break
-                        end
-
                         -- Replace variable references in the required input value
                         local processedRequiredInput = replaceVariableReferences(inputDef.value, self.variables)
 
                         -- Compare the processed required input with the received input's data
-                        if not deepCompare(processedRequiredInput, self.receivedInputs[requiredInput]) then
+                        if not deepCompare(processedRequiredInput, inputValue) then
                             canTransition = false
                             break
                         end
@@ -279,6 +265,9 @@ function DFSM:processInput(inputId, inputValue)
 
             -- If all conditions are met, perform the transition
             if canTransition then
+                -- Store the input only if transition is successful
+                self.receivedInputs[inputId] = inputValue
+                
                 self.currentState = transition.to
                 -- Check if we've reached a terminal state (no outgoing transitions)
                 local hasOutgoingTransitions = false
