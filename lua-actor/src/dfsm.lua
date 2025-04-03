@@ -209,6 +209,31 @@ function DFSM:validate()
     end
 end
 
+-- Helper function to check if a transition's conditions are met
+local function areTransitionConditionsMet(transition, inputDef, inputValue, variables)
+    for _, condition in ipairs(transition.conditions) do
+        if condition.type == "isValid" then
+            for _, requiredInput in ipairs(condition.inputs) do
+                local processedRequiredInput = replaceVariableReferences(inputDef.value, variables)
+                if not deepCompare(processedRequiredInput, inputValue) then
+                    return false
+                end
+            end
+        end
+    end
+    return true
+end
+
+-- Helper function to check if a state has outgoing transitions
+local function hasOutgoingTransitions(state, transitions)
+    for _, t in ipairs(transitions) do
+        if t.from == state then
+            return true
+        end
+    end
+    return false
+end
+
 -- Process an input and attempt to transition states
 function DFSM:processInput(inputId, inputValue)
     if self.isComplete then
@@ -238,46 +263,16 @@ function DFSM:processInput(inputId, inputValue)
         return false, string.format("Input validation failed: %s", errorMsg)
     end
 
-    -- Check all transitions from current state
+    -- Process transitions from current state by checking if the conditions are met for other states
     for _, transition in ipairs(self.transitions) do
         if transition.from == self.currentState then
-            -- Check if all conditions for this transition are met
-            local canTransition = true
-            for _, condition in ipairs(transition.conditions) do
-                if condition.type == "isValid" then
-                    -- Check if all required inputs are present and match the specified values
-                    for _, requiredInput in ipairs(condition.inputs) do
-                        -- Replace variable references in the required input value
-                        local processedRequiredInput = replaceVariableReferences(inputDef.value, self.variables)
-
-                        -- Compare the processed required input with the received input's data
-                        if not deepCompare(processedRequiredInput, inputValue) then
-                            canTransition = false
-                            break
-                        end
-                    end
-
-                end
-                if not canTransition then
-                    break
-                end
-            end
-
-            -- If all conditions are met, perform the transition
-            if canTransition then
-                -- Store the input only if transition is successful
+            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variables) then
+                -- Store the input and update state
                 self.receivedInputs[inputId] = inputValue
-                
                 self.currentState = transition.to
-                -- Check if we've reached a terminal state (no outgoing transitions)
-                local hasOutgoingTransitions = false
-                for _, t in ipairs(self.transitions) do
-                    if t.from == self.currentState then
-                        hasOutgoingTransitions = true
-                        break
-                    end
-                end
-                if not hasOutgoingTransitions then
+                
+                -- Check if we've reached a terminal state
+                if not hasOutgoingTransitions(self.currentState, self.transitions) then
                     self.isComplete = true
                 end
                 return true, "Transition successful"
