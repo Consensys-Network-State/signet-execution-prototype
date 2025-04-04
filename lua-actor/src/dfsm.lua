@@ -1,4 +1,8 @@
 -- DFSM (Deterministic Finite State Machine) implementation
+local Comparison = require("utils.comparison")
+local VariableManager = require("variables.variable_manager")
+local InputVerifier = require("verifiers.input_verifier")
+
 local DFSM = {}
 
 -- Helper function to perform deep comparison of two values
@@ -97,54 +101,10 @@ local inputVerifiers = {
 }
 
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(definition)
+function DFSM.new(definition, customVerifiers)
     -- Handle both direct data and nested execution.data structure
     local data = definition.execution and definition.execution.data or definition
     local variables = definition.variables or {}
-
-    -- Create a variables table with getters and setters
-    local variablesTable = {}
-    for _, var in ipairs(variables) do
-        variablesTable[var.id] = {
-            value = var.value,
-            type = var.type,
-            name = var.name,
-            description = var.description,
-            validation = var.validation,
-            -- Getter
-            get = function(self)
-                return self.value
-            end,
-            -- Setter with validation
-            set = function(self, newValue)
-                if self.validation then
-                    -- Check required
-                    if self.validation.required and (newValue == nil or newValue == "") then
-                        error(string.format("Variable %s is required", self.name))
-                    end
-
-                    -- Check min length for strings
-                    if self.validation.minLength and type(newValue) == "string" and #newValue < self.validation.minLength then
-                        error(string.format("Variable %s must be at least %d characters", self.name, self.validation.minLength))
-                    end
-
-                    -- Check pattern for strings
-                    if self.validation.pattern and type(newValue) == "string" then
-                        local pattern = self.validation.pattern:gsub("\\/", "/")
-                        if not string.match(newValue, pattern) then
-                            error(string.format("Variable %s: %s", self.name, self.validation.message or "Invalid format"))
-                        end
-                    end
-
-                    -- Check min value for numbers
-                    if self.validation.min and type(newValue) == "number" and newValue < self.validation.min then
-                        error(string.format("Variable %s must be at least %s", self.name, tostring(self.validation.min)))
-                    end
-                end
-                self.value = newValue
-            end
-        }
-    end
 
     local self = {
         states = data.states or {},
@@ -153,15 +113,12 @@ function DFSM.new(definition)
         currentState = data.states[1], -- Start with first state
         receivedInputs = {},
         isComplete = false,
-        variables = variablesTable
+        variableManager = VariableManager.new(variables),
+        inputVerifier = InputVerifier.new(customVerifiers)
     }
 
-    -- Set up metatable first
     setmetatable(self, { __index = DFSM })
-
-    -- Now we can validate since self has access to DFSM methods
     self:validate()
-
     return self
 end
 
@@ -191,11 +148,6 @@ function DFSM:validate()
     local validInputs = {}
     for inputId, input in pairs(self.inputs) do
         validInputs[inputId] = true
-
-        -- Validate input type
-        if not inputVerifiers[input.type] then
-            error(string.format("Unsupported input type: %s", input.type))
-        end
     end
 
     for _, transition in ipairs(self.transitions) do
@@ -215,7 +167,7 @@ local function areTransitionConditionsMet(transition, inputDef, inputValue, vari
         if condition.type == "isValid" then
             for _, requiredInput in ipairs(condition.inputs) do
                 local processedRequiredInput = replaceVariableReferences(inputDef.value, variables)
-                if not deepCompare(processedRequiredInput, inputValue) then
+                if not Comparison.deepCompare(processedRequiredInput, inputValue) then
                     return false
                 end
             end
@@ -251,22 +203,16 @@ function DFSM:processInput(inputId, inputValue)
         return false, string.format("Unknown input: %s", inputId)
     end
 
-    -- Verify input using appropriate handler
-    local verifier = inputVerifiers[inputDef.type]
-    if not verifier then
-        return false, string.format("Unsupported input type: %s", inputDef.type)
-    end
-
-    -- Verify input validity (not specific contents)
-    local isValid, errorMsg = verifier(inputDef, inputValue)
+    -- Verify input
+    local isValid, errorMsg = self.inputVerifier:verify(inputDef.type, inputDef, inputValue)
     if not isValid then
-        return false, string.format("Input validation failed: %s", errorMsg)
+        return false, errorMsg
     end
 
-    -- Process transitions from current state by checking if the conditions are met for other states
+    -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
         if transition.from == self.currentState then
-            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variables) then
+            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variableManager) then
                 -- Store the input and update state
                 self.receivedInputs[inputId] = inputValue
                 self.currentState = transition.to
@@ -300,34 +246,17 @@ end
 
 -- Get a variable value
 function DFSM:getVariable(name)
-    local var = self.variables[name]
-    if not var then
-        error(string.format("Variable not found: %s", name))
-    end
-    return var:get()
+    return self.variableManager:getVariable(name)
 end
 
 -- Set a variable value
 function DFSM:setVariable(name, value)
-    local var = self.variables[name]
-    if not var then
-        error(string.format("Variable not found: %s", name))
-    end
-    var:set(value)
+    self.variableManager:setVariable(name, value)
 end
 
 -- Get all variables
 function DFSM:getVariables()
-    local result = {}
-    for name, var in pairs(self.variables) do
-        result[name] = {
-            value = var:get(),
-            type = var.type,
-            name = var.name,
-            description = var.description
-        }
-    end
-    return result
+    return self.variableManager:getAllVariables()
 end
 
 -- Export the DFSM module
