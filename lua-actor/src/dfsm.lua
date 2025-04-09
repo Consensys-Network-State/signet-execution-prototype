@@ -2,11 +2,24 @@
 local VariableManager = require("variables.variable_manager")
 local InputVerifier = require("verifiers.input_verifier")
 local TableUtils = require("utils.table_utils")
-
+local json = require("json")
 local DFSM = {}
 
--- Helper function to replace variable references with their values
-local replaceVariableReferences = TableUtils.replaceVariableReferences
+local function processVCWrapper(vc, expectedIssuer, validateVC)
+    -- validate by default
+    validateVC = validateVC == nil and true or validateVC
+    local vcJson = json.decode(vc)
+    if validateVC then
+        local issuer = vcJson.credentialSubject.issuer
+        if expectedIssuer then
+            assert(issuer == expectedIssuer, "Issuer mismatch")
+        end
+        -- Vlad-Todo: add VC validation here
+        return vcJson.credentialSubject
+    else
+        return vcJson.credentialSubject or vcJson
+    end
+end
 
 -- Input verifier handlers
 local inputVerifiers = {
@@ -25,10 +38,16 @@ local inputVerifiers = {
 }
 
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(definition, customVerifiers)
+function DFSM.new(document, validateVC)
+    -- validate by default
+    validateVC = validateVC == nil and true or validateVC
+
+    -- process VC wrapper
+    document = processVCWrapper(document, nil, validateVC)
+
     -- Handle both direct data and nested execution.data structure
-    local data = definition.execution and definition.execution.data or definition
-    local variables = definition.variables or {}
+    local data = document.execution and document.execution.data or document
+    local variables = document.variables or {}
 
     local self = {
         states = data.states or {},
@@ -38,7 +57,7 @@ function DFSM.new(definition, customVerifiers)
         receivedInputs = {},
         isComplete = false,
         variableManager = VariableManager.new(variables),
-        inputVerifier = InputVerifier.new(customVerifiers)
+        inputVerifier = InputVerifier.new(inputVerifiers)
     }
 
     setmetatable(self, { __index = DFSM })
@@ -70,16 +89,39 @@ function DFSM:validate()
 
     -- Check that all inputs referenced in conditions exist
     local validInputs = {}
-    for inputId, input in pairs(self.inputs) do
-        validInputs[inputId] = true
+    for _, input in ipairs(self.inputs) do
+        validInputs[input.id] = true
     end
 
     for _, transition in ipairs(self.transitions) do
         for _, condition in ipairs(transition.conditions) do
-            for _, inputId in ipairs(condition.inputs) do
-                if not validInputs[inputId] then
-                    error(string.format("Invalid input referenced in condition: %s", inputId))
+            if condition.type == "isValid" then
+                for _, inputId in ipairs(condition.inputs) do
+                    if not validInputs[inputId] then
+                        error(string.format("Invalid input referenced in condition: %s", inputId))
+                    end
                 end
+            end
+        end
+    end
+
+    -- Validate input schemas
+    for _, input in ipairs(self.inputs) do
+        if not input.type then
+            error(string.format("Input %s missing type", input.id))
+        end
+        if not input.schema then
+            error(string.format("Input %s missing schema", input.id))
+        end
+        if not input.data then
+            error(string.format("Input %s missing data definition", input.id))
+        end
+        for _, field in ipairs(input.data) do
+            if not field.id then
+                error(string.format("Field in input %s missing id", input.id))
+            end
+            if not field.type then
+                error(string.format("Field %s in input %s missing type", field.id, input.id))
             end
         end
     end
@@ -90,14 +132,13 @@ local function areTransitionConditionsMet(transition, inputDef, inputValue, vari
     for _, condition in ipairs(transition.conditions) do
         if condition.type == "isValid" then
             for _, requiredInput in ipairs(condition.inputs) do
-                local processedRequiredInput = replaceVariableReferences(inputDef.value, variables)
-                if not TableUtils.deepCompare(processedRequiredInput, inputValue) then
-                    return false
+                if requiredInput == inputDef.id then
+                    return true
                 end
             end
         end
     end
-    return true
+    return #transition.conditions == 0
 end
 
 -- Helper function to check if a state has outgoing transitions
@@ -111,7 +152,7 @@ local function hasOutgoingTransitions(state, transitions)
 end
 
 -- Process an input and attempt to transition states
-function DFSM:processInput(inputId, inputValue)
+function DFSM:processInput(inputId, inputValue, validateVC)
     if self.isComplete then
         return false, "State machine is complete"
     end
@@ -126,6 +167,9 @@ function DFSM:processInput(inputId, inputValue)
     if not inputDef then
         return false, string.format("Unknown input: %s", inputId)
     end
+
+    -- Assume all inputs are VC-wrapped
+    local vc = processVCWrapper(inputValue, inputDef.issuer, validateVC);
 
     -- Verify input
     local isValid, errorMsg = self.inputVerifier:verify(inputDef.type, inputDef, inputValue)
