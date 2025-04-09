@@ -254,7 +254,6 @@
     "type": "dfsm",
     "data": {
       "states": [
-        "DRAFT",
         "PENDING_PARTY_A_SIGNATURE",
         "PENDING_PARTY_B_SIGNATURE",
         "EXECUTED",
@@ -322,11 +321,6 @@
         }
       ],
       "transitions": [
-        {
-          "from": "DRAFT",
-          "to": "PENDING_PARTY_A_SIGNATURE",
-          "conditions": []
-        },
         {
           "from": "PENDING_PARTY_A_SIGNATURE",
           "to": "PENDING_PARTY_B_SIGNATURE",
