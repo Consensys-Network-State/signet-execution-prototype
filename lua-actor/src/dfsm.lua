@@ -49,15 +49,31 @@ function DFSM.new(document, validateVC)
     local data = document.execution and document.execution.data or document
     local variables = document.variables or {}
 
+    -- Validate variables using shared validation
+    for _, variable in ipairs(variables) do
+        local isValid, errorMsg = InputVerifier.ValidationUtils.validateField(variable, variable.value)
+        if not isValid then
+            print(string.format("WARNING: Invalid variable %s: %s", variable.id, errorMsg))
+            -- error(string.format("Invalid variable %s: %s", variable.id, errorMsg))
+        end
+    end
+
+    -- Convert inputs array to map for easier access
+    local inputsMap = {}
+    for _, input in ipairs(data.inputs or {}) do
+        inputsMap[input.id] = input
+    end
+
     local self = {
         states = data.states or {},
         inputs = data.inputs or {},
+        inputsMap = inputsMap, -- Add map for easier access
         transitions = data.transitions or {},
         currentState = data.states[1], -- Start with first state
         receivedInputs = {},
         isComplete = false,
         variableManager = VariableManager.new(variables),
-        inputVerifier = InputVerifier.new(inputVerifiers)
+        inputVerifier = InputVerifier.InputVerifier.new(inputVerifiers)
     }
 
     setmetatable(self, { __index = DFSM })
@@ -162,8 +178,8 @@ function DFSM:processInput(inputId, inputValue, validateVC)
         return false, string.format("Input %s has already been processed", inputId)
     end
 
-    -- Get input definition
-    local inputDef = self.inputs[inputId]
+    -- Get input definition from map
+    local inputDef = self.inputsMap[inputId]
     if not inputDef then
         return false, string.format("Unknown input: %s", inputId)
     end
@@ -172,7 +188,7 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     local vc = processVCWrapper(inputValue, inputDef.issuer, validateVC);
 
     -- Verify input
-    local isValid, errorMsg = self.inputVerifier:verify(inputDef.type, inputDef, inputValue)
+    local isValid, errorMsg = self.inputVerifier:verify(inputDef, inputValue)
     if not isValid then
         return false, errorMsg
     end
@@ -225,6 +241,16 @@ end
 -- Get all variables
 function DFSM:getVariables()
     return self.variableManager:getAllVariables()
+end
+
+-- Get input definition by ID
+function DFSM:getInput(inputId)
+    return self.inputsMap[inputId]
+end
+
+-- Get all inputs
+function DFSM:getInputs()
+    return self.inputs
 end
 
 -- Export the DFSM module

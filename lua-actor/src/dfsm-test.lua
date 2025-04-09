@@ -1,6 +1,5 @@
 require("setup")
 
-local TestUtils = require("test-utils")
 local DFSMUtils = require("utils.dfsm_utils")
 local json = require("json")
 -- this imports the DFSM processor code
