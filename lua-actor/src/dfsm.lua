@@ -87,12 +87,17 @@ end
 
 -- Helper function to check if a transition's conditions are met
 local function areTransitionConditionsMet(transition, inputDef, inputValue, variables)
-    for _, condition in ipairs(transition.conditions) do
-        if condition.type == "isValid" then
-            for _, requiredInput in ipairs(condition.inputs) do
-                local processedRequiredInput = replaceVariableReferences(inputDef.value, variables)
-                if not TableUtils.deepCompare(processedRequiredInput, inputValue) then
-                    return false
+    if inputDef.type == "EVMTransaction" then
+        -- TODO: check if the transaction actually does what it's should given the input definiton
+        return true
+    else
+        for _, condition in ipairs(transition.conditions) do
+            if condition.type == "isValid" then
+                for _, requiredInput in ipairs(condition.inputs) do
+                    local processedRequiredInput = replaceVariableReferences(inputDef.value, variables)
+                    if not TableUtils.deepCompare(processedRequiredInput, inputValue) then
+                        return false
+                    end
                 end
             end
         end
@@ -128,10 +133,12 @@ function DFSM:processInput(inputId, inputValue)
     end
 
     -- Verify input
-    local isValid, errorMsg = self.inputVerifier:verify(inputDef.type, inputDef, inputValue)
+    local isValid, errorMsg, augmentedInputValue = self.inputVerifier:verify(inputDef.type, inputDef, inputValue)
     if not isValid then
         return false, errorMsg
     end
+
+    inputValue = augmentedInputValue or inputValue
 
     -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
