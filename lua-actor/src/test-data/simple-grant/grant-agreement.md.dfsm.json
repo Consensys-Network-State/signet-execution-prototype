@@ -256,8 +256,9 @@
       "states": [
         "PENDING_PARTY_A_SIGNATURE",
         "PENDING_PARTY_B_SIGNATURE",
-        "EXECUTED",
-        "TERMINATED"
+        "PENDING_ACCEPTANCE",
+        "ACCEPTED",
+        "REJECTED"
       ],
       "inputs": [
         {
@@ -289,7 +290,8 @@
             }
           ],
           "issuer": "${partyAEthAddress}"
-        }, {
+        },
+        {
           "id": "partyBData",
           "type": "VerifiedCredentialEIP712",
           "schema": "verified-credential-eip712.schema.json",
@@ -318,6 +320,42 @@
             }
           ],
           "issuer": "${partyBEthAddress}"
+        },
+        {
+          "id": "accepted",
+          "type": "VerifiedCredentialEIP712",
+          "schema": "verified-credential-eip712.schema.json",
+          "displayName": "Party A Accepted Party B's Data",
+          "description": "EIP712 signature from Party A accepting Party B's data",
+          "data": [
+            {
+              "id": "partyAAcceptance",
+              "type": "string",
+              "validation": {
+                "required": true,
+                "pattern": "^ACCEPTED$"
+              }
+            }
+          ],
+          "issuer": "${partyAEthAddress}"
+        },
+        {
+          "id": "rejected",
+          "type": "VerifiedCredentialEIP712",
+          "schema": "verified-credential-eip712.schema.json",
+          "displayName": "Party A Rejected Party B's Data",
+          "description": "EIP712 signature from Party A rejecting Party B's data",
+          "data": [
+            {
+              "id": "partyARejection",
+              "type": "string",
+              "validation": {
+                "required": true,
+                "pattern": "^REJECTED$"
+              }
+            }
+          ],
+          "issuer": "${partyAEthAddress}"
         }
       ],
       "transitions": [
@@ -335,7 +373,7 @@
         },
         {
           "from": "PENDING_PARTY_B_SIGNATURE",
-          "to": "EXECUTED",
+          "to": "PENDING_ACCEPTANCE",
           "conditions": [
             {
               "type": "isValid",
@@ -346,9 +384,28 @@
           ]
         },
         {
-          "from": "EXECUTED",
-          "to": "TERMINATED",
-          "conditions": []
+          "from": "PENDING_ACCEPTANCE",
+          "to": "ACCEPTED",
+          "conditions": [
+            {
+              "type": "isValid",
+              "inputs": [
+                "accepted"
+              ]
+            }
+          ]
+        },
+        {
+          "from": "PENDING_ACCEPTANCE",
+          "to": "REJECTED",
+          "conditions": [
+            {
+              "type": "isValid",
+              "inputs": [
+                "rejected"
+              ]
+            }
+          ]
         }
       ]
     }

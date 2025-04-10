@@ -38,7 +38,7 @@ local function processInputAndDisplay(dfsm, inputId, inputValue)
     print(DFSMUtils.renderDFSMState(dfsm))
 end
 
--- Test the state machine transitions
+-- Party A data
 processInputAndDisplay(dfsm, "partyAData", [[
 {
     "issuer": "",
@@ -83,7 +83,7 @@ processInputAndDisplay(dfsm, "invalidInput", [[{
     "someValue": true
 }]])
 
--- Invalid work approval signature
+-- Party B data
 processInputAndDisplay(dfsm, "partyBData", [[
 {
     "issuer": "",
@@ -103,6 +103,36 @@ processInputAndDisplay(dfsm, "partyBData", [[
     }
 }]])
 
-print(DFSMUtils.formatFSMSummary(dfsm))
+-- Party A accepts
+-- processInputAndDisplay(dfsm, "accepted", [[
+-- {
+--     "issuer": "",
+--     "credentialSubject": {
+--         "id": "accepted",
+--         "type": "signedFields",
+--         "fields": [
+--             {
+--                 "id": "partyAAcceptance",
+--                 "value": "ACCEPTED"
+--             }
+--         ]
+--     }
+-- }]])
 
--- assert(true == true)
+-- Party A rejects
+processInputAndDisplay(dfsm, "rejected", [[
+{
+    "issuer": "",
+    "credentialSubject": {
+        "id": "accepted",
+        "type": "signedFields",
+        "fields": [
+            {
+                "id": "partyARejection",
+                "value": "ACCEPTED"
+            }
+        ]
+    }
+}]])
+
+-- print(DFSMUtils.formatFSMSummary(dfsm))
