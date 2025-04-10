@@ -3,6 +3,8 @@ local VariableManager = require("variables.variable_manager")
 local InputVerifier = require("verifiers.input_verifier")
 local TableUtils = require("utils.table_utils")
 local json = require("json")
+local VcValidator = require("vc-validator")
+
 
 -- Input verifier handlers
 local inputVerifiers = {
@@ -23,15 +25,16 @@ local inputVerifiers = {
 local function processVCWrapper(vc, expectedIssuer, validateVC)
     -- validate by default
     validateVC = validateVC == nil and true or validateVC
-    local vcJson = json.decode(vc)
     if validateVC then
-        local issuer = vcJson.credentialSubject.issuer
+        local success, vcJson, ownerAddress =  VcValidator.validate(vc)
+        assert(success, "Invalid VC");
+
         if expectedIssuer then
-            assert(issuer == expectedIssuer, "Issuer mismatch")
+            assert(ownerAddress == string.lower(expectedIssuer), "Issuer mismatch")
         end
-        -- Vlad-Todo: add VC validation here
         return vcJson.credentialSubject
     else
+        local vcJson = json.decode(vc)
         return vcJson.credentialSubject or vcJson
     end
 end
