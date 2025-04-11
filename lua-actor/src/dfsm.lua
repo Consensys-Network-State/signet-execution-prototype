@@ -88,8 +88,21 @@ end
 -- Helper function to check if a transition's conditions are met
 local function areTransitionConditionsMet(transition, inputDef, inputValue, variables)
     if inputDef.type == "EVMTransaction" then
-        -- TODO: check if the transaction actually does what it's should given the input definiton
-        return true
+        local processedRequiredInput = replaceVariableReferences(inputDef.txMetadata, variables)
+
+        if processedRequiredInput.transactionType == "nativeTransfer" then
+            if inputValue.TxRaw.from ~= processedRequiredInput.from 
+                or inputValue.TxRaw.to ~= processedRequiredInput.to 
+                or inputValue.TxRaw.value ~= processedRequiredInput.value
+                or inputValue.TxRaw.chainId ~= processedRequiredInput.chainId then
+                return false
+            end
+            return true
+        elseif processedRequiredInput.transactionType == "contractCall" then
+            return true
+        else
+            return true
+        end
     else
         for _, condition in ipairs(transition.conditions) do
             if condition.type == "isValid" then
@@ -143,7 +156,7 @@ function DFSM:processInput(inputId, inputValue)
     -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
         if transition.from == self.currentState then
-            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variableManager) then
+            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variableManager.variables) then
                 -- Store the input and update state
                 self.receivedInputs[inputId] = inputValue
                 self.currentState = transition.to

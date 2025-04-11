@@ -1,3 +1,5 @@
+local verifyEVMTransactionInputVerifier = require("verifiers.EVMTransactionInputVerifier")
+
 local InputVerifier = {}
 
 -- Default verifiers
@@ -7,24 +9,7 @@ local defaultVerifiers = {
         return true
     end,
     
-    EVMTransaction = function(input, value)
-        -- TODO: Implement actual EVM transaction verification
-        print("PROCESSING EVM TRANSACTION")
-        -- Extract the transaction hash from the VC (Also verify VC?)
-        -- Mock the Oracle call
-        local oracleResponse = {
-            transactionHash = "0x1234567890abcdef",
-            blockNumber = 1234567890,
-            blockHash = "0xabcdef1234567890",
-            transactionIndex = 1,
-            status = "success"
-        }
-
-        
-
-        -- Verify the transaction is included in the block chain given the data returned from the Oracle
-        return true, nil, value
-    end
+    EVMTransaction = verifyEVMTransactionInputVerifier
 }
 
 function InputVerifier.new(customVerifiers)
