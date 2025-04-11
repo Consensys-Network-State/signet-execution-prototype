@@ -653,20 +653,17 @@ function Trie:get(key)
     return value
 end
 
-local function verifyProof(txHash, transactionIndex, transactionRoot, proof, value)
-    -- 1. RLP encode transaction index
-    local key = rlpEncode(tonumber(transactionIndex))
-    
+local function verifyMerkleProof(key, root, proof, value)
     -- 2. convert blocks transactions root to buffer
     local rootBytes = {}
     -- Remove '0x' prefix if present
-    if transactionRoot:sub(1, 2) == "0x" then
-        transactionRoot = transactionRoot:sub(3)
+    if root:sub(1, 2) == "0x" then
+        root = root:sub(3)
     end
     
     -- Convert hex string to byte array
-    for i = 1, #transactionRoot, 2 do
-        local byte = tonumber(transactionRoot:sub(i, i+1), 16)
+    for i = 1, #root, 2 do
+        local byte = tonumber(root:sub(i, i+1), 16)
         table.insert(rootBytes, byte)
     end
     
@@ -677,6 +674,13 @@ local function verifyProof(txHash, transactionIndex, transactionRoot, proof, val
     -- 4. compare the value to the expected value and return result
     local proofValue = trie:get(key)
     return equalsBytes(value, proofValue)
+end
+
+local function verifyProof(txHash, txIndex, txRoot, txProof, txValue, receiptRoot, receiptProof, receiptValue)
+    -- 1. RLP encode transaction index
+    local key = rlpEncode(tonumber(txIndex))
+    
+    return verifyMerkleProof(key, txRoot, txProof, txValue) and verifyMerkleProof(key, receiptRoot, receiptProof, receiptValue)
 end
 
 -- Export the verifier function
@@ -697,7 +701,7 @@ local function verifyEVMTransaction(input, value)
         return false, "Transaction not found in oracle", nil
     end
 
-    local isValid = verifyProof(oracleResponse.TxHash, oracleResponse.TxIndex, oracleResponse.TxRoot, oracleResponse.Proof, oracleResponse.Value)
+    local isValid = verifyProof(oracleResponse.TxHash, oracleResponse.TxIndex, oracleResponse.TxRoot, oracleResponse.TxProof, oracleResponse.TxEncodedValue, oracleResponse.ReceiptRoot, oracleResponse.ReceiptProof, oracleResponse.ReceiptEncodedValue)
 
     if not isValid then
         return false, "Transaction proof is invalid", nil

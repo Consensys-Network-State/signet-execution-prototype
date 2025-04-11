@@ -278,9 +278,10 @@ async function getTransactionProof(txHash) {
         txRaw,
         txReceipt,
         block,
-        proof: proof,
-        value: value,
-        txRaw: txRaw
+        txProof: proof,
+        txEncodedValue: value,
+        receiptProof: receiptProof,
+        receiptEncodedValue: receiptValue
     };
 }
 
@@ -340,7 +341,7 @@ async function main() {
     try {
         const proofData = await getTransactionProof(txHash);
         if (proofData) {
-            const isValid = await verifyTransactionProof(proofData.txHash, proofData.txReceipt.transactionIndex, proofData.block, proofData.proof, proofData.value);
+            const isValid = await verifyTransactionProof(proofData.txHash, proofData.txReceipt.transactionIndex, proofData.block, proofData.txProof, proofData.txEncodedValue);
             console.log("Proof is valid:", isValid);
         }
 
@@ -355,8 +356,8 @@ async function main() {
                 TxHash: proofData.txHash,
                 TxRoot: proofData.block.transactionsRoot,
                 TxIndex: proofData.txReceipt.transactionIndex.toString(),
-                Proof: proofData.proof.map((n) => Array.from(n)),
-                Value: Array.from(proofData.value)
+                Proof: proofData.txProof.map((n) => Array.from(n)),
+                Value: Array.from(proofData.txEncodedValue)
             }),
         });
     
@@ -366,8 +367,11 @@ async function main() {
             TxIndex: proofData.txReceipt.transactionIndex.toString(),
             TxRaw: proofData.txRaw,
             TxReceipt: proofData.txReceipt,
-            Proof: proofData.proof.map((n) => Array.from(n)),
-            Value: Array.from(proofData.value)
+            TxProof: proofData.txProof.map((n) => Array.from(n)),
+            TxEncodedValue: Array.from(proofData.txEncodedValue),
+            ReceiptRoot: proofData.block.receiptsRoot,
+            ReceiptProof: proofData.receiptProof.map((n) => Array.from(n)),
+            ReceiptEncodedValue: Array.from(proofData.receiptEncodedValue)
         }))
         const response = await result({ message: txId, process: processId });
         console.log(response);
