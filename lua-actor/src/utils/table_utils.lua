@@ -79,7 +79,52 @@ local function replaceVariableReferences(obj, variablesTable)
     return result
 end
 
+-- Helper function to print a table in a readable format
+local function printTable(t, indent, visited)
+    indent = indent or 0
+    visited = visited or {}
+    
+    -- Handle non-table values
+    if type(t) ~= "table" then
+        print(string.rep("  ", indent) .. tostring(t))
+        return
+    end
+    
+    -- Handle already visited tables to prevent infinite recursion
+    if visited[t] then
+        print(string.rep("  ", indent) .. "[circular reference]")
+        return
+    end
+    visited[t] = true
+    
+    -- Handle empty table
+    if next(t) == nil then
+        print(string.rep("  ", indent) .. "{}")
+        return
+    end
+    
+    -- Handle arrays (tables with numeric keys)
+    if #t > 0 then
+        print(string.rep("  ", indent) .. "[")
+        for i, v in ipairs(t) do
+            print(string.rep("  ", indent + 1) .. tostring(i) .. ":")
+            printTable(v, indent + 2, visited)
+        end
+        print(string.rep("  ", indent) .. "]")
+        return
+    end
+    
+    -- Handle objects (tables with string keys)
+    print(string.rep("  ", indent) .. "{")
+    for k, v in pairs(t) do
+        print(string.rep("  ", indent + 1) .. tostring(k) .. ":")
+        printTable(v, indent + 2, visited)
+    end
+    print(string.rep("  ", indent) .. "}")
+end
+
 return {
     deepCompare = deepCompare,
-    replaceVariableReferences = replaceVariableReferences
+    replaceVariableReferences = replaceVariableReferences,
+    printTable = printTable
 } 

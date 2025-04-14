@@ -7,7 +7,7 @@ local DFSM = require("dfsm")
 
 -- Load agreement document from JSON file
 local function loadAgreementDoc()
-    local file = io.open("./test-data/simple-Grant/grant-agreement.md.dfsm.json", "r")
+    local file = io.open("./test-data/simple-grant/simple.grant.json", "r")
     if not file then
         error("Could not open agreement document file")
     end
@@ -17,7 +17,13 @@ local function loadAgreementDoc()
 end
 
 local agreementDoc = loadAgreementDoc()
-local dfsm = DFSM.new(agreementDoc, false)
+
+-- Initialize DFSM with required initial values
+local initialValues = {
+    partyAEthAddress = "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+}
+
+local dfsm = DFSM.new(agreementDoc, false, initialValues)
 
 print(DFSMUtils.formatFSMSummary(dfsm))
 
@@ -41,40 +47,28 @@ end
 -- Party A data
 processInputAndDisplay(dfsm, "partyAData", [[
 {
-    "issuer": "",
+    "type": "VerifiedCredentialEIP712",
+    "issuer": "${partyAEthAddress}",
     "credentialSubject": {
         "id": "partyAData",
         "type": "signedFields",
-        "fields": [
-            {
-                "id": "partyAName",
-                "value": "Damian"
-            },
-            {
-                "id": "partyAEthAddress",
-                "value": "0x1234567890123456789012345678901234567890"
-            }
-        ]
+        "values": {
+            "partyAName": "Damian"
+        }
     }
 }]])
 
 -- Test duplicate input handling
 processInputAndDisplay(dfsm, "partyAData", [[
 {
-    "issuer": "",
+    "type": "VerifiedCredentialEIP712",
+    "issuer": "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2",
     "credentialSubject": {
         "id": "partyAData",
         "type": "signedFields",
-        "fields": [
-            {
-                "id": "partyAName",
-                "value": "Damian"
-            },
-            {
-                "id": "partyAEthAddress",
-                "value": "0x1234567890123456789012345678901234567890"
-            }
-        ]
+        "values": {
+            "partyAName": "Damian"
+        }
     }
 }]])
 
@@ -86,52 +80,43 @@ processInputAndDisplay(dfsm, "invalidInput", [[{
 -- Party B data
 processInputAndDisplay(dfsm, "partyBData", [[
 {
-    "issuer": "",
+    "type": "VerifiedCredentialEIP712",
+    "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
     "credentialSubject": {
         "id": "partyBData",
         "type": "signedFields",
-        "fields": [
-            {
-                "id": "partyBName",
-                "value": "Leif"
-            },
-            {
-                "id": "partyBEthAddress",
-                "value": "0x2234567890123456789012345678901234567890"
-            }
-        ]
+        "values": {
+            "partyBName": "Leif",
+            "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+        }
     }
 }]])
 
 -- Party A accepts
--- processInputAndDisplay(dfsm, "accepted", [[
--- {
---     "issuer": "",
---     "credentialSubject": {
---         "id": "accepted",
---         "type": "signedFields",
---         "fields": [
---             {
---                 "id": "partyAAcceptance",
---                 "value": "ACCEPTED"
---             }
---         ]
---     }
--- }]])
+processInputAndDisplay(dfsm, "accepted", [[
+{
+    "type": "VerifiedCredentialEIP712",
+    "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "credentialSubject": {
+        "id": "accepted",
+        "type": "signedFields",
+        "values": {
+            "partyAAcceptance": "ACCEPTED"
+        }
+    }
+}]])
 
 -- Party A rejects
 processInputAndDisplay(dfsm, "rejected", [[
 {
-    "issuer": "",
+    "type": "VerifiedCredentialEIP712",
+    "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "credentialSubject": {
-        "id": "accepted",
+        "id": "rejected",
         "type": "signedFields",
-        "fields": [
-            {
-                "id": "partyARejection",
-                "value": "ACCEPTED"
-            }
-        ]
+        "values": {
+            "partyARejection": "REJECTED"
+        }
     }
 }]])
 

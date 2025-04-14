@@ -1,6 +1,38 @@
 local InputVerifier = {}
 local TestUtils = require("test-utils")
 local json = require("json")
+local crypto = require("crypto")
+
+local ETHEREUM_ADDRESS_REGEX = "^0x(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)$"
+
+-- Helper function to validate Ethereum address checksum
+local function validateEthAddressChecksum(address)
+    -- Remove 0x prefix and convert to lowercase
+    local addr = string.lower(string.sub(address, 3))
+    
+    -- Calculate keccak256 hash of the lowercase address
+    local hash = crypto.digest.keccak256(addr).asHex()
+    
+    -- Check each character
+    for i = 1, #addr do
+        local c = string.sub(addr, i, i)
+        local h = string.sub(hash, i, i)
+        local hnum = tonumber(h, 16)
+        
+        -- If the hash digit is 8 or higher, the address character should be uppercase
+        if hnum >= 8 then
+            if string.sub(address, i + 2, i + 2) ~= string.upper(c) then
+                return false
+            end
+        else
+            if string.sub(address, i + 2, i + 2) ~= c then
+                return false
+            end
+        end
+    end
+    
+    return true
+end
 
 -- Shared validation module
 local ValidationUtils = {
@@ -14,12 +46,41 @@ local ValidationUtils = {
             return false, string.format("Field %s is required", field.name or field.id)
         end
 
-        -- Check min length for strings
+        -- Skip validation if value is nil and not required
+        if not value then
+            return true
+        end
+
+        -- Validate type
+        if field.type == "string" and type(value) ~= "string" then
+            return false, string.format("Field %s must be a string", field.name or field.id)
+        elseif field.type == "address" then
+            print("--Address Validation Debug--")
+            print("Value type:", type(value))
+            print("Value:", value)
+            print("Value length:", #value)
+            
+            -- Basic format validation
+            if not string.match(value, ETHEREUM_ADDRESS_REGEX) then
+                return false, string.format("Field %s must be a valid Ethereum address format", field.name or field.id)
+            end
+            
+            -- Checksum validation
+            if not validateEthAddressChecksum(value) then
+                return false, string.format("Field %s must be a valid Ethereum address with correct checksum", field.name or field.id)
+            end
+            
+            print("Address validation passed")
+        elseif field.type == "number" and type(value) ~= "number" then
+            return false, string.format("Field %s must be a number", field.name or field.id)
+        end
+
+        -- Optional: Check min length for strings
         if field.validation.minLength and type(value) == "string" and #value < field.validation.minLength then
             return false, string.format("Field %s must be at least %d characters", field.name or field.id, field.validation.minLength)
         end
 
-        -- Check pattern for strings
+        -- Optional: Check pattern for strings
         if field.validation.pattern and type(value) == "string" then
             local pattern = field.validation.pattern:gsub("\\/", "/")
             if not string.match(value, pattern) then
@@ -27,7 +88,7 @@ local ValidationUtils = {
             end
         end
 
-        -- Check min value for numbers
+        -- Optional: Check min value for numbers
         if field.validation.min and type(value) == "number" and value < field.validation.min then
             return false, string.format("Field %s must be at least %s", field.name or field.id, tostring(field.validation.min))
         end

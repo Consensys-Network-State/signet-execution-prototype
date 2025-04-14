@@ -37,44 +37,96 @@ local inputVerifiers = {
     end
 }
 
+-- Validate input values against schema
+local function validateInputValues(inputDef, values)
+    if not inputDef.data then
+        return true, nil
+    end
+
+    for _, field in ipairs(inputDef.data) do
+        local value = values[field.id]
+        
+        -- Check required fields
+        if field.validation and field.validation.required and not value then
+            return false, string.format("Missing required field: %s", field.id)
+        end
+
+        -- Skip validation if value is nil and not required
+        if not value then
+            goto continue
+        end
+
+        -- Validate pattern if specified
+        if field.validation and field.validation.pattern then
+            local pattern = field.validation.pattern
+            if not string.match(value, pattern) then
+                return false, string.format("Field %s does not match pattern: %s", field.id, pattern)
+            end
+        end
+
+        -- Validate type
+        if field.type == "string" and type(value) ~= "string" then
+            return false, string.format("Field %s must be a string", field.id)
+        elseif field.type == "address" and not string.match(value, "^0x[a-fA-F0-9]{40}$") then
+            return false, string.format("Field %s must be a valid Ethereum address", field.id)
+        end
+
+        ::continue::
+    end
+
+    return true, nil
+end
+
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(document, validateVC)
+function DFSM.new(document, validateVC, initialValues)
     -- validate by default
     validateVC = validateVC == nil and true or validateVC
+    initialValues = initialValues or {}
 
     -- process VC wrapper
     document = processVCWrapper(document, nil, validateVC)
 
-    -- Handle both direct data and nested execution.data structure
-    local data = document.execution and document.execution.data or document
+    -- Extract execution data and variables
+    local execution = document.execution or {}
     local variables = document.variables or {}
 
-    -- Validate variables using shared validation
-    for _, variable in ipairs(variables) do
-        local isValid, errorMsg = InputVerifier.ValidationUtils.validateField(variable, variable.value)
-        if not isValid then
-            print(string.format("WARNING: Invalid variable %s: %s", variable.id, errorMsg))
-            -- error(string.format("Invalid variable %s: %s", variable.id, errorMsg))
+    -- Validate initially required variables
+    for id, variable in pairs(variables) do
+        if variable.initiallyRequired then
+            if not initialValues[id] then
+                error(string.format("Missing required initial value for variable: %s", id))
+            end
+            
+            -- Validate the initial value using the shared validation utils
+            local isValid, errorMsg = InputVerifier.ValidationUtils.validateField(variable, initialValues[id])
+            if not isValid then
+                error(string.format("Invalid initial value for variable %s: %s", id, errorMsg))
+            end
         end
     end
 
     -- Convert inputs array to map for easier access
     local inputsMap = {}
-    for _, input in ipairs(data.inputs or {}) do
+    for _, input in ipairs(execution.inputs or {}) do
         inputsMap[input.id] = input
     end
 
     local self = {
-        states = data.states or {},
-        inputs = data.inputs or {},
+        states = execution.states or {},
+        inputs = execution.inputs or {},
         inputsMap = inputsMap, -- Add map for easier access
-        transitions = data.transitions or {},
-        currentState = data.states[1], -- Start with first state
+        transitions = execution.transitions or {},
+        currentState = execution.states[1], -- Start with first state
         receivedInputs = {},
         isComplete = false,
         variableManager = VariableManager.new(variables),
         inputVerifier = InputVerifier.InputVerifier.new(inputVerifiers)
     }
+
+    -- Set initial values
+    for id, value in pairs(initialValues) do
+        self.variableManager:setVariable(id, value)
+    end
 
     setmetatable(self, { __index = DFSM })
     self:validate()
@@ -129,17 +181,6 @@ function DFSM:validate()
         if not input.schema then
             error(string.format("Input %s missing schema", input.id))
         end
-        if not input.data then
-            error(string.format("Input %s missing data definition", input.id))
-        end
-        for _, field in ipairs(input.data) do
-            if not field.id then
-                error(string.format("Field in input %s missing id", input.id))
-            end
-            if not field.type then
-                error(string.format("Field %s in input %s missing type", field.id, input.id))
-            end
-        end
     end
 end
 
@@ -187,8 +228,15 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     -- Assume all inputs are VC-wrapped
     local vc = processVCWrapper(inputValue, inputDef.issuer, validateVC);
 
-    -- Verify input
+    -- Verify input type and schema
     local isValid, errorMsg = self.inputVerifier:verify(inputDef, inputValue)
+    if not isValid then
+        return false, errorMsg
+    end
+
+    -- Validate input values against schema
+    local values = vc.values or {}
+    isValid, errorMsg = validateInputValues(inputDef, values)
     if not isValid then
         return false, errorMsg
     end
