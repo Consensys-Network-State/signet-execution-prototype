@@ -108,7 +108,6 @@ function DFSM.new(doc, debug, initial)
     local self = {
         state = nil,
         inputs = {},
-        inputMap = {},
         transitions = {},
         variables = nil,
         received = {},
@@ -154,14 +153,12 @@ function DFSM.new(doc, debug, initial)
                         error("Input must have an id")
                     end
                     self.inputs[input.id] = input
-                    self.inputMap[input.id] = input
                 end
             else
                 -- Object format
                 for id, input in pairs(agreement.execution.inputs) do
                     input.id = id -- Ensure id is set from the key
                     self.inputs[id] = input
-                    self.inputMap[id] = input
                 end
             end
         end
@@ -246,8 +243,8 @@ function DFSM:processInput(inputId, inputValue, validateVC)
         return false, string.format("Input %s has already been processed", inputId)
     end
 
-    -- Get input definition from map
-    local inputDef = self.inputMap[inputId]
+    -- Get input definition
+    local inputDef = self.inputs[inputId]
     if not inputDef then
         return false, string.format("Unknown input: %s", inputId)
     end
@@ -320,7 +317,7 @@ end
 
 -- Get input definition by ID
 function DFSM:getInput(inputId)
-    return self.inputMap[inputId]
+    return self.inputs[inputId]
 end
 
 -- Get all inputs
