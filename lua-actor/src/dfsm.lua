@@ -3,8 +3,23 @@ local VariableManager = require("variables.variable_manager")
 local InputVerifier = require("verifiers.input_verifier")
 local TableUtils = require("utils.table_utils")
 local json = require("json")
-local DFSM = {}
 
+-- Input verifier handlers
+local inputVerifiers = {
+    -- Verifies EIP712 signed credentials
+    VerifiedCredentialEIP712 = function(input, value)
+        -- TODO: Implement actual EIP712 verification
+        return true
+    end,
+    
+    -- Verifies EVM transactions
+    EVMTransaction = function(input, value)
+        -- TODO: Implement actual EVM transaction verification
+        return true
+    end
+}
+
+-- Helper function to process VC wrapper
 local function processVCWrapper(vc, expectedIssuer, validateVC)
     -- validate by default
     validateVC = validateVC == nil and true or validateVC
@@ -21,23 +36,7 @@ local function processVCWrapper(vc, expectedIssuer, validateVC)
     end
 end
 
--- Input verifier handlers
-local inputVerifiers = {
-    -- Verifies EIP712 signed credentials
-    VerifiedCredentialEIP712 = function(input, value)
-        -- TODO: Implement actual EIP712 verification
-        -- 
-        return true
-    end,
-    
-    -- Verifies EVM transactions
-    EVMTransaction = function(input, value)
-        -- TODO: Implement actual EVM transaction verification
-        return true
-    end
-}
-
--- Validate input values against schema
+-- Helper function to validate input values against schema
 local function validateInputValues(inputDef, values)
     if not inputDef.data then
         return true, nil
@@ -76,6 +75,33 @@ local function validateInputValues(inputDef, values)
 
     return true, nil
 end
+
+-- Helper function to check if a transition's conditions are met
+local function areTransitionConditionsMet(transition, inputDef, inputValue, variables)
+    for _, condition in ipairs(transition.conditions) do
+        if condition.type == "isValid" then
+            for _, requiredInput in ipairs(condition.inputs) do
+                if requiredInput == inputDef.id then
+                    return true
+                end
+            end
+        end
+    end
+    return #transition.conditions == 0
+end
+
+-- Helper function to check if a state has outgoing transitions
+local function hasOutgoingTransitions(state, transitions)
+    for _, t in ipairs(transitions) do
+        if t.from == state then
+            return true
+        end
+    end
+    return false
+end
+
+-- DFSM class definition
+local DFSM = {}
 
 -- Initialize a new DFSM instance from a JSON definition
 function DFSM.new(doc, debug, initial)
@@ -207,30 +233,6 @@ function DFSM:validate()
             error(string.format("Input %s missing schema", input.id))
         end
     end
-end
-
--- Helper function to check if a transition's conditions are met
-local function areTransitionConditionsMet(transition, inputDef, inputValue, variables)
-    for _, condition in ipairs(transition.conditions) do
-        if condition.type == "isValid" then
-            for _, requiredInput in ipairs(condition.inputs) do
-                if requiredInput == inputDef.id then
-                    return true
-                end
-            end
-        end
-    end
-    return #transition.conditions == 0
-end
-
--- Helper function to check if a state has outgoing transitions
-local function hasOutgoingTransitions(state, transitions)
-    for _, t in ipairs(transitions) do
-        if t.from == state then
-            return true
-        end
-    end
-    return false
 end
 
 -- Process an input and attempt to transition states
