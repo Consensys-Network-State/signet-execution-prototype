@@ -143,24 +143,13 @@ function DFSM.new(doc, debug, initial)
     -- Set initial state (first state in the list)
     self.state = agreement.execution.states[1]
 
-    -- Process inputs
+    -- Process inputs (assuming object structure)
     if agreement.execution.inputs then
-        if type(agreement.execution.inputs) == "table" then
-            if #agreement.execution.inputs > 0 then
-                -- Array format
-                for _, input in ipairs(agreement.execution.inputs) do
-                    if not input.id then
-                        error("Input must have an id")
-                    end
-                    self.inputs[input.id] = input
-                end
-            else
-                -- Object format
-                for id, input in pairs(agreement.execution.inputs) do
-                    input.id = id -- Ensure id is set from the key
-                    self.inputs[id] = input
-                end
-            end
+        if type(agreement.execution.inputs) ~= "table" then
+            error("Inputs must be an object with input IDs as keys")
+        end
+        for id, input in pairs(agreement.execution.inputs) do
+            self.inputs[id] = input
         end
     end
 
