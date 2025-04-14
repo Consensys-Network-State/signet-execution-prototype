@@ -78,58 +78,83 @@ local function validateInputValues(inputDef, values)
 end
 
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(document, validateVC, initialValues)
-    -- validate by default
-    validateVC = validateVC == nil and true or validateVC
-    initialValues = initialValues or {}
+function DFSM.new(doc, debug, initial)
+    local self = {
+        state = nil,
+        inputs = {},
+        inputMap = {},
+        transitions = {},
+        variables = nil,
+        received = {},
+        complete = false,
+        debug = debug or false,
+        inputVerifier = InputVerifier.InputVerifier.new(inputVerifiers)
+    }
 
-    -- process VC wrapper
-    document = processVCWrapper(document, nil, validateVC)
+    -- Parse agreement document
+    local agreement = json.decode(doc)
 
-    -- Extract execution data and variables
-    local execution = document.execution or {}
-    local variables = document.variables or {}
+    -- Initialize variables
+    self.variables = VariableManager.new(agreement.variables)
 
-    -- Validate initially required variables
-    for id, variable in pairs(variables) do
-        if variable.initiallyRequired then
-            if not initialValues[id] then
-                error(string.format("Missing required initial value for variable: %s", id))
-            end
-            
-            -- Validate the initial value using the shared validation utils
-            local isValid, errorMsg = InputVerifier.ValidationUtils.validateField(variable, initialValues[id])
-            if not isValid then
-                error(string.format("Invalid initial value for variable %s: %s", id, errorMsg))
+    -- Set initial values if provided
+    if initial then
+        for id, value in pairs(initial) do
+            self.variables:setVariable(id, value)
+        end
+    end
+
+    -- Validate and set initial state
+    if not agreement.execution or not agreement.execution.states or #agreement.execution.states == 0 then
+        error("Agreement document must have at least one state")
+    end
+
+    -- Create valid states lookup
+    local states = {}
+    for _, state in ipairs(agreement.execution.states) do
+        states[state] = true
+    end
+
+    -- Set initial state (first state in the list)
+    self.state = agreement.execution.states[1]
+
+    -- Process inputs
+    if agreement.execution.inputs then
+        if type(agreement.execution.inputs) == "table" then
+            if #agreement.execution.inputs > 0 then
+                -- Array format
+                for _, input in ipairs(agreement.execution.inputs) do
+                    if not input.id then
+                        error("Input must have an id")
+                    end
+                    self.inputs[input.id] = input
+                    self.inputMap[input.id] = input
+                end
+            else
+                -- Object format
+                for id, input in pairs(agreement.execution.inputs) do
+                    input.id = id -- Ensure id is set from the key
+                    self.inputs[id] = input
+                    self.inputMap[id] = input
+                end
             end
         end
     end
 
-    -- Convert inputs array to map for easier access
-    local inputsMap = {}
-    for _, input in ipairs(execution.inputs or {}) do
-        inputsMap[input.id] = input
-    end
-
-    local self = {
-        states = execution.states or {},
-        inputs = execution.inputs or {},
-        inputsMap = inputsMap, -- Add map for easier access
-        transitions = execution.transitions or {},
-        currentState = execution.states[1], -- Start with first state
-        receivedInputs = {},
-        isComplete = false,
-        variableManager = VariableManager.new(variables),
-        inputVerifier = InputVerifier.InputVerifier.new(inputVerifiers)
-    }
-
-    -- Set initial values
-    for id, value in pairs(initialValues) do
-        self.variableManager:setVariable(id, value)
+    -- Process transitions
+    if agreement.execution.transitions then
+        for _, transition in ipairs(agreement.execution.transitions) do
+            if not states[transition.from] then
+                error(string.format("Invalid 'from' state in transition: %s", transition.from))
+            end
+            if not states[transition.to] then
+                error(string.format("Invalid 'to' state in transition: %s", transition.to))
+            end
+            table.insert(self.transitions, transition)
+        end
     end
 
     setmetatable(self, { __index = DFSM })
-    self:validate()
     return self
 end
 
@@ -210,17 +235,17 @@ end
 
 -- Process an input and attempt to transition states
 function DFSM:processInput(inputId, inputValue, validateVC)
-    if self.isComplete then
+    if self.complete then
         return false, "State machine is complete"
     end
 
     -- Check if input has already been processed
-    if self.receivedInputs[inputId] then
+    if self.received[inputId] then
         return false, string.format("Input %s has already been processed", inputId)
     end
 
     -- Get input definition from map
-    local inputDef = self.inputsMap[inputId]
+    local inputDef = self.inputMap[inputId]
     if not inputDef then
         return false, string.format("Unknown input: %s", inputId)
     end
@@ -243,15 +268,15 @@ function DFSM:processInput(inputId, inputValue, validateVC)
 
     -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
-        if transition.from == self.currentState then
-            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variableManager) then
+        if transition.from == self.state then
+            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variables) then
                 -- Store the input and update state
-                self.receivedInputs[inputId] = inputValue
-                self.currentState = transition.to
+                self.received[inputId] = inputValue
+                self.state = transition.to
                 
                 -- Check if we've reached a terminal state
-                if not hasOutgoingTransitions(self.currentState, self.transitions) then
-                    self.isComplete = true
+                if not hasOutgoingTransitions(self.state, self.transitions) then
+                    self.complete = true
                 end
                 return true, "Transition successful"
             end
@@ -263,37 +288,37 @@ end
 
 -- Get the current state
 function DFSM:getCurrentState()
-    return self.currentState
+    return self.state
 end
 
 -- Check if the state machine is complete
 function DFSM:isComplete()
-    return self.isComplete
+    return self.complete
 end
 
 -- Get all received inputs
 function DFSM:getReceivedInputs()
-    return self.receivedInputs
+    return self.received
 end
 
 -- Get a variable value
 function DFSM:getVariable(name)
-    return self.variableManager:getVariable(name)
+    return self.variables:getVariable(name)
 end
 
 -- Set a variable value
 function DFSM:setVariable(name, value)
-    self.variableManager:setVariable(name, value)
+    self.variables:setVariable(name, value)
 end
 
 -- Get all variables
 function DFSM:getVariables()
-    return self.variableManager:getAllVariables()
+    return self.variables:getAllVariables()
 end
 
 -- Get input definition by ID
 function DFSM:getInput(inputId)
-    return self.inputsMap[inputId]
+    return self.inputMap[inputId]
 end
 
 -- Get all inputs
