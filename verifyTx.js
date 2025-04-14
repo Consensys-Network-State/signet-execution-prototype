@@ -13,11 +13,11 @@ const action = "VerifyTx";
 const tags = [];
 
 const LINEA_SEPOLIA_RPC = 'https://linea-sepolia.infura.io/v3/6e392322fbf84de380fd4473b2b836fb';
-const txHash = "0x9445f933860ef6d65fdaf419fcf8b0749f415c7cd0f82f8b420b10a776c5373e";
+const txHash = "0x1cdc44857dd967f99d4644151340b5a083f77e660c60121a7dc63b8b75047f5e";
 const MAINNET_RPC_URL = 'https://mainnet.infura.io/v3/2PsxeELm0cHAs0gW5dhLuLPtZDe';
 const SEPOLIA_RPC = 'https://sepolia.infura.io/v3/6e392322fbf84de380fd4473b2b836fb';
 const LINEA_RPC = 'https://linea-mainnet.infura.io/v3/6e392322fbf84de380fd4473b2b836fb';
-const web3 = new Web3(MAINNET_RPC_URL);
+const web3 = new Web3(LINEA_RPC);
 
 // LINEA TXH (35 Transactions) 0x09c62029e5c5736c46a26d1f8a35b19a588cfc0313c6ac42f286ec50e0f8970d
 // LINEA TXH (25 Transactions) 0x6b9a3b14b16bd500f21dda9730c51ccc3c2217de765f65488d6a653102fcb2de   

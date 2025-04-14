@@ -66,12 +66,17 @@ processInputAndDisplay(dfsm, "workApprovedSignature", json.decode([[{
     "isApproved": true
 }]]))
 
--- Valid work approval signature
-processInputAndDisplay(dfsm, "fundsSentTx", json.decode([[{
-    "txHash": "0x9445f933860ef6d65fdaf419fcf8b0749f415c7cd0f82f8b420b10a776c5373e"
-}]]))
+-- -- Valid work approval signature
+-- processInputAndDisplay(dfsm, "fundsSentTx", json.decode([[{
+--     "txHash": "0x9445f933860ef6d65fdaf419fcf8b0749f415c7cd0f82f8b420b10a776c5373e"
+-- }]]))
 
+-- Valid work approval signature
+processInputAndDisplay(dfsm, "workTokenSentTx", json.decode([[{
+    "txHash": "0x1cdc44857dd967f99d4644151340b5a083f77e660c60121a7dc63b8b75047f5e"
+}]]))
 
 print(DFSMUtils.formatFSMSummary(dfsm))
 
 -- assert(true == true)
+

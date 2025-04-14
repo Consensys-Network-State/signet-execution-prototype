@@ -2,7 +2,7 @@
 local VariableManager = require("variables.variable_manager")
 local InputVerifier = require("verifiers.input_verifier")
 local TableUtils = require("utils.table_utils")
-
+local ContractManager = require("contracts.contract_manager")
 local DFSM = {}
 
 -- Helper function to replace variable references with their values
@@ -29,6 +29,7 @@ function DFSM.new(definition, customVerifiers)
     -- Handle both direct data and nested execution.data structure
     local data = definition.execution and definition.execution.data or definition
     local variables = definition.variables or {}
+    local contracts = definition.contracts or {}
 
     local self = {
         states = data.states or {},
@@ -38,7 +39,8 @@ function DFSM.new(definition, customVerifiers)
         receivedInputs = {},
         isComplete = false,
         variableManager = VariableManager.new(variables),
-        inputVerifier = InputVerifier.new(customVerifiers)
+        inputVerifier = InputVerifier.new(customVerifiers),
+        contractManager = ContractManager.new(contracts)
     }
 
     setmetatable(self, { __index = DFSM })
@@ -86,7 +88,7 @@ function DFSM:validate()
 end
 
 -- Helper function to check if a transition's conditions are met
-local function areTransitionConditionsMet(transition, inputDef, inputValue, variables)
+local function areTransitionConditionsMet(transition, inputDef, inputValue, variables, contracts)
     if inputDef.type == "EVMTransaction" then
         local processedRequiredInput = replaceVariableReferences(inputDef.txMetadata, variables)
 
@@ -99,9 +101,19 @@ local function areTransitionConditionsMet(transition, inputDef, inputValue, vari
             end
             return true
         elseif processedRequiredInput.transactionType == "contractCall" then
+            local contract = contracts[processedRequiredInput.contractReference]
+            local decodedTx = contract:decode(inputValue.TxRaw.input)
+            if (decodedTx.function_name ~= processedRequiredInput.method) then
+                return false
+            end
+
+            for i, param in ipairs(decodedTx.parameters) do
+                if (param.value ~= processedRequiredInput.params[i]) then
+                    return false
+                end
+            end
             return true
         else
-            return true
         end
     else
         for _, condition in ipairs(transition.conditions) do
@@ -156,7 +168,7 @@ function DFSM:processInput(inputId, inputValue)
     -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
         if transition.from == self.currentState then
-            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variableManager.variables) then
+            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variableManager.variables, self.contractManager.contracts) then
                 -- Store the input and update state
                 self.receivedInputs[inputId] = inputValue
                 self.currentState = transition.to
