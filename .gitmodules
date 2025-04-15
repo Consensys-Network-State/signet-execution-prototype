@@ -1,3 +1,6 @@
 [submodule "lua-actor/externals/agreements-protocol"]
 	path = lua-actor/externals/agreements-protocol
-	url = https://github.com/ConsenSysMesh/agreements-protocol.git
+	url = git@github.com:ConsenSysMesh/agreements-protocol.git
+[submodule "lua-actor/externals/sobol-veramo"]
+	path = lua-actor/externals/sobol-veramo
+	url = git@github.com:ConsenSysMesh/sobol-veramo.git
