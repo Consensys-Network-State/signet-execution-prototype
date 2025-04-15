@@ -425,22 +425,6 @@ local function createDomainSeparator(domain, types)
         return hashStruct("EIP712Domain", domainData, types)
     end
 
-    -- Use the provided domain type
-
-    -- in Veramo: we have: 
-    --     return concat([
-    --         "0x1901",
-    --         TypedDataEncoder.hashDomain(domain),
-    --         TypedDataEncoder.from(types).hash(value)
-    --     ]);
-    -- domain: {
-    -- chainId = 1
-    -- name = 'VerifiableCredential'
-    -- version = '1'
-    -- }
-    -- hex value: 0xc2f8787176b8ac6bf7215b4adcc1e069bf4ab82d9ab1df05a57a91d425935b6e642f38cd2bf7b16f5dfc8de27815e814e200f43ca6181b40ba76b62423df26ebc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc60000000000000000000000000000000000000000000000000000000000000001
-    -- hashed value: 0xaa4dcb7d1c0b8808696b50a6713af9ce211fd50be889233bc44ef8c2cb43fb8f
-
     return hashStruct("EIP712Domain", domain, types)
 end
 

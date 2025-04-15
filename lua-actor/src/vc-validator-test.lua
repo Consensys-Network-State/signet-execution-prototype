@@ -2,6 +2,7 @@ require("setup")
 
 local VcValidator = require("vc-validator")
 
+-- validating a VC that contains an array of primitive values
 local success, vcJson, ownerAddress = VcValidator.validate([[
 {
   "issuer": {
@@ -123,6 +124,7 @@ local success, vcJson, ownerAddress = VcValidator.validate([[
 assert(success, "Failed to validate VC")
 assert(ownerAddress == "0xb49e45affd4963374e72f850b6cae84939e58f78")
 
+-- validating a VC that contains an array of structs (Fields[])
 success, vcJson, ownerAddress = VcValidator.validate([[
 {
   "issuer": {
