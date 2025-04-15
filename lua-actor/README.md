@@ -26,9 +26,9 @@ Our Lua actor code development process will likely look like the following:
   - Compile new versions of the C-based secp256k1 library and our Lua wrapper library if necessary
   - Develop under test as much as possible
 - When we're confident enough to try our changes in AO, we:
-  - Inline all library and etc logic into a single lua file
-  - Add message-handling logic ('Handlers.add' etc)
-  - Fix any import statement discrepancies between the dev env and AO env (should be minimal)
+  - Use the bundle-lua.js script to bundle our lua code into a single file
+    - Usage: `node bundle-lua.js <entry-file> [output-file]`
+    - Example: `node bundle-lua.js src/apoc-v2.lua apoc-v2-bundled.lua`
   - Upload a new AO wasm bundle to AR if secp256k1 has changed
     - update the MODULE env var with the new wasm Tx ID
   - Try out the new actor version by launching a new actor via AOS? Test it with a few manual msgs?
