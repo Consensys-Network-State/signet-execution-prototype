@@ -184,7 +184,9 @@ local function findTypeDependenciesWorker(typeName, types, deps)
         deps[typeName] = true
         
         for _, field in ipairs(types[typeName]) do
-            local match = string.match(field.type, "^([A-Z][A-Za-z0-9]*)$")
+            -- Match both struct types and arrays of struct types with a single pattern
+            -- e.g., 'CredentialSubject' or 'Fields[]'
+            local match = string.match(field.type, "^([A-Z][A-Za-z0-9]*)%[?%]?$")
             if match then
                 findTypeDependenciesWorker(match, types, deps)
             end
@@ -254,20 +256,28 @@ function encodeField(type, value, types)
         local arrayTypes = {}
         local arrayValues = {}
         
-        -- Process each array item through encodeField to handle type conversion
-        for _, item in ipairs(value or {}) do
-            local itemEncoded = encodeField(baseType, item, types)
-            -- For values already encoded as bytes32, use them directly
-            if itemEncoded.type == "bytes32" then
-                table.insert(arrayTypes, itemEncoded.type)
-                table.insert(arrayValues, itemEncoded.value)
-            else
-                -- For other types, encode and hash them
-                table.insert(arrayTypes, 'bytes32')
-                local itemAbiEncoded = abiEncode({itemEncoded.type}, {itemEncoded.value})
-                local itemAbiEncodeBytes = Array.fromHex(itemAbiEncoded)
-                local itemEncodedBunaryStr = Array.toString(itemAbiEncodeBytes)
-                table.insert(arrayValues, keccak256(itemEncodedBunaryStr))
+        -- Check if baseType is a struct type
+        if types[baseType] then
+            -- For arrays of structs, hash each struct individually
+            for _, item in ipairs(value or {}) do
+                local structHash = hashStruct(baseType, item, types)
+                table.insert(arrayTypes, "bytes32")
+                table.insert(arrayValues, structHash)
+            end
+        else
+            -- For primitive arrays, process each item
+            for _, item in ipairs(value or {}) do
+                local itemEncoded = encodeField(baseType, item, types)
+                if itemEncoded.type == "bytes32" then
+                    table.insert(arrayTypes, itemEncoded.type)
+                    table.insert(arrayValues, itemEncoded.value)
+                else
+                    table.insert(arrayTypes, 'bytes32')
+                    local itemAbiEncoded = abiEncode({itemEncoded.type}, {itemEncoded.value})
+                    local itemAbiEncodeBytes = Array.fromHex(itemAbiEncoded)
+                    local itemEncodedBunaryStr = Array.toString(itemAbiEncodeBytes)
+                    table.insert(arrayValues, keccak256(itemEncodedBunaryStr))
+                end
             end
         end
         
@@ -416,6 +426,21 @@ local function createDomainSeparator(domain, types)
     end
 
     -- Use the provided domain type
+
+    -- in Veramo: we have: 
+    --     return concat([
+    --         "0x1901",
+    --         TypedDataEncoder.hashDomain(domain),
+    --         TypedDataEncoder.from(types).hash(value)
+    --     ]);
+    -- domain: {
+    -- chainId = 1
+    -- name = 'VerifiableCredential'
+    -- version = '1'
+    -- }
+    -- hex value: 0xc2f8787176b8ac6bf7215b4adcc1e069bf4ab82d9ab1df05a57a91d425935b6e642f38cd2bf7b16f5dfc8de27815e814e200f43ca6181b40ba76b62423df26ebc89efdaa54c0f20c7adf612882df0950f5a951637e0307cdcb4c672f298b8bc60000000000000000000000000000000000000000000000000000000000000001
+    -- hashed value: 0xaa4dcb7d1c0b8808696b50a6713af9ce211fd50be889233bc44ef8c2cb43fb8f
+
     return hashStruct("EIP712Domain", domain, types)
 end
 
