@@ -32,9 +32,11 @@ Handlers.add(
   "Init",
   Handlers.utils.hasMatchingTag("Action", "Init"),
   function (msg)
+    local Data = json.decode(msg.Data)
+
     -- expecting msg.Data to contain a valid agreement VC
-    local document = msg.Data.document
-    local initialValues = msg.Data.initialValues
+    local document = Data.document
+    local initialValues = Data.initialValues
 
     if Document then
       reply_error(msg, 'Document is already initialized and cannot be overwritten')
@@ -74,8 +76,10 @@ Handlers.add(
   "ProcessInput",
   Handlers.utils.hasMatchingTag("Action", "ProcessInput"),
   function (msg)
-    local inputId = msg.Data.inputId
-    local inputValue = msg.Data.inputValue
+    local Data = json.decode(msg.Data)
+
+    local inputId = Data.inputId
+    local inputValue = Data.inputValue
     
     if not StateMachine then
       reply_error(msg, 'State machine not initialized')
