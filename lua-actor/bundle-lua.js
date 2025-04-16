@@ -24,7 +24,7 @@ const baseDir = process.cwd(); // Base directory for resolving paths
 
 // Special case handling
 const GLOBAL_MODULES = ['handlers', 'secp256k1']; // Modules provided globally by AOS
-const WHITELIST_MODULES = ['ao', 'base64', 'bint', 'json', 'crypto', 'utils']; // Modules to keep as-is
+const WHITELIST_MODULES = ['base64', 'bint', 'json', 'crypto', 'utils']; // Modules to keep as-is
 
 // Track processed modules to avoid circular dependencies
 const processedModules = new Set();
@@ -74,7 +74,18 @@ function processFile(filePath) {
       }
 
       // Handle whitelisted modules - We can keep these as-is, they are resolved in the AOS environment
-      else if (WHITELIST_MODULES.some(module => modulePath === module || modulePath.startsWith(`.${module}`))) {
+      else if (isWhitelisted(modulePath)) {
+        // AOS environment weirdly expects json library to be imported as "json" and other libraries to
+        // be imported with a leading '.' character
+        // Adding a '.' to the module path if it's not already there and it's not the json library
+        // Could maybe update local lua environment to handle this but this is easier for now
+        if (!modulePath.startsWith('.') && modulePath !== 'json') {
+            const newModulePath = `.${modulePath}`;
+            content = content.replace(
+              new RegExp(`require\\s*\\(\\s*["']${escapeRegExp(modulePath)}["']\\s*\\)`, 'g'),
+              `require("${newModulePath}")`
+            );
+        }
         continue;
       }
       

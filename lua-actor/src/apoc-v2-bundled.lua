@@ -206,7 +206,7 @@ __modules["src/verifiers/input_verifier"] = function()
 local InputVerifier = {}
 local TestUtils = __modules["src/test-utils"]()
 local json = require("json")
-local crypto = require("crypto")
+local crypto = require(".crypto")
 
 local ETHEREUM_ADDRESS_REGEX = "^0x(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)$"
 
