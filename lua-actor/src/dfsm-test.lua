@@ -33,7 +33,7 @@ print(DFSMUtils.renderDFSMState(dfsm))
 local function processInputAndDisplay(dfsm, inputId, inputValue)
     print("\nProcessing input:", inputId)
     
-    local success, result = dfsm:processInput(inputId, inputValue, false)
+    local success, result = dfsm:processInput(inputId, inputValue, true)
     
     if success then
         print("✅ Success:", result)

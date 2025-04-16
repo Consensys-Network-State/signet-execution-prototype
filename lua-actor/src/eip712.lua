@@ -55,14 +55,23 @@ local function encodeString(value)
     return encodeBytes(bytes)
 end
 
-local function encodeArray(baseType, array, size)
+local function encodeArray(baseType, array, size, types)
     local result = ""
     if #size == 0 then
         result = encodeUint256(#array)
     end
     
-    for _, value in ipairs(array) do
-        result = result .. encodeParameter(baseType, value)
+    -- For arrays of structs, we need to hash each item first
+    if types and types[baseType] then
+        for _, value in ipairs(array) do
+            local hash = hashStruct(baseType, value, types)
+            result = result .. encodeParameter("bytes32", hash, types)
+        end
+    else
+        -- For primitive arrays, encode directly
+        for _, value in ipairs(array) do
+            result = result .. encodeParameter(baseType, value, types)
+        end
     end
     
     return result
@@ -96,7 +105,7 @@ end
 
 
 -- Parameter encoding
-function encodeParameter(typ, value)
+function encodeParameter(typ, value, types)
     if typ == "uint256" then
         return encodeUint256(value)
     elseif typ == "address" then
@@ -120,14 +129,14 @@ function encodeParameter(typ, value)
 
     local baseType, size = string.match(typ, "^([%a%d]+)%[(%d*)%]$")
     if baseType then
-        return encodeArray(baseType, value, size)
+        return encodeArray(baseType, value, size, types)
     end
     
     error("Unsupported type: " .. typ)
 end
 
 -- ABI encoding
-local function abiEncode(types, values)
+local function abiEncode(types, values, eip712types)
     local headLength = 0
     local heads = {}
     local tails = {}
@@ -140,7 +149,7 @@ local function abiEncode(types, values)
             table.insert(heads, "")
             dynamicCount = dynamicCount + 1
         else
-            local encoded = encodeParameter(typ, value)
+            local encoded = encodeParameter(typ, value, eip712types)
             table.insert(heads, encoded)
         end
         
@@ -151,7 +160,7 @@ local function abiEncode(types, values)
     for i, typ in ipairs(types) do
         if isDynamicType(typ) then
             local value = values[i]
-            local encoded = encodeParameter(typ, value)
+            local encoded = encodeParameter(typ, value, eip712types)
             
             heads[i] = encodeUint256(currentDynamicPointer)
             table.insert(tails, encoded)
@@ -168,20 +177,30 @@ local function keccak256(input)
     return crypto.digest.keccak256(input).asHex()
 end
 
-local function findTypeDependencies(typeName, types, deps)
+local function findTypeDependenciesWorker(typeName, types, deps)
     deps = deps or {}
     
     if not deps[typeName] then
         deps[typeName] = true
         
         for _, field in ipairs(types[typeName]) do
-            local match = string.match(field.type, "^([A-Z][A-Za-z0-9]*)$")
+            -- Match both struct types and arrays of struct types with a single pattern
+            -- e.g., 'CredentialSubject' or 'Fields[]'
+            local match = string.match(field.type, "^([A-Z][A-Za-z0-9]*)%[?%]?$")
             if match then
-                findTypeDependencies(match, types, deps)
+                findTypeDependenciesWorker(match, types, deps)
             end
         end
     end
     
+    return deps
+end
+
+local function findTypeDependencies(typeName, types)
+    -- First discover all dependencies
+    local deps = findTypeDependenciesWorker(typeName, types)
+    
+    -- Then convert to array format
     local result = {}
     for dep in pairs(deps) do
         table.insert(result, dep)
@@ -234,28 +253,36 @@ function encodeField(type, value, types)
     -- Handle arrays
     local baseType = string.match(type, "^([%a%d]+)%[(%d*)%]$")
     if baseType then
-        local types = {}
-        local values = {}
+        local arrayTypes = {}
+        local arrayValues = {}
         
-        -- Process each array item through encodeField to handle type conversion
-        for _, item in ipairs(value or {}) do
-            local itemEncoded = encodeField(baseType, item, types)
-            -- For values already encoded as bytes32, use them directly
-            if itemEncoded.type == "bytes32" then
-                table.insert(types, itemEncoded.type)
-                table.insert(values, itemEncoded.value)
-            else
-                -- For other types, encode and hash them
-                table.insert(types, 'bytes32')
-                local itemAbiEncoded = abiEncode({itemEncoded.type}, {itemEncoded.value})
-                local itemAbiEncodeBytes = Array.fromHex(itemAbiEncoded)
-                local itemEncodedBunaryStr = Array.toString(itemAbiEncodeBytes)
-                table.insert(values, keccak256(itemEncodedBunaryStr))
+        -- Check if baseType is a struct type
+        if types[baseType] then
+            -- For arrays of structs, hash each struct individually
+            for _, item in ipairs(value or {}) do
+                local structHash = hashStruct(baseType, item, types)
+                table.insert(arrayTypes, "bytes32")
+                table.insert(arrayValues, structHash)
+            end
+        else
+            -- For primitive arrays, process each item
+            for _, item in ipairs(value or {}) do
+                local itemEncoded = encodeField(baseType, item, types)
+                if itemEncoded.type == "bytes32" then
+                    table.insert(arrayTypes, itemEncoded.type)
+                    table.insert(arrayValues, itemEncoded.value)
+                else
+                    table.insert(arrayTypes, 'bytes32')
+                    local itemAbiEncoded = abiEncode({itemEncoded.type}, {itemEncoded.value})
+                    local itemAbiEncodeBytes = Array.fromHex(itemAbiEncoded)
+                    local itemEncodedBunaryStr = Array.toString(itemAbiEncodeBytes)
+                    table.insert(arrayValues, keccak256(itemEncodedBunaryStr))
+                end
             end
         end
         
         -- Array values are already bytes32, just encode them as an array and hash
-        local apiEncoded = abiEncode(types, values)
+        local apiEncoded = abiEncode(arrayTypes, arrayValues)
         local abiEncodeBytes = Array.fromHex(apiEncoded)
         local apiEncodedBunaryStr = Array.toString(abiEncodeBytes)
         return {
@@ -330,9 +357,11 @@ function encodeData(typeName, data, types)
     local encTypes = {}
     local encValues = {}
     
+    -- First, add the type hash
     table.insert(encTypes, "bytes32")
     table.insert(encValues, typeHash(typeName, types))
     
+    -- Process fields in the exact order they appear in types
     for _, field in ipairs(types[typeName]) do
         local value = data[field.name]
         if value == nil then
@@ -343,40 +372,60 @@ function encodeData(typeName, data, types)
         table.insert(encValues, encoded.value)
     end
     
-    local abiEncodedData = abiEncode(encTypes, encValues)
+    -- Encode the data
+    local abiEncodedData = abiEncode(encTypes, encValues, types)
     return abiEncodedData
 end
 
 function hashStruct(primaryType, data, types)
+    -- First encode the data
     local encodedData = encodeData(primaryType, data, types)
+    
+    -- Convert hex to binary string
     local bytes = Array.fromHex(encodedData)
     local binary_string = Array.toString(bytes)
+    
+    -- Hash the binary string
     return keccak256(binary_string)
 end
 
 local function getSigningInput(domainSeparator, structHash)
+    -- Combine domain separator and struct hash with EIP-712 prefix
     local fullInputHexString = '1901' .. domainSeparator .. structHash
+    
+    -- Convert hex to binary string
     local fullInputBytes = Array.fromHex(fullInputHexString)
     local fullInputBinaryStr = Array.toString(fullInputBytes)
+    
+    -- Hash the binary string
     return keccak256(fullInputBinaryStr)
 end
 
-local function createDomainSeparator(domain)
-    local domainData = {
-        name = domain.name,
-        version = domain.version,
-        chainId = domain.chainId,
-        -- verifyingContract = domain.verifyingContract
-    }
-    
-    return hashStruct("EIP712Domain", domainData, {
-        EIP712Domain = {
+local function createDomainSeparator(domain, types)
+    if not types or not types.EIP712Domain then
+        -- Create domain type with fields in the standard order
+        local domainType = {
             {name = "name", type = "string"},
             {name = "version", type = "string"},
-            {name = "chainId", type = "uint256"},
-            -- {name = "verifyingContract", type = "address"}
+            {name = "chainId", type = "uint256"}
         }
-    })
+        
+        -- Create domain data with fields in the same order
+        local domainData = {
+            name = domain.name,
+            version = domain.version,
+            chainId = domain.chainId
+        }
+        
+        -- Create types object with only EIP712Domain
+        local types = {
+            EIP712Domain = domainType
+        }
+        
+        return hashStruct("EIP712Domain", domainData, types)
+    end
+
+    return hashStruct("EIP712Domain", domain, types)
 end
 
 return {
