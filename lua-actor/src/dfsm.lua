@@ -107,7 +107,7 @@ end
 -- process VC wrapper
 function DFSM:processVCWrapper(vc, expectedIssuer, validateVC)
     -- validate by default
-    validateVC = validateVC == nil and true or validateVC
+    validateVC = validateVC == nil or validateVC
     if validateVC then
         local success, vcJson, ownerAddress = VcValidator.validate(vc)
         assert(success, "Invalid VC");
