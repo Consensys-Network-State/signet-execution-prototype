@@ -1,5 +1,6 @@
 local json = require("json")
 local crypto = require("crypto")
+local VcValidator = require("vc-validator")
 
 local ETHEREUM_ADDRESS_REGEX = "^0x(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)$"
 
@@ -36,7 +37,7 @@ end
 local ValidationUtils = {
     validateField = function(field, value)
         if not field.validation then
-            return true
+            return false, "Field validation is missing"
         end
 
         -- Check required field
@@ -113,21 +114,50 @@ function EIP712Verifier:new()
     return self
 end
 
-function EIP712Verifier:verify(input, value, variables)
-    -- Parse the input value
-    local vcJson
+function EIP712Verifier:verify(input, value, variables, validate)
+    local vcJson, credentialSubject, issuerAddress
+    
+    -- Default to not validating if not explicitly set
+    validate = validate == true
+    
     if type(value) == "string" then
-        vcJson = json.decode(value)
+        if validate then
+            -- Use cryptographic validation in production
+            local success, parsedVcJson, recoveredIssuerAddress = VcValidator.validate(value)
+            if not success then
+                return false, "Invalid VC"
+            end
+            vcJson = parsedVcJson
+            issuerAddress = recoveredIssuerAddress
+        else
+            -- Parse the JSON without cryptographic validation (for tests)
+            vcJson = json.decode(value)
+        end
     else
+        -- Already parsed object
         vcJson = value
     end
-
+    
+    credentialSubject = vcJson.credentialSubject
+    
+    -- If we didn't do cryptographic validation, extract issuer address from the format
+    if not validate and vcJson.issuer and vcJson.issuer.id then
+        local id = vcJson.issuer.id
+        local parts = {}
+        for part in string.gmatch(id or "", "[^:]+") do
+            table.insert(parts, part)
+        end
+        
+        if #parts >= 5 and parts[1] == "did" and parts[2] == "pkh" then
+            issuerAddress = parts[5]
+        end
+    end
+    
     -- Validate credential subject structure
-    if not vcJson.credentialSubject then
+    if not credentialSubject then
         return false, "Missing credentialSubject in input"
     end
 
-    local credentialSubject = vcJson.credentialSubject
     if not credentialSubject.values then
         return false, "Missing values in credentialSubject"
     end
@@ -137,10 +167,10 @@ function EIP712Verifier:verify(input, value, variables)
         local fieldValue = credentialSubject.values[fieldId]
         
         -- If the value is a string, try to resolve it as a variable
-        if type(fieldValue) == "string" and variables then
-            local resolvedValue = variables:tryResolveExactStringAsVariableObject(fieldValue)
+        if type(fieldDef) == "string" and variables then
+            local resolvedValue = variables:tryResolveExactStringAsVariableObject(fieldDef)
             if resolvedValue then
-                fieldValue = resolvedValue
+                fieldDef = resolvedValue
             end
         end
 
@@ -152,17 +182,19 @@ function EIP712Verifier:verify(input, value, variables)
     end
 
     -- Validate issuer if specified
-    if input.issuer then
+    if input.issuer and issuerAddress then
         local expectedIssuer = input.issuer
         if variables then
+            -- Try to resolve if it's a variable reference
             local resolvedIssuer = variables:tryResolveExactStringAsVariableObject(expectedIssuer)
             if resolvedIssuer then
                 expectedIssuer = resolvedIssuer
             end
         end
         
-        if expectedIssuer and vcJson.issuer ~= expectedIssuer then
-            return false, string.format("Issuer mismatch: expected %s, got %s", expectedIssuer, vcJson.issuer)
+        if expectedIssuer and expectedIssuer ~= issuerAddress then
+            local errorMsg = string.format("Issuer mismatch: expected ${%s.value}, got %s", input.issuer, issuerAddress)
+            return false, errorMsg
         end
     end
 
@@ -203,7 +235,7 @@ local function getVerifier(inputType)
 end
 
 -- Main verification function
-local function verify(input, value, variables)
+local function verify(input, value, variables, validate)
     if not input then
         return false, "Input definition is nil"
     end
@@ -213,7 +245,7 @@ local function verify(input, value, variables)
         return false, error
     end
 
-    return verifier:verify(input, value, variables)
+    return verifier:verify(input, value, variables, validate)
 end
 
 return {

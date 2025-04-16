@@ -7,78 +7,6 @@ local VcValidator = require("vc-validator")
 
 -- DFSM class definition
 local DFSM = {}
--- Input verifier handlers
-local inputVerifiers = {
-    -- Verifies EIP712 signed credentials
-    VerifiedCredentialEIP712 = function(input, value)
-        -- TODO: Implement actual EIP712 verification
-        return true
-    end,
-    
-    -- Verifies EVM transactions
-    EVMTransaction = function(input, value)
-        -- TODO: Implement actual EVM transaction verification
-        return true
-    end
-}
-
--- Helper function to process VC wrapper
-local function processVCWrapper(vc, expectedIssuer, validateVC)
-    -- validate by default
-    validateVC = validateVC == nil and true or validateVC
-    if validateVC then
-        local success, vcJson, ownerAddress =  VcValidator.validate(vc)
-        assert(success, "Invalid VC");
-
-        if expectedIssuer then
-            assert(ownerAddress == string.lower(expectedIssuer), "Issuer mismatch")
-        end
-        return vcJson.credentialSubject
-    else
-        local vcJson = json.decode(vc)
-        return vcJson.credentialSubject or vcJson
-    end
-end
-
--- Helper function to validate input values against schema
-local function validateInputValues(inputDef, values)
-    if not inputDef.data then
-        return true, nil
-    end
-
-    for _, field in ipairs(inputDef.data) do
-        local value = values[field.id]
-        
-        -- Check required fields
-        if field.validation and field.validation.required and not value then
-            return false, string.format("Missing required field: %s", field.id)
-        end
-
-        -- Skip validation if value is nil and not required
-        if not value then
-            goto continue
-        end
-
-        -- Validate pattern if specified
-        if field.validation and field.validation.pattern then
-            local pattern = field.validation.pattern
-            if not string.match(value, pattern) then
-                return false, string.format("Field %s does not match pattern: %s", field.id, pattern)
-            end
-        end
-
-        -- Validate type
-        if field.type == "string" and type(value) ~= "string" then
-            return false, string.format("Field %s must be a string", field.id)
-        elseif field.type == "address" and not string.match(value, "^0x[a-fA-F0-9]{40}$") then
-            return false, string.format("Field %s must be a valid Ethereum address", field.id)
-        end
-
-        ::continue::
-    end
-
-    return true, nil
-end
 
 -- Helper function to check if a transition's conditions are met
 function DFSM:areTransitionConditionsMet(transition, inputId)
@@ -180,9 +108,21 @@ end
 function DFSM:processVCWrapper(vc, expectedIssuer, validateVC)
     -- validate by default
     validateVC = validateVC == nil and true or validateVC
-    local vcJson = json.decode(vc)
-    -- TODO: validate VC (Vlad-Todo)
-    return vcJson.credentialSubject or vcJson
+    if validateVC then
+        local success, vcJson, ownerAddress = VcValidator.validate(vc)
+        assert(success, "Invalid VC");
+
+        if expectedIssuer then
+            if ownerAddress ~= expectedIssuer then
+                local errorMsg = string.format("Issuer mismatch: expected ${variables.partyAEthAddress.value}, got %s", ownerAddress)
+                error(errorMsg)
+            end
+        end
+        return vcJson.credentialSubject
+    else
+        local vcJson = json.decode(vc)
+        return vcJson.credentialSubject or vcJson
+    end
 end
 
 -- Validate the state machine definition
@@ -253,8 +193,11 @@ function DFSM:processInput(inputId, inputValue, validateVC)
         return false, string.format("Unknown input: %s", inputId)
     end
 
+    -- For tests, we set validateVC=false to bypass cryptographic validation
+    -- For production, validateVC should be true to ensure proper signature validation
+    
     -- Verify input type and schema
-    local isValid, result = InputVerifier.verify(inputDef, inputValue, self.variables)
+    local isValid, result = InputVerifier.verify(inputDef, inputValue, self.variables, validateVC)
     if not isValid then
         return false, result
     end

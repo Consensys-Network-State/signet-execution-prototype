@@ -79,17 +79,67 @@ function VariableManager:getAllVariables()
 end
 
 -- Given a string input, resolve it as a variable reference 
--- (e.g. ${variableName} will return the variable object)
+-- (e.g. ${variables.partyAEthAddress.value} will return the nested property value)
 -- Otherwise, return nil
 function VariableManager:tryResolveExactStringAsVariableObject(possibleVariableReferenceString)
-    if type(possibleVariableReferenceString) == "string" then
-        local trimmed = possibleVariableReferenceString:match("^%s*(.-)%s*$")
-        local varName = trimmed:match("^%${([^}]+)}$")
-        if varName then
-            return self:getVariable(varName)
+    if type(possibleVariableReferenceString) ~= "string" then
+        return nil
+    end
+
+    local trimmed = possibleVariableReferenceString:match("^%s*(.-)%s*$")
+    
+    -- Check if the string has ${variables.x} format
+    local varPath = trimmed:match("^%${([^}]+)}$")
+    if not varPath or not varPath:match("^variables%.") then
+        return nil
+    end
+
+    -- Remove the "variables." prefix and split the remaining path
+    local path = varPath:sub(10) -- Remove "variables."
+    local parts = {}
+    for part in path:gmatch("[^%.]+") do
+        table.insert(parts, part)
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+
+    -- Get the base variable definition
+    local varDef = self.variables[parts[1]]
+    if not varDef then
+        return nil
+    end
+
+    -- Start with the variable definition object itself
+    local current = varDef
+    
+    -- Handle different property paths
+    if #parts > 1 then
+        -- First property access (parts[2])
+        if parts[2] == "value" then
+            current = current:get()
+        else
+            current = current[parts[2]]
+        end
+        
+        if current == nil then
+            return nil
+        end
+        
+        -- Traverse any remaining nested properties (from index 3 onward)
+        for i = 3, #parts do
+            if type(current) ~= "table" then
+                return nil
+            end
+            current = current[parts[i]]
+            if current == nil then
+                return nil
+            end
         end
     end
-    return nil
+
+    return current
 end
 
 return VariableManager 

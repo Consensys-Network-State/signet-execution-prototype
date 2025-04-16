@@ -73,10 +73,10 @@
         "displayName": "Party A Signature",
         "description": "EIP712 signature from Party A proposing the MOU terms",
         "data": {
-          "partyAName": "${partyAName}",
-          "partyBEthAddress": "${partyBEthAddress}"
+          "partyAName": "${variables.partyAName}",
+          "partyBEthAddress": "${variables.partyBEthAddress}"
         },
-        "issuer": "${partyAEthAddress}"
+        "issuer": "${variables.partyAEthAddress.value}"
       },
       "partyBData": {
         "type": "VerifiedCredentialEIP712",
@@ -84,9 +84,9 @@
         "displayName": "Party B Signature",
         "description": "EIP712 signature from Party B accepting the MOU terms",
         "data": {
-          "partyBName": "${partyBName}"
+          "partyBName": "${variables.partyBName}"
         },
-        "issuer": "${partyBEthAddress}"
+        "issuer": "${variables.partyBEthAddress.value}"
       },
       "accepted": {
         "type": "VerifiedCredentialEIP712",
@@ -102,7 +102,7 @@
             }
           }
         },
-        "issuer": "${partyAEthAddress}"
+        "issuer": "${variables.partyAEthAddress.value}"
       },
       "rejected": {
         "type": "VerifiedCredentialEIP712",
@@ -118,7 +118,7 @@
             }
           }
         },
-        "issuer": "${partyAEthAddress}"
+        "issuer": "${variables.partyAEthAddress.value}"
       }
     },
     "transitions": [

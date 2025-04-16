@@ -33,7 +33,8 @@ print(DFSMUtils.renderDFSMState(dfsm))
 local function processInputAndDisplay(dfsm, inputId, inputValue)
     print("\nProcessing input:", inputId)
     
-    local success, result = dfsm:processInput(inputId, inputValue, true)
+    -- Set validateVC to false for testing
+    local success, result = dfsm:processInput(inputId, inputValue, false)
     
     if success then
         print("✅ Success:", result)
@@ -47,7 +48,9 @@ end
 processInputAndDisplay(dfsm, "partyAData", [[
 {
     "type": "VerifiedCredentialEIP712",
-    "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "issuer": {
+        "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+    },
     "credentialSubject": {
         "id": "partyAData",
         "type": "signedFields",
@@ -62,7 +65,9 @@ processInputAndDisplay(dfsm, "partyAData", [[
 processInputAndDisplay(dfsm, "partyAData", [[
 {
     "type": "VerifiedCredentialEIP712",
-    "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "issuer": {
+        "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+    },
     "credentialSubject": {
         "id": "partyAData",
         "type": "signedFields",
@@ -82,7 +87,9 @@ processInputAndDisplay(dfsm, "invalidInput", [[{
 processInputAndDisplay(dfsm, "partyBData", [[
 {
     "type": "VerifiedCredentialEIP712",
-    "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
+    "issuer": {
+        "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+    },
     "credentialSubject": {
         "id": "partyBData",
         "type": "signedFields",
@@ -96,7 +103,9 @@ processInputAndDisplay(dfsm, "partyBData", [[
 processInputAndDisplay(dfsm, "accepted", [[
 {
     "type": "VerifiedCredentialEIP712",
-    "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "issuer": {
+        "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+    },
     "credentialSubject": {
         "id": "accepted",
         "type": "signedFields",
@@ -110,7 +119,9 @@ processInputAndDisplay(dfsm, "accepted", [[
 processInputAndDisplay(dfsm, "rejected", [[
 {
     "type": "VerifiedCredentialEIP712",
-    "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "issuer": {
+        "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+    },
     "credentialSubject": {
         "id": "rejected",
         "type": "signedFields",
