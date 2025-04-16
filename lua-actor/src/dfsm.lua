@@ -241,7 +241,7 @@ function DFSM:validateInputValues(inputDef, values)
     -- Handle object data structure
     if type(inputDef.data) == "table" then
         for fieldId, field in pairs(inputDef.data) do
-            -- If field is a simple value (like in partyAData/partyBData)
+            -- If field is a variable reference (like in partyAData/partyBData)
             if type(field) ~= "table" then
                 local isValid, errorMsg = self:validateField({id = fieldId}, field)
                 if not isValid then
