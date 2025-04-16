@@ -1,5 +1,3 @@
-local InputVerifier = {}
-local TestUtils = require("test-utils")
 local json = require("json")
 local crypto = require("crypto")
 
@@ -97,112 +95,128 @@ local ValidationUtils = {
     end
 }
 
--- Default verifiers
-local defaultVerifiers = {
-    VerifiedCredentialEIP712 = function(input, value)
-        -- Parse the input value
-        local vcJson
-        if type(value) == "string" then
-            vcJson = json.decode(value)
-        else
-            vcJson = value
-        end
+-- Base Verifier class
+local BaseVerifier = {}
+BaseVerifier.__index = BaseVerifier
 
-        -- Validate credential subject structure
-        if not vcJson.credentialSubject then
-            return false, "Missing credentialSubject in input"
-        end
-
-        local credentialSubject = vcJson.credentialSubject
-
-        -- Validate fields against input definition
-        for _, fieldDef in ipairs(input.data) do
-            local fieldValue = nil
-            
-            -- Find the field value in the credential subject
-            if credentialSubject.fields then
-                for _, field in ipairs(credentialSubject.fields) do
-                    if field.id == fieldDef.id then
-                        fieldValue = field.value
-                        break
-                    end
-                end
-            end
-
-            -- Validate the field using shared validation
-            local isValid, errorMsg = ValidationUtils.validateField(fieldDef, fieldValue)
-            if not isValid then
-                return false, errorMsg
-            end
-        end
-
-        -- Validate issuer if specified
-        if input.issuer then
-            local expectedIssuer = input.issuer
-            if expectedIssuer:match("^%${.*}$") then
-                -- If issuer is a variable reference, get the value
-                local varName = expectedIssuer:match("^%${(.*)}$")
-                expectedIssuer = credentialSubject.fields and credentialSubject.fields[varName] or nil
-            end
-            
-            if expectedIssuer and credentialSubject.issuer ~= expectedIssuer then
-                return false, string.format("Issuer mismatch: expected %s, got %s", expectedIssuer, credentialSubject.issuer)
-            end
-        end
-
-        return true
-    end,
-    
-    EVMTransaction = function(input, value)
-        -- TODO: Implement actual EVM transaction verification
-        return true
-    end
-}
-
-function InputVerifier.new(customVerifiers)
-    local self = {
-        verifiers = {}
-    }
-
-    -- Merge default verifiers with custom ones
-    for k, v in pairs(defaultVerifiers) do
-        self.verifiers[k] = v
-    end
-    if customVerifiers then
-        for k, v in pairs(customVerifiers) do
-            self.verifiers[k] = v
-        end
-    end
-
-    setmetatable(self, { __index = InputVerifier })
+function BaseVerifier:new()
+    local self = setmetatable({}, BaseVerifier)
     return self
 end
 
-function InputVerifier:verify(input, value)
-    print("VICTOR TEST", input);
+-- EIP712 Verifier implementation
+local EIP712Verifier = BaseVerifier:new()
+EIP712Verifier.__index = EIP712Verifier
 
+function EIP712Verifier:new()
+    local self = setmetatable({}, EIP712Verifier)
+    return self
+end
+
+function EIP712Verifier:verify(input, value, variables)
+    -- Parse the input value
+    local vcJson
+    if type(value) == "string" then
+        vcJson = json.decode(value)
+    else
+        vcJson = value
+    end
+
+    -- Validate credential subject structure
+    if not vcJson.credentialSubject then
+        return false, "Missing credentialSubject in input"
+    end
+
+    local credentialSubject = vcJson.credentialSubject
+    if not credentialSubject.values then
+        return false, "Missing values in credentialSubject"
+    end
+
+    -- Validate fields against input definition
+    for fieldId, fieldDef in pairs(input.data) do
+        local fieldValue = credentialSubject.values[fieldId]
+        
+        -- If the value is a string, try to resolve it as a variable
+        if type(fieldValue) == "string" and variables then
+            local resolvedValue = variables:tryResolveExactStringAsVariableObject(fieldValue)
+            if resolvedValue then
+                fieldValue = resolvedValue
+            end
+        end
+
+        -- Validate the field using shared validation
+        local isValid, errorMsg = ValidationUtils.validateField(fieldDef, fieldValue)
+        if not isValid then
+            return false, errorMsg
+        end
+    end
+
+    -- Validate issuer if specified
+    if input.issuer then
+        local expectedIssuer = input.issuer
+        if variables then
+            local resolvedIssuer = variables:tryResolveExactStringAsVariableObject(expectedIssuer)
+            if resolvedIssuer then
+                expectedIssuer = resolvedIssuer
+            end
+        end
+        
+        if expectedIssuer and vcJson.issuer ~= expectedIssuer then
+            return false, string.format("Issuer mismatch: expected %s, got %s", expectedIssuer, vcJson.issuer)
+        end
+    end
+
+    return true, credentialSubject.values
+end
+
+-- EVM Transaction Verifier implementation
+local EVMTransactionVerifier = BaseVerifier:new()
+EVMTransactionVerifier.__index = EVMTransactionVerifier
+
+function EVMTransactionVerifier:new()
+    local self = setmetatable({}, EVMTransactionVerifier)
+    return self
+end
+
+function EVMTransactionVerifier:verify(input, value, variables)
+    -- TODO: Implement actual EVM transaction verification
+    return true
+end
+
+-- Factory function to get the appropriate verifier
+local function getVerifier(inputType)
+    if not inputType then
+        return nil, "Input type is missing"
+    end
+
+    local verifiers = {
+        VerifiedCredentialEIP712 = EIP712Verifier:new(),
+        EVMTransaction = EVMTransactionVerifier:new()
+    }
+
+    local verifier = verifiers[inputType]
+    if not verifier then
+        return nil, string.format("Unsupported input type: %s", inputType)
+    end
+
+    return verifier
+end
+
+-- Main verification function
+local function verify(input, value, variables)
     if not input then
         return false, "Input definition is nil"
     end
 
-    if not input.type then
-        return false, "Input type is missing"
-    end
-
-    local verifier = self.verifiers[input.type]
+    local verifier, error = getVerifier(input.type)
     if not verifier then
-        return false, string.format("Unsupported input type: %s", input.type)
+        return false, error
     end
 
-    local isValid, errorMsg = verifier(input, value)
-    if not isValid then
-        return false, string.format("Input validation failed: %s", errorMsg)
-    end
-
-    return true, nil
+    return verifier:verify(input, value, variables)
 end
 
 return {
-    InputVerifier = InputVerifier,
-    ValidationUtils = ValidationUtils
+    verify = verify,
+    ValidationUtils = ValidationUtils,
 } 

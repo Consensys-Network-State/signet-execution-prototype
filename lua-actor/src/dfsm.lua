@@ -1,11 +1,12 @@
 -- DFSM (Deterministic Finite State Machine) implementation
 local VariableManager = require("variables.variable_manager")
 local InputVerifier = require("verifiers.input_verifier")
-local TableUtils = require("utils.table_utils")
 local json = require("json")
 local VcValidator = require("vc-validator")
 
 
+-- DFSM class definition
+local DFSM = {}
 -- Input verifier handlers
 local inputVerifiers = {
     -- Verifies EIP712 signed credentials
@@ -80,13 +81,11 @@ local function validateInputValues(inputDef, values)
 end
 
 -- Helper function to check if a transition's conditions are met
-local function areTransitionConditionsMet(transition, inputDef, inputValue, variables)
+function DFSM:areTransitionConditionsMet(transition, inputId)
     for _, condition in ipairs(transition.conditions) do
         if condition.type == "isValid" then
-            for _, requiredInput in ipairs(condition.inputs) do
-                if requiredInput == inputDef.id then
-                    return true
-                end
+            if condition.input == inputId then
+                return true
             end
         end
     end
@@ -94,8 +93,8 @@ local function areTransitionConditionsMet(transition, inputDef, inputValue, vari
 end
 
 -- Helper function to check if a state has outgoing transitions
-local function hasOutgoingTransitions(state, transitions)
-    for _, t in ipairs(transitions) do
+function DFSM:hasOutgoingTransitions(state)
+    for _, t in ipairs(self.transitions) do
         if t.from == state then
             return true
         end
@@ -103,33 +102,36 @@ local function hasOutgoingTransitions(state, transitions)
     return false
 end
 
--- DFSM class definition
-local DFSM = {}
-
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(doc, debug, initial)
+function DFSM.new(doc, initialValues, expectVCWrapper)
     local self = {
         state = nil,
         inputs = {},
-        inputMap = {},
         transitions = {},
         variables = nil,
         received = {},
         complete = false,
-        debug = debug or false,
-        inputVerifier = InputVerifier.InputVerifier.new(inputVerifiers)
     }
 
-    -- Parse agreement document
-    local agreement = json.decode(doc)
+    -- Allow skipping VC wrapper processing if not needed for testing
+    local agreement = nil
+    if expectVCWrapper then
+        agreement = self:processVCWrapper(doc, nil, true);
+    else
+        agreement = json.decode(doc)
+    end
 
     -- Initialize variables
     self.variables = VariableManager.new(agreement.variables)
 
     -- Set initial values if provided
-    if initial then
-        for id, value in pairs(initial) do
-            self.variables:setVariable(id, value)
+    if initialValues then
+        for id, value in pairs(initialValues) do
+            if self.variables:isVariable(id) then
+                self.variables:setVariable(id, value)
+            else
+                error(string.format("Attempted to set undeclared variable: %s", id))
+            end
         end
     end
 
@@ -147,26 +149,13 @@ function DFSM.new(doc, debug, initial)
     -- Set initial state (first state in the list)
     self.state = agreement.execution.states[1]
 
-    -- Process inputs
+    -- Process inputs (assuming object structure)
     if agreement.execution.inputs then
-        if type(agreement.execution.inputs) == "table" then
-            if #agreement.execution.inputs > 0 then
-                -- Array format
-                for _, input in ipairs(agreement.execution.inputs) do
-                    if not input.id then
-                        error("Input must have an id")
-                    end
-                    self.inputs[input.id] = input
-                    self.inputMap[input.id] = input
-                end
-            else
-                -- Object format
-                for id, input in pairs(agreement.execution.inputs) do
-                    input.id = id -- Ensure id is set from the key
-                    self.inputs[id] = input
-                    self.inputMap[id] = input
-                end
-            end
+        if type(agreement.execution.inputs) ~= "table" then
+            error("Inputs must be an object with input IDs as keys")
+        end
+        for id, input in pairs(agreement.execution.inputs) do
+            self.inputs[id] = input
         end
     end
 
@@ -185,6 +174,15 @@ function DFSM.new(doc, debug, initial)
 
     setmetatable(self, { __index = DFSM })
     return self
+end
+
+-- process VC wrapper
+function DFSM:processVCWrapper(vc, expectedIssuer, validateVC)
+    -- validate by default
+    validateVC = validateVC == nil and true or validateVC
+    local vcJson = json.decode(vc)
+    -- TODO: validate VC (Vlad-Todo)
+    return vcJson.credentialSubject or vcJson
 end
 
 -- Validate the state machine definition
@@ -249,38 +247,38 @@ function DFSM:processInput(inputId, inputValue, validateVC)
         return false, string.format("Input %s has already been processed", inputId)
     end
 
-    -- Get input definition from map
-    local inputDef = self.inputMap[inputId]
+    -- Get input definition
+    local inputDef = self.inputs[inputId]
     if not inputDef then
         return false, string.format("Unknown input: %s", inputId)
     end
 
-    -- Assume all inputs are VC-wrapped
-    local vc = processVCWrapper(inputValue, inputDef.issuer, validateVC);
-
     -- Verify input type and schema
-    local isValid, errorMsg = self.inputVerifier:verify(inputDef, inputValue)
+    local isValid, result = InputVerifier.verify(inputDef, inputValue, self.variables)
     if not isValid then
-        return false, errorMsg
+        return false, result
     end
 
-    -- Validate input values against schema
-    local values = vc.values or {}
-    isValid, errorMsg = validateInputValues(inputDef, values)
-    if not isValid then
-        return false, errorMsg
+    -- Update variables with the verified values
+    if type(result) == "table" then
+        for id, value in pairs(result) do
+            if self.variables:isVariable(id) then
+                self.variables:setVariable(id, value)
+            end
+        end
     end
 
     -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
         if transition.from == self.state then
-            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variables) then
+            -- Note, because we previously validated the input, we can just check if the inputId is in the transition.conditions.inputs
+            if self:areTransitionConditionsMet(transition, inputId) then
                 -- Store the input and update state
                 self.received[inputId] = inputValue
                 self.state = transition.to
                 
                 -- Check if we've reached a terminal state
-                if not hasOutgoingTransitions(self.state, self.transitions) then
+                if not self:hasOutgoingTransitions(self.state) then
                     self.complete = true
                 end
                 return true, "Transition successful"
@@ -289,6 +287,36 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     end
 
     return false, "No valid transition found"
+end
+
+-- validate input values against schema
+function DFSM:validateInputValues(inputDef, values)
+    if not inputDef.data then
+        return true, nil
+    end
+
+    -- Handle object data structure
+    if type(inputDef.data) == "table" then
+        for fieldId, field in pairs(inputDef.data) do
+            -- If field is a simple value (like in partyAData/partyBData)
+            if type(field) ~= "table" then
+                local isValid, errorMsg = self:validateField({id = fieldId}, field)
+                if not isValid then
+                    return false, errorMsg
+                end
+            else
+                -- If field is a field definition (like in accepted/rejected)
+                local isValid, errorMsg = self:validateField(field, values[fieldId])
+                if not isValid then
+                    return false, errorMsg
+                end
+            end
+        end
+    else
+        error("Input data must be an object")
+    end
+
+    return true, nil
 end
 
 -- Get the current state
@@ -323,7 +351,7 @@ end
 
 -- Get input definition by ID
 function DFSM:getInput(inputId)
-    return self.inputMap[inputId]
+    return self.inputs[inputId]
 end
 
 -- Get all inputs

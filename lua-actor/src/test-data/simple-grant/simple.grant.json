@@ -10,7 +10,6 @@
   },
   "variables": {
     "partyAEthAddress": {
-      "id": "partyAEthAddress",
       "type": "address",
       "name": "Party A Ethereum Address",
       "description": "Ethereum address of the first party",
@@ -34,8 +33,7 @@
       "name": "Party B Ethereum Address",
       "description": "Ethereum address of the second party",
       "validation": {
-        "required": true,
-        "pattern": "^0x[a-fA-F0-9]{40}$"
+        "required": true
       }
     },
     "partyBName": {
@@ -70,55 +68,57 @@
     ],
     "inputs": {
       "partyAData": {
-        "id": "partyAData",
         "type": "VerifiedCredentialEIP712",
         "schema": "verified-credential-eip712.schema.json",
         "displayName": "Party A Signature",
         "description": "EIP712 signature from Party A proposing the MOU terms",
-        "data": ["${variables.partyAName}", "${variables.partyBEthAddress}"],
-        "issuer": "${variables.partyAEthAddress}"
+        "data": {
+          "partyAName": "${partyAName}",
+          "partyBEthAddress": "${partyBEthAddress}"
+        },
+        "issuer": "${partyAEthAddress}"
       },
       "partyBData": {
         "type": "VerifiedCredentialEIP712",
         "schema": "verified-credential-eip712.schema.json",
         "displayName": "Party B Signature",
         "description": "EIP712 signature from Party B accepting the MOU terms",
-        "data": ["${variables.partyBName}"],
-        "issuer": "${variables.partyBEthAddress}"
+        "data": {
+          "partyBName": "${partyBName}"
+        },
+        "issuer": "${partyBEthAddress}"
       },
       "accepted": {
         "type": "VerifiedCredentialEIP712",
         "schema": "verified-credential-eip712.schema.json",
         "displayName": "Party A Accepted Party B's Data",
         "description": "EIP712 signature from Party A accepting Party B's data",
-        "data": [
-          {
-            "id": "partyAAcceptance",
+        "data": {
+          "partyAAcceptance": {
             "type": "string",
             "validation": {
               "required": true,
               "pattern": "^ACCEPTED$"
             }
           }
-        ],
-        "issuer": "${variables.partyAEthAddress}"
+        },
+        "issuer": "${partyAEthAddress}"
       },
       "rejected": {
         "type": "VerifiedCredentialEIP712",
         "schema": "verified-credential-eip712.schema.json",
         "displayName": "Party A Rejected Party B's Data",
         "description": "EIP712 signature from Party A rejecting Party B's data",
-        "data": [
-          {
-            "id": "partyARejection",
+        "data": {
+          "partyARejection": {
             "type": "string",
             "validation": {
               "required": true,
               "pattern": "^REJECTED$"
             }
           }
-        ],
-        "issuer": "${variables.partyAEthAddress}"
+        },
+        "issuer": "${partyAEthAddress}"
       }
     },
     "transitions": [
@@ -128,9 +128,7 @@
         "conditions": [
           {
             "type": "isValid",
-            "inputs": [
-              "partyAData"
-            ]
+            "input": "partyAData"
           }
         ]
       },
@@ -140,9 +138,7 @@
         "conditions": [
           {
             "type": "isValid",
-            "inputs": [
-              "partyBData"
-            ]
+            "input": "partyBData"
           }
         ]
       },
@@ -152,9 +148,7 @@
         "conditions": [
           {
             "type": "isValid",
-            "inputs": [
-              "accepted"
-            ]
+            "input": "accepted"
           }
         ]
       },
@@ -164,9 +158,7 @@
         "conditions": [
           {
             "type": "isValid",
-            "inputs": [
-              "rejected"
-            ]
+            "input": "rejected"
           }
         ]
       }

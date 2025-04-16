@@ -23,7 +23,7 @@ local initialValues = {
     partyAEthAddress = "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
 }
 
-local dfsm = DFSM.new(agreementDoc, false, initialValues)
+local dfsm = DFSM.new(agreementDoc, initialValues, false)
 
 print(DFSMUtils.formatFSMSummary(dfsm))
 
@@ -43,17 +43,17 @@ local function processInputAndDisplay(dfsm, inputId, inputValue)
     
     print(DFSMUtils.renderDFSMState(dfsm))
 end
-
 -- Party A data
 processInputAndDisplay(dfsm, "partyAData", [[
 {
     "type": "VerifiedCredentialEIP712",
-    "issuer": "${partyAEthAddress}",
+    "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "credentialSubject": {
         "id": "partyAData",
         "type": "signedFields",
         "values": {
-            "partyAName": "Damian"
+            "partyAName": "Damian",
+            "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
         }
     }
 }]])
@@ -62,12 +62,13 @@ processInputAndDisplay(dfsm, "partyAData", [[
 processInputAndDisplay(dfsm, "partyAData", [[
 {
     "type": "VerifiedCredentialEIP712",
-    "issuer": "0xAb8483F64d9C6d1EcF9b849Ae677dD3315835cb2",
+    "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "credentialSubject": {
         "id": "partyAData",
         "type": "signedFields",
         "values": {
-            "partyAName": "Damian"
+            "partyAName": "Damian",
+            "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
         }
     }
 }]])
@@ -86,8 +87,7 @@ processInputAndDisplay(dfsm, "partyBData", [[
         "id": "partyBData",
         "type": "signedFields",
         "values": {
-            "partyBName": "Leif",
-            "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+            "partyBName": "Leif"
         }
     }
 }]])
