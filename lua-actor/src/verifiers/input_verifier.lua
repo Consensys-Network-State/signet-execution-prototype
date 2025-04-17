@@ -36,6 +36,9 @@ end
 
 -- Shared validation module
 local ValidationUtils = {
+    ethAddressEqual = function (address1, address2)
+            return string.lower(address1) == string.lower(address2)
+        end,
     validateField = function(field, value)
         if not field.validation then
             return false, "Field validation is missing"
@@ -173,7 +176,7 @@ function EIP712Verifier:verify(input, value, variables, validate)
             end
         end
         
-        if expectedIssuer and expectedIssuer ~= issuerAddress then
+        if expectedIssuer and not ValidationUtils.ethAddressEqual(expectedIssuer, issuerAddress) then
             local errorMsg = string.format("Issuer mismatch: expected ${%s.value}, got %s", input.issuer, issuerAddress)
             return false, errorMsg
         end

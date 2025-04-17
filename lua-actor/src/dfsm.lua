@@ -3,7 +3,9 @@ local VariableManager = require("variables.variable_manager")
 local InputVerifier = require("verifiers.input_verifier")
 local json = require("json")
 local VcValidator = require("vc-validator")
+local base64 = require(".base64")
 
+local ValidationUtils = InputVerifier.ValidationUtils
 
 -- DFSM class definition
 local DFSM = {}
@@ -44,7 +46,10 @@ function DFSM.new(doc, initialValues, expectVCWrapper)
     -- Allow skipping VC wrapper processing if not needed for testing
     local agreement = nil
     if expectVCWrapper then
-        agreement = self:processVCWrapper(doc, nil, true);
+        -- The agreement template VC is expected to base64 encode the agreement contents
+        -- to simplify EIP-712 encoding.
+        local credentialSubject = DFSM:processVCWrapper(doc, nil, true)
+        agreement = json.decode(base64.decode(credentialSubject.agreement))
     else
         agreement = json.decode(doc)
     end
@@ -113,7 +118,7 @@ function DFSM:processVCWrapper(vc, expectedIssuer, validateVC)
         assert(success, "Invalid VC");
 
         if expectedIssuer then
-            if ownerAddress ~= expectedIssuer then
+            if not ValidationUtils.ethAddressEqual(ownerAddress, expectedIssuer) then
                 local errorMsg = string.format("Issuer mismatch: expected ${variables.partyAEthAddress.value}, got %s", ownerAddress)
                 error(errorMsg)
             end
