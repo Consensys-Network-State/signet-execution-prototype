@@ -36,7 +36,6 @@ end
 function DFSM.new(doc, initialValues, expectVCWrapper)
     local self = {
         currentState = nil, -- Will store the entire state object
-        currentStateId = nil, -- Will store the state ID for reference
         inputs = {},
         transitions = {},
         variables = nil,
@@ -107,7 +106,6 @@ function DFSM.new(doc, initialValues, expectVCWrapper)
     if not initialStateId then
         error("No initial state (isInitial=true) found in state definitions")
     end
-    self.currentStateId = initialStateId
     self.currentState = self.states[initialStateId]
 
     -- Process inputs (assuming object structure)
@@ -261,16 +259,15 @@ function DFSM:processInput(inputId, inputValue, validateVC)
 
     -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
-        if transition.from == self.currentStateId then
+        if transition.from == self.currentState.id then
             -- Note, because we previously validated the input, we can just check if the inputId is in the transition.conditions.inputs
             if self:areTransitionConditionsMet(transition, inputId) then
                 -- Store the input and update state
                 self.received[inputId] = inputValue
-                self.currentStateId = transition.to
                 self.currentState = self.states[transition.to]
                 
                 -- Check if we've reached a terminal state
-                if not self:hasOutgoingTransitions(self.currentStateId) then
+                if not self:hasOutgoingTransitions(self.currentState.id) then
                     self.complete = true
                 end
                 return true, "Transition successful"
@@ -313,7 +310,7 @@ end
 
 -- Get the current state ID
 function DFSM:getCurrentStateId()
-    return self.currentStateId
+    return self.currentState.id
 end
 
 -- Get the current state object
