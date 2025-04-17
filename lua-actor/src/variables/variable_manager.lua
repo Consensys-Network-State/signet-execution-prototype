@@ -1,3 +1,5 @@
+local VcValidator = require("vc-validator")
+local ValidationModule = require("validation")
 local VariableManager = {}
 
 function VariableManager.new(variables)
@@ -17,23 +19,10 @@ function VariableManager.new(variables)
             end,
             set = function(self, newValue)
                 if self.validation then
-                    if self.validation.required and (newValue == nil or newValue == "") then
-                        error(string.format("Variable %s is required", self.name))
-                    end
-
-                    if self.validation.minLength and type(newValue) == "string" and #newValue < self.validation.minLength then
-                        error(string.format("Variable %s must be at least %d characters", self.name, self.validation.minLength))
-                    end
-
-                    if self.validation.pattern and type(newValue) == "string" then
-                        local pattern = self.validation.pattern:gsub("\\/", "/")
-                        if not string.match(newValue, pattern) then
-                            error(string.format("Variable %s: %s", self.name, self.validation.message or "Invalid format"))
-                        end
-                    end
-
-                    if self.validation.min and type(newValue) == "number" and newValue < self.validation.min then
-                        error(string.format("Variable %s must be at least %s", self.name, tostring(self.validation.min)))
+                    -- Use shared validation module for common validations
+                    local isValid, errorMsg = ValidationModule.validateValue(newValue, self.validation, self.name)
+                    if not isValid then
+                        error(errorMsg)
                     end
                 end
                 self.value = newValue

@@ -1,6 +1,7 @@
 local json = require("json")
 local crypto = require("crypto")
 local VcValidator = require("vc-validator")
+local ValidationModule = require("validation")
 
 local ETHEREUM_ADDRESS_REGEX = "^0x(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)$"
 
@@ -40,17 +41,7 @@ local ValidationUtils = {
             return false, "Field validation is missing"
         end
 
-        -- Check required field
-        if field.validation.required and (value == nil or value == "") then
-            return false, string.format("Field %s is required", field.name or field.id)
-        end
-
-        -- Skip validation if value is nil and not required
-        if not value then
-            return true
-        end
-
-        -- Validate type
+        -- Validate type first (specific to InputVerifier)
         if field.type == "string" and type(value) ~= "string" then
             return false, string.format("Field %s must be a string", field.name or field.id)
         elseif field.type == "address" then
@@ -74,22 +65,12 @@ local ValidationUtils = {
             return false, string.format("Field %s must be a number", field.name or field.id)
         end
 
-        -- Optional: Check min length for strings
-        if field.validation.minLength and type(value) == "string" and #value < field.validation.minLength then
-            return false, string.format("Field %s must be at least %d characters", field.name or field.id, field.validation.minLength)
-        end
-
-        -- Optional: Check pattern for strings
-        if field.validation.pattern and type(value) == "string" then
-            local pattern = field.validation.pattern:gsub("\\/", "/")
-            if not string.match(value, pattern) then
-                return false, string.format("Field %s: %s", field.name or field.id, field.validation.message or "Invalid format")
-            end
-        end
-
-        -- Optional: Check min value for numbers
-        if field.validation.min and type(value) == "number" and value < field.validation.min then
-            return false, string.format("Field %s must be at least %s", field.name or field.id, tostring(field.validation.min))
+        -- Use shared validation for common validations
+        local fieldName = field.name or field.id
+        local isValid, errorMsg = ValidationModule.validateValue(value, field.validation, fieldName)
+        
+        if not isValid then
+            return false, errorMsg
         end
 
         return true
