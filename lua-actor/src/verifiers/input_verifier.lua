@@ -1,7 +1,7 @@
 local json = require("json")
 local crypto = require("crypto")
 local VcValidator = require("vc-validator")
-local ValidationModule = require("validation")
+local FieldValidator = require("variables.validation")
 
 local ETHEREUM_ADDRESS_REGEX = "^0x(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)$"
 
@@ -67,7 +67,7 @@ local ValidationUtils = {
 
         -- Use shared validation for common validations
         local fieldName = field.name or field.id
-        local isValid, errorMsg = ValidationModule.validateValue(value, field.validation, fieldName)
+        local isValid, errorMsg = FieldValidator.validateValue(value, field.validation, fieldName)
         
         if not isValid then
             return false, errorMsg

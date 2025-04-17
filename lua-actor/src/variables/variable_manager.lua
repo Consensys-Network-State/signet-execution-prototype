@@ -1,5 +1,5 @@
 local VcValidator = require("vc-validator")
-local ValidationModule = require("validation")
+local ValidationModule = require("variables.validation")
 local VariableManager = {}
 
 function VariableManager.new(variables)
