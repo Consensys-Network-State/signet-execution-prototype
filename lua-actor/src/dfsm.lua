@@ -33,7 +33,7 @@ function DFSM:hasOutgoingTransitions(stateId)
 end
 
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(doc, initialValues, expectVCWrapper)
+function DFSM.new(doc, expectVCWrapper)
     local self = {
         currentState = nil, -- Will store the entire state object
         inputs = {},
@@ -46,13 +46,17 @@ function DFSM.new(doc, initialValues, expectVCWrapper)
 
     -- Allow skipping VC wrapper processing if not needed for testing
     local agreement = nil
+    local initialValues = nil
     if expectVCWrapper then
         -- The agreement template VC is expected to base64 encode the agreement contents
         -- to simplify EIP-712 encoding.
         local credentialSubject = DFSM:processVCWrapper(doc, nil, true)
         agreement = json.decode(base64.decode(credentialSubject.agreement))
+        initialValues = credentialSubject.params
     else
-        agreement = json.decode(doc)
+        local credentialSubject = json.decode(doc)
+        agreement = credentialSubject.agreement
+        initialValues = credentialSubject.params
     end
 
     -- Initialize variables

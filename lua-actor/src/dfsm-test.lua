@@ -23,7 +23,7 @@ local initialValues = {
     partyAEthAddress = "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
 }
 
-local dfsm = DFSM.new(agreementDoc, initialValues, false)
+local dfsm = DFSM.new(agreementDoc, false)
 
 print(DFSMUtils.formatFSMSummary(dfsm))
 

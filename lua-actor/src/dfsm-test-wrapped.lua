@@ -23,12 +23,7 @@ local inputAAccept = loadInputDoc("./test-data/simple-grant/simple.grant.partyA-
 local inputAReject = loadInputDoc("./test-data/simple-grant/simple.grant.partyA-input-reject.wrapped.json")
 
 
--- Initialize DFSM with required initial values
-local initialValues = {
-    partyAEthAddress = "0xB49e45Affd4963374e72f850B6Cae84939e58F78"
-}
-
-local dfsm = DFSM.new(agreementDoc, initialValues, true)
+local dfsm = DFSM.new(agreementDoc, true)
 
 print(DFSMUtils.formatFSMSummary(dfsm))
 
