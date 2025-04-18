@@ -3,7 +3,9 @@ local VariableManager = require("variables.variable_manager")
 local InputVerifier = require("verifiers.input_verifier")
 local json = require("json")
 local VcValidator = require("vc-validator")
+local base64 = require(".base64")
 
+local ValidationUtils = InputVerifier.ValidationUtils
 
 -- DFSM class definition
 local DFSM = {}
@@ -21,9 +23,9 @@ function DFSM:areTransitionConditionsMet(transition, inputId)
 end
 
 -- Helper function to check if a state has outgoing transitions
-function DFSM:hasOutgoingTransitions(state)
+function DFSM:hasOutgoingTransitions(stateId)
     for _, t in ipairs(self.transitions) do
-        if t.from == state then
+        if t.from == stateId then
             return true
         end
     end
@@ -31,22 +33,30 @@ function DFSM:hasOutgoingTransitions(state)
 end
 
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(doc, initialValues, expectVCWrapper)
+function DFSM.new(doc, expectVCWrapper)
     local self = {
-        state = nil,
+        currentState = nil, -- Will store the entire state object
         inputs = {},
         transitions = {},
         variables = nil,
         received = {},
         complete = false,
+        states = {}, -- Store state information (name, description)
     }
 
     -- Allow skipping VC wrapper processing if not needed for testing
     local agreement = nil
+    local initialValues = nil
     if expectVCWrapper then
-        agreement = self:processVCWrapper(doc, nil, true);
+        -- The agreement template VC is expected to base64 encode the agreement contents
+        -- to simplify EIP-712 encoding.
+        local credentialSubject = DFSM:processVCWrapper(doc, nil, true)
+        agreement = json.decode(base64.decode(credentialSubject.agreement))
+        initialValues = credentialSubject.params
     else
-        agreement = json.decode(doc)
+        local credentialSubject = json.decode(doc)
+        agreement = credentialSubject.agreement
+        initialValues = credentialSubject.params
     end
 
     -- Initialize variables
@@ -64,18 +74,43 @@ function DFSM.new(doc, initialValues, expectVCWrapper)
     end
 
     -- Validate and set initial state
-    if not agreement.execution or not agreement.execution.states or #agreement.execution.states == 0 then
+    if not agreement.execution or not agreement.execution.states then
+        error("Agreement document must have states defined")
+    end
+    
+    -- Process states - only support object format
+    if type(agreement.execution.states) ~= "table" then
+        error("States must be defined as an object")
+    end
+    
+    -- It's an object format with state objects
+    local initialStateId = nil
+    for stateId, stateObj in pairs(agreement.execution.states) do
+        self.states[stateId] = {
+            id = stateId, -- Include the ID in the state object for reference
+            name = stateObj.name or stateId,
+            description = stateObj.description or "",
+            isInitial = stateObj.isInitial or false
+        }
+        
+        -- Track initial state
+        if stateObj.isInitial then
+            if initialStateId then
+                error("Multiple initial states found: " .. initialStateId .. " and " .. stateId)
+            end
+            initialStateId = stateId
+        end
+    end
+    
+    if not next(self.states) then
         error("Agreement document must have at least one state")
     end
 
-    -- Create valid states lookup
-    local states = {}
-    for _, state in ipairs(agreement.execution.states) do
-        states[state] = true
+    -- Set initial state
+    if not initialStateId then
+        error("No initial state (isInitial=true) found in state definitions")
     end
-
-    -- Set initial state (first state in the list)
-    self.state = agreement.execution.states[1]
+    self.currentState = self.states[initialStateId]
 
     -- Process inputs (assuming object structure)
     if agreement.execution.inputs then
@@ -90,10 +125,10 @@ function DFSM.new(doc, initialValues, expectVCWrapper)
     -- Process transitions
     if agreement.execution.transitions then
         for _, transition in ipairs(agreement.execution.transitions) do
-            if not states[transition.from] then
+            if not self.states[transition.from] then
                 error(string.format("Invalid 'from' state in transition: %s", transition.from))
             end
-            if not states[transition.to] then
+            if not self.states[transition.to] then
                 error(string.format("Invalid 'to' state in transition: %s", transition.to))
             end
             table.insert(self.transitions, transition)
@@ -113,7 +148,7 @@ function DFSM:processVCWrapper(vc, expectedIssuer, validateVC)
         assert(success, "Invalid VC");
 
         if expectedIssuer then
-            if ownerAddress ~= expectedIssuer then
+            if not ValidationUtils.ethAddressEqual(ownerAddress, expectedIssuer) then
                 local errorMsg = string.format("Issuer mismatch: expected ${variables.partyAEthAddress.value}, got %s", ownerAddress)
                 error(errorMsg)
             end
@@ -128,37 +163,52 @@ end
 -- Validate the state machine definition
 function DFSM:validate()
     -- Check that we have at least one state
-    if #self.states == 0 then
+    if not next(self.states) then
         error("DFSM must have at least one state")
     end
 
-    -- Check that all states referenced in transitions exist
-    local validStates = {}
-    for _, state in ipairs(self.states) do
-        validStates[state] = true
+    -- Find initial state
+    local initialStateId = nil
+    for stateId, stateInfo in pairs(self.states) do
+        if stateInfo.isInitial then
+            if initialStateId then
+                error(string.format("Multiple initial states found: %s and %s", initialStateId, stateId))
+            end
+            initialStateId = stateId
+        end
+    end
+    
+    if not initialStateId then
+        error("No initial state (isInitial=true) found in state definitions")
     end
 
+    -- Check that all states referenced in transitions exist
     for _, transition in ipairs(self.transitions) do
-        if not validStates[transition.from] then
+        if not self.states[transition.from] then
             error(string.format("Invalid 'from' state in transition: %s", transition.from))
         end
-        if not validStates[transition.to] then
+        if not self.states[transition.to] then
             error(string.format("Invalid 'to' state in transition: %s", transition.to))
         end
     end
 
     -- Check that all inputs referenced in conditions exist
     local validInputs = {}
-    for _, input in ipairs(self.inputs) do
-        validInputs[input.id] = true
+    for inputId, _ in pairs(self.inputs) do
+        validInputs[inputId] = true
     end
 
     for _, transition in ipairs(self.transitions) do
         for _, condition in ipairs(transition.conditions) do
             if condition.type == "isValid" then
-                for _, inputId in ipairs(condition.inputs) do
-                    if not validInputs[inputId] then
-                        error(string.format("Invalid input referenced in condition: %s", inputId))
+                if condition.input and not validInputs[condition.input] then
+                    error(string.format("Invalid input referenced in condition: %s", condition.input))
+                end
+                if condition.inputs then
+                    for _, inputId in ipairs(condition.inputs) do
+                        if not validInputs[inputId] then
+                            error(string.format("Invalid input referenced in condition: %s", inputId))
+                        end
                     end
                 end
             end
@@ -166,12 +216,12 @@ function DFSM:validate()
     end
 
     -- Validate input schemas
-    for _, input in ipairs(self.inputs) do
+    for inputId, input in pairs(self.inputs) do
         if not input.type then
-            error(string.format("Input %s missing type", input.id))
+            error(string.format("Input %s missing type", inputId))
         end
         if not input.schema then
-            error(string.format("Input %s missing schema", input.id))
+            error(string.format("Input %s missing schema", inputId))
         end
     end
 end
@@ -213,15 +263,15 @@ function DFSM:processInput(inputId, inputValue, validateVC)
 
     -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
-        if transition.from == self.state then
+        if transition.from == self.currentState.id then
             -- Note, because we previously validated the input, we can just check if the inputId is in the transition.conditions.inputs
             if self:areTransitionConditionsMet(transition, inputId) then
                 -- Store the input and update state
                 self.received[inputId] = inputValue
-                self.state = transition.to
+                self.currentState = self.states[transition.to]
                 
                 -- Check if we've reached a terminal state
-                if not self:hasOutgoingTransitions(self.state) then
+                if not self:hasOutgoingTransitions(self.currentState.id) then
                     self.complete = true
                 end
                 return true, "Transition successful"
@@ -262,9 +312,24 @@ function DFSM:validateInputValues(inputDef, values)
     return true, nil
 end
 
--- Get the current state
+-- Get the current state ID
+function DFSM:getCurrentStateId()
+    return self.currentState.id
+end
+
+-- Get the current state object
 function DFSM:getCurrentState()
-    return self.state
+    return self.currentState
+end
+
+-- Get details for a specific state
+function DFSM:getStateDetails(stateId)
+    return self.states[stateId]
+end
+
+-- Get all states
+function DFSM:getAllStates()
+    return self.states
 end
 
 -- Check if the state machine is complete
