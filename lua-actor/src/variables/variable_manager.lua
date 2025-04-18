@@ -1,91 +1,41 @@
+local VcValidator = require("vc-validator")
+local ValidationModule = require("variables.validation")
 local VariableManager = {}
 
 function VariableManager.new(variables)
     local self = {
         variables = {}
     }
-
-    -- Handle both array and object formats
-    if type(variables) == "table" then
-        if #variables > 0 then
-            -- Array format
-            for _, var in ipairs(variables) do
-                self.variables[var.id] = {
-                    value = var.value,
-                    type = var.type,
-                    name = var.name,
-                    description = var.description,
-                    validation = var.validation,
-                    get = function(self)
-                        return self.value
-                    end,
-                    set = function(self, newValue)
-                        if self.validation then
-                            if self.validation.required and (newValue == nil or newValue == "") then
-                                error(string.format("Variable %s is required", self.name))
-                            end
-
-                            if self.validation.minLength and type(newValue) == "string" and #newValue < self.validation.minLength then
-                                error(string.format("Variable %s must be at least %d characters", self.name, self.validation.minLength))
-                            end
-
-                            if self.validation.pattern and type(newValue) == "string" then
-                                local pattern = self.validation.pattern:gsub("\\/", "/")
-                                if not string.match(newValue, pattern) then
-                                    error(string.format("Variable %s: %s", self.name, self.validation.message or "Invalid format"))
-                                end
-                            end
-
-                            if self.validation.min and type(newValue) == "number" and newValue < self.validation.min then
-                                error(string.format("Variable %s must be at least %s", self.name, tostring(self.validation.min)))
-                            end
-                        end
-                        self.value = newValue
+    
+    for id, var in pairs(variables) do
+        self.variables[id] = {
+            value = var.value,
+            type = var.type,
+            name = var.name,
+            description = var.description,
+            validation = var.validation,
+            get = function(self)
+                return self.value
+            end,
+            set = function(self, newValue)
+                if self.validation then
+                    -- Use shared validation module for common validations
+                    local isValid, errorMsg = ValidationModule.validateValue(newValue, self.validation, self.name)
+                    if not isValid then
+                        error(errorMsg)
                     end
-                }
+                end
+                self.value = newValue
             end
-        else
-            -- Object format
-            for id, var in pairs(variables) do
-                self.variables[id] = {
-                    value = var.value,
-                    type = var.type,
-                    name = var.name,
-                    description = var.description,
-                    validation = var.validation,
-                    get = function(self)
-                        return self.value
-                    end,
-                    set = function(self, newValue)
-                        if self.validation then
-                            if self.validation.required and (newValue == nil or newValue == "") then
-                                error(string.format("Variable %s is required", self.name))
-                            end
-
-                            if self.validation.minLength and type(newValue) == "string" and #newValue < self.validation.minLength then
-                                error(string.format("Variable %s must be at least %d characters", self.name, self.validation.minLength))
-                            end
-
-                            if self.validation.pattern and type(newValue) == "string" then
-                                local pattern = self.validation.pattern:gsub("\\/", "/")
-                                if not string.match(newValue, pattern) then
-                                    error(string.format("Variable %s: %s", self.name, self.validation.message or "Invalid format"))
-                                end
-                            end
-
-                            if self.validation.min and type(newValue) == "number" and newValue < self.validation.min then
-                                error(string.format("Variable %s must be at least %s", self.name, tostring(self.validation.min)))
-                            end
-                        end
-                        self.value = newValue
-                    end
-                }
-            end
-        end
+        }
     end
 
     setmetatable(self, { __index = VariableManager })
     return self
+end
+
+function VariableManager:isVariable(name)
+    return self.variables[name] ~= nil
 end
 
 function VariableManager:getVariable(name)
@@ -115,6 +65,70 @@ function VariableManager:getAllVariables()
         }
     end
     return result
+end
+
+-- Given a string input, resolve it as a variable reference 
+-- (e.g. ${variables.partyAEthAddress.value} will return the nested property value)
+-- Otherwise, return nil
+function VariableManager:tryResolveExactStringAsVariableObject(possibleVariableReferenceString)
+    if type(possibleVariableReferenceString) ~= "string" then
+        return nil
+    end
+
+    local trimmed = possibleVariableReferenceString:match("^%s*(.-)%s*$")
+    
+    -- Check if the string has ${variables.x} format
+    local varPath = trimmed:match("^%${([^}]+)}$")
+    if not varPath or not varPath:match("^variables%.") then
+        return nil
+    end
+
+    -- Remove the "variables." prefix and split the remaining path
+    local path = varPath:sub(10) -- Remove "variables."
+    local parts = {}
+    for part in path:gmatch("[^%.]+") do
+        table.insert(parts, part)
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+
+    -- Get the base variable definition
+    local varDef = self.variables[parts[1]]
+    if not varDef then
+        return nil
+    end
+
+    -- Start with the variable definition object itself
+    local current = varDef
+    
+    -- Handle different property paths
+    if #parts > 1 then
+        -- First property access (parts[2])
+        if parts[2] == "value" then
+            current = current:get()
+        else
+            current = current[parts[2]]
+        end
+        
+        if current == nil then
+            return nil
+        end
+        
+        -- Traverse any remaining nested properties (from index 3 onward)
+        for i = 3, #parts do
+            if type(current) ~= "table" then
+                return nil
+            end
+            current = current[parts[i]]
+            if current == nil then
+                return nil
+            end
+        end
+    end
+
+    return current
 end
 
 return VariableManager 
