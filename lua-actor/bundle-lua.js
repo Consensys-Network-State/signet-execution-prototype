@@ -157,20 +157,21 @@ function bundleLua() {
     // Get the module content
     let moduleContent = moduleContents.get(modulePath);
     
-    bundledContent += `  local module = {}\n`;
-    bundledContent += `  __loaded["${moduleId}"] = module\n\n`;
-    
     // Add the module content
-    bundledContent += moduleContent;
+    // First, check if there's a return statement at the end
+    const returnRegex = /return\s+([\s\S]+?)(\s*)$/;
     
-    // Fix: Capture the return value and assign it to module before returning
-    bundledContent = bundledContent.replace(/return ([A-Za-z0-9_]+)(\s*)$/, function(match, returnValue) {
-      return `  module = ${returnValue}\n  return module\n`;
-    });
-    
-    // If the module doesn't explicitly return something, add a return statement
-    if (!moduleContent.trim().endsWith('return') && !moduleContent.includes('\nreturn ')) {
-      bundledContent += '\n  return module\n';
+    const returnIndex = moduleContent.lastIndexOf('return');
+    if (returnIndex >= 0) {
+        const beforeReturn = moduleContent.substring(0, returnIndex);
+        const theReturn = moduleContent.substring(returnIndex);
+        const returnValue = theReturn.match(returnRegex)[1];
+        bundledContent += beforeReturn + '\n';
+        // Add our modified return
+        bundledContent += `  __loaded["${moduleId}"] = ${returnValue}\n  return __loaded["${moduleId}"]\n`;
+    } else {
+        // No global return statement, just add the content as is
+        bundledContent += moduleContent;
     }
     
     bundledContent += `end\n`;

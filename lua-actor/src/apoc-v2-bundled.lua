@@ -2,100 +2,683 @@
 local __modules = {}
 local __loaded = {}
 
+local secp256k1 = require("secp256k1")
+local Handlers = require("handlers")
+
+-- Begin module: src/eip712.lua
+__modules["src/eip712"] = function()
+  if __loaded["src/eip712"] then return __loaded["src/eip712"] end
+local crypto = require(".crypto.init")
+local Array = require(".crypto.util.array")
+
+-- A pure Lua implementation of the EIP-712 encoding logic. Used in actor logic to validate VCs using 
+
+-- Forward declarations for functions with circular dependencies
+local encodeParameter
+local isDynamicType
+local encodeField
+local encodeData
+local hashStruct
+
+local function padLeft(str, length, char)
+    char = char or '0'
+    local padding = string.rep(char, length - #str)
+    return padding .. str
+end
+
+local function padRight(str, length, char)
+    char = char or '0'
+    local padding = string.rep(char, length - #str)
+    return str .. padding
+end
+
+-- Basic type encoders
+local function encodeUint256(value)
+    local hex = string.format("%x", value)
+    return padLeft(hex, 64)
+end
+
+local function encodeAddress(value)
+    value = string.gsub(value, "^0x", "")
+    return padLeft(value, 64)
+end
+
+local function encodeBool(value)
+    return encodeUint256(value and 1 or 0)
+end
+
+local function encodeBytes(value)
+  local length = encodeUint256(#value)
+  local paddedData = value .. string.rep(string.char(0), (32 - (#value % 32)) % 32)
+  return length .. paddedData
+end
+
+local function encodeFixedBytes(value, size)
+    if #value > size * 2 then -- hex string expected, 2 hex chars per byte
+        error(string.format("Value too long for bytes%d: got %d bytes", size, #value))
+    end
+    return value .. string.rep(string.char(0), size - #value)
+end
+
+local function encodeString(value)
+    local bytes = string.char(string.byte(value, 1, -1))
+    return encodeBytes(bytes)
+end
+
+local function encodeArray(baseType, array, size, types)
+    local result = ""
+    if #size == 0 then
+        result = encodeUint256(#array)
+    end
+    
+    -- For arrays of structs, we need to hash each item first
+    if types and types[baseType] then
+        for _, value in ipairs(array) do
+            local hash = hashStruct(baseType, value, types)
+            result = result .. encodeParameter("bytes32", hash, types)
+        end
+    else
+        -- For primitive arrays, encode directly
+        for _, value in ipairs(array) do
+            result = result .. encodeParameter(baseType, value, types)
+        end
+    end
+    
+    return result
+end
+
+function isDynamicType(typ)
+    -- Check for basic dynamic types
+    if typ == "string" or typ == "bytes" then
+        return true
+    end
+    
+    -- Check for fixed-size bytes (bytes1 to bytes32)
+    local bytesMatch = string.match(typ, "^bytes(%d+)$")
+    if bytesMatch then
+        local size = tonumber(bytesMatch)
+        if size then
+            return false  -- Fixed-size bytes are static
+        end
+        error("Invalid bytes size: " .. bytesMatch)
+    end
+    
+    -- Check for arrays - pattern needs to handle the full type including numbers
+    local baseType, size = string.match(typ, "^([%a%d]+)%[(%d*)%]$")
+    if baseType then
+        -- Dynamic if it's an unbounded array or contains dynamic types
+        return #size == 0 or isDynamicType(baseType)
+    end
+    
+    return false
+end
+
+
+-- Parameter encoding
+function encodeParameter(typ, value, types)
+    if typ == "uint256" then
+        return encodeUint256(value)
+    elseif typ == "address" then
+        return encodeAddress(value)
+    elseif typ == "bool" then
+        return encodeBool(value)
+    elseif typ == "string" then
+        return encodeString(value)
+    elseif typ == "bytes" then
+        return encodeBytes(value)
+    end
+    
+    -- Handle fixed-size bytes
+    local bytesMatch = string.match(typ, "^bytes(%d+)$")
+    if bytesMatch then
+        local size = tonumber(bytesMatch)
+        if size then
+            return encodeFixedBytes(value, size)
+        end
+    end
+
+    local baseType, size = string.match(typ, "^([%a%d]+)%[(%d*)%]$")
+    if baseType then
+        return encodeArray(baseType, value, size, types)
+    end
+    
+    error("Unsupported type: " .. typ)
+end
+
+-- ABI encoding
+local function abiEncode(types, values, eip712types)
+    local headLength = 0
+    local heads = {}
+    local tails = {}
+    local dynamicCount = 0
+    
+    for i, typ in ipairs(types) do
+        local value = values[i]
+        
+        if isDynamicType(typ) then
+            table.insert(heads, "")
+            dynamicCount = dynamicCount + 1
+        else
+            local encoded = encodeParameter(typ, value, eip712types)
+            table.insert(heads, encoded)
+        end
+        
+        headLength = headLength + 32
+    end
+    
+    local currentDynamicPointer = headLength
+    for i, typ in ipairs(types) do
+        if isDynamicType(typ) then
+            local value = values[i]
+            local encoded = encodeParameter(typ, value, eip712types)
+            
+            heads[i] = encodeUint256(currentDynamicPointer)
+            table.insert(tails, encoded)
+            
+            currentDynamicPointer = currentDynamicPointer + #encoded
+        end
+    end
+    
+    return table.concat(heads) .. table.concat(tails)
+end
+
+-- EIP-712 specific functions
+local function keccak256(input)
+    return crypto.digest.keccak256(input).asHex()
+end
+
+local function findTypeDependenciesWorker(typeName, types, deps)
+    deps = deps or {}
+    
+    if not deps[typeName] then
+        deps[typeName] = true
+        
+        for _, field in ipairs(types[typeName]) do
+            -- Match both struct types and arrays of struct types with a single pattern
+            -- e.g., 'CredentialSubject' or 'Fields[]'
+            local match = string.match(field.type, "^([A-Z][A-Za-z0-9]*)%[?%]?$")
+            if match then
+                findTypeDependenciesWorker(match, types, deps)
+            end
+        end
+    end
+    
+    return deps
+end
+
+local function findTypeDependencies(typeName, types)
+    -- First discover all dependencies
+    local deps = findTypeDependenciesWorker(typeName, types)
+    
+    -- Then convert to array format
+    local result = {}
+    for dep in pairs(deps) do
+        table.insert(result, dep)
+    end
+    return result
+end
+
+local function encodeParameters(type)
+    local params = {}
+    for _, param in ipairs(type) do
+        table.insert(params, param.type .. " " .. param.name)
+    end
+    return table.concat(params, ",")
+end
+
+local function encodeType(typeName, types)
+    local deps = findTypeDependencies(typeName, types)
+    local index
+    for i, v in ipairs(deps) do
+        if v == typeName then
+            index = i
+            break
+        end
+    end
+    table.remove(deps, index)
+    table.sort(deps)
+    table.insert(deps, 1, typeName)
+    
+    local encodedTypes = ""
+    for _, dep in ipairs(deps) do
+        local type = types[dep]
+        encodedTypes = encodedTypes .. dep .. "(" .. encodeParameters(type) .. ")"
+    end
+    
+    return encodedTypes
+end
+
+local function typeHash(typeName, types)
+    return keccak256(encodeType(typeName, types))
+end
+
+function encodeField(type, value, types)
+    if types[type] then
+        -- value is of a nested type
+        return {
+            type = "bytes32",
+            value = hashStruct(type, value, types)
+        }
+    end
+    -- Handle arrays
+    local baseType = string.match(type, "^([%a%d]+)%[(%d*)%]$")
+    if baseType then
+        local arrayTypes = {}
+        local arrayValues = {}
+        
+        -- Check if baseType is a struct type
+        if types[baseType] then
+            -- For arrays of structs, hash each struct individually
+            for _, item in ipairs(value or {}) do
+                local structHash = hashStruct(baseType, item, types)
+                table.insert(arrayTypes, "bytes32")
+                table.insert(arrayValues, structHash)
+            end
+        else
+            -- For primitive arrays, process each item
+            for _, item in ipairs(value or {}) do
+                local itemEncoded = encodeField(baseType, item, types)
+                if itemEncoded.type == "bytes32" then
+                    table.insert(arrayTypes, itemEncoded.type)
+                    table.insert(arrayValues, itemEncoded.value)
+                else
+                    table.insert(arrayTypes, 'bytes32')
+                    local itemAbiEncoded = abiEncode({itemEncoded.type}, {itemEncoded.value})
+                    local itemAbiEncodeBytes = Array.fromHex(itemAbiEncoded)
+                    local itemEncodedBunaryStr = Array.toString(itemAbiEncodeBytes)
+                    table.insert(arrayValues, keccak256(itemEncodedBunaryStr))
+                end
+            end
+        end
+        
+        -- Array values are already bytes32, just encode them as an array and hash
+        local apiEncoded = abiEncode(arrayTypes, arrayValues)
+        local abiEncodeBytes = Array.fromHex(apiEncoded)
+        local apiEncodedBunaryStr = Array.toString(abiEncodeBytes)
+        return {
+            type = "bytes32",
+            value = keccak256(apiEncodedBunaryStr)
+        }
+    end
+    
+    -- Handle structs
+    if string.match(type, "^[A-Z]") then
+        return {
+            type = "bytes32",
+            value = keccak256(encodeData(type, value, types))
+        }
+    end
+
+    -- Handle strings by hashing them to bytes32
+    if type == "string" then
+        return {
+            type = "bytes32",
+            value = keccak256(value or "")
+        }
+    end
+
+    -- Handle basic types
+    return {
+        type = type,
+        value = value
+    }
+end
+
+local function getDefaultValue(typ)
+    -- Handle basic types
+    if typ == "uint256" or typ == "int256" then
+        return 0
+    elseif typ == "address" then
+        return "0x0000000000000000000000000000000000000000"
+    elseif typ == "bool" then
+        return false
+    elseif typ == "string" then
+        return ""
+    elseif typ == "bytes" then
+        return ""
+    end
+    
+    -- Handle fixed-size bytes
+    local bytesMatch = string.match(typ, "^bytes(%d+)$")
+    if bytesMatch then
+        local n = tonumber(bytesMatch)
+        if n then
+            local size = math.floor(n)
+            return string.rep("\0", size)
+        end
+        error("Invalid bytes size: " .. bytesMatch)
+    end
+    
+    -- Handle arrays
+    local baseType = string.match(typ, "^([%a%d]+)%[")
+    if baseType then
+        return {}
+    end
+    
+    -- Handle structs (starting with uppercase)
+    if string.match(typ, "^[A-Z]") then
+        return {}
+    end
+    
+    error("Unsupported type for default value: " .. typ)
+end
+
+function encodeData(typeName, data, types)
+    local encTypes = {}
+    local encValues = {}
+    
+    -- First, add the type hash
+    table.insert(encTypes, "bytes32")
+    table.insert(encValues, typeHash(typeName, types))
+    
+    -- Process fields in the exact order they appear in types
+    for _, field in ipairs(types[typeName]) do
+        local value = data[field.name]
+        if value == nil then
+            value = getDefaultValue(field.type)
+        end
+        local encoded = encodeField(field.type, value, types)
+        table.insert(encTypes, encoded.type)
+        table.insert(encValues, encoded.value)
+    end
+    
+    -- Encode the data
+    local abiEncodedData = abiEncode(encTypes, encValues, types)
+    return abiEncodedData
+end
+
+function hashStruct(primaryType, data, types)
+    -- First encode the data
+    local encodedData = encodeData(primaryType, data, types)
+    
+    -- Convert hex to binary string
+    local bytes = Array.fromHex(encodedData)
+    local binary_string = Array.toString(bytes)
+    
+    -- Hash the binary string
+    return keccak256(binary_string)
+end
+
+local function getSigningInput(domainSeparator, structHash)
+    -- Combine domain separator and struct hash with EIP-712 prefix
+    local fullInputHexString = '1901' .. domainSeparator .. structHash
+    
+    -- Convert hex to binary string
+    local fullInputBytes = Array.fromHex(fullInputHexString)
+    local fullInputBinaryStr = Array.toString(fullInputBytes)
+    
+    -- Hash the binary string
+    return keccak256(fullInputBinaryStr)
+end
+
+local function createDomainSeparator(domain, types)
+    if not types or not types.EIP712Domain then
+        -- Create domain type with fields in the standard order
+        local domainType = {
+            {name = "name", type = "string"},
+            {name = "version", type = "string"},
+            {name = "chainId", type = "uint256"}
+        }
+        
+        -- Create domain data with fields in the same order
+        local domainData = {
+            name = domain.name,
+            version = domain.version,
+            chainId = domain.chainId
+        }
+        
+        -- Create types object with only EIP712Domain
+        local types = {
+            EIP712Domain = domainType
+        }
+        
+        return hashStruct("EIP712Domain", domainData, types)
+    end
+
+    return hashStruct("EIP712Domain", domain, types)
+end
+
+
+  __loaded["src/eip712"] = {
+    createDomainSeparator = createDomainSeparator,
+    hashStruct = hashStruct,
+    getSigningInput = getSigningInput,
+    encodeType = encodeType,
+    typeHash = typeHash,
+    abiEncode = abiEncode
+}
+  return __loaded["src/eip712"]
+end
+-- End module: src/eip712.lua
+
+-- Begin module: src/vc-validator.lua
+__modules["src/vc-validator"] = function()
+  if __loaded["src/vc-validator"] then return __loaded["src/vc-validator"] end
+-- Explicitly importing secp256k1 and exposing recover_public_key, which is a global var in our custom AO module.
+
+local recover_public_key = secp256k1.recover_public_key
+
+local json = require("json")
+local Array = require(".crypto.util.array")
+local crypto = require(".crypto.init")
+
+local eip712 = __modules["src/eip712"]()
+
+local function strip_hex_prefix(hex_str)
+  if hex_str:sub(1, 2) == "0x" then
+    return hex_str:sub(3)
+  end
+  return hex_str
+end
+
+local function pubkey_to_eth_address(pubkey_hex)
+  if #pubkey_hex ~= 130 or pubkey_hex:sub(1, 2) ~= '04' then
+    error('toEthereumAddress: Expecting an uncompressed public key')
+  end
+  local pubkey_hex_clean = pubkey_hex:sub(3) -- dropping the leading '04' indicating an uncompressed public key format
+  local pubkey_binary_bytes = Array.fromHex(pubkey_hex_clean)
+  local pubkey_binary_str = Array.toString(pubkey_binary_bytes)
+  local keccak_hash = crypto.digest.keccak256(pubkey_binary_str).asHex()
+  return '0x'..string.sub(keccak_hash, -40, -1); -- last 40 hex chars, aka 20 bytes
+end
+
+local function decode_signature(signature)
+  local sanitized_sig = strip_hex_prefix(signature)
+
+  if #sanitized_sig ~= 130 then
+    error("Invalid signature length: expected 130 hex chars (65 bytes)")
+  end
+
+  return sanitized_sig
+end
+
+local function string_split(inputstr, sep)
+  if sep == nil then
+    sep = "%s"
+  end
+  local t = {}
+  for str in string.gmatch(inputstr, "([^"..sep.."]+)") do
+    table.insert(t, str)
+  end
+  return t
+end
+
+local function get_authority(issuer)
+  local eth_address = nil
+  if (issuer) then
+    local parts = string_split(issuer, ':')
+    -- eg. 'did:pkh:eip155:1:0x1e8564A52fc67A68fEe78Fc6422F19c07cFae198'
+    if (parts[1] == 'did' and parts[2] == 'pkh' and parts[3] == 'eip155' and parts[4] == '1') then
+      eth_address = parts[5]
+    else
+      error('Only supporting did:pkh issuers')
+    end
+    return string.lower(eth_address or '')
+  end
+  error('No issuer found')
+end
+
+local function vc_validate(vc)
+  local vc_json = json.decode(vc)
+  local owner_eth_address = get_authority(vc_json.issuer.id)
+  local proof = vc_json.proof
+  local proofValue = nil
+  local signature_hex = nil
+  if proof.type == 'EthereumEip712Signature2021' then
+    proofValue = proof.proofValue
+    signature_hex = decode_signature(proofValue)
+  else
+    error('Only supporting EthereumEip712Signature2021 proof type')
+  end
+
+  local eip712data = vc_json.proof.eip712
+  local domain = eip712data.domain
+  local types = eip712data.types
+  local primaryType = eip712data.primaryType
+  local domainSeparator = eip712.createDomainSeparator(domain)
+
+  local message = Array.copy(vc_json)
+  local proof_copy = Array.copy(vc_json.proof)
+  proof_copy.proofValue = nil
+  proof_copy.eip712 = nil
+  proof_copy.eip712Domain = nil
+  message.proof = proof_copy
+
+  local structHash = eip712.hashStruct(primaryType, message, types)
+  local signingInput = eip712.getSigningInput(domainSeparator, structHash)
+  print('Signing Input:', signingInput)
+
+  -- Recover public key and verify
+  local pubkey_hex = recover_public_key(signature_hex, signingInput)
+  local eth_address = pubkey_to_eth_address(pubkey_hex)
+  local success = eth_address == owner_eth_address
+
+  print('Recovered ETH Address:', eth_address)
+  print('Validation Result:', success)
+  print('===================')
+
+  return success, vc_json, owner_eth_address
+end
+
+
+  __loaded["src/vc-validator"] = {
+  validate = vc_validate,
+}
+  return __loaded["src/vc-validator"]
+end
+-- End module: src/vc-validator.lua
+
+-- Begin module: src/variables/validation.lua
+__modules["src/variables/validation"] = function()
+  if __loaded["src/variables/validation"] then return __loaded["src/variables/validation"] end
+-- Shared validation module for both InputVerifier and VariableManager
+local ValidationModule = {}
+
+-- Core validation function that can be used for both variables and input fields
+-- Returns success (boolean) and error message (string or nil)
+function ValidationModule.validateValue(value, validation, fieldName)
+    -- Skip validation if validation rules not provided
+    if not validation then
+        return true, nil
+    end
+
+    -- Check required field
+    if validation.required and (value == nil or value == "") then
+        return false, string.format("%s is required", fieldName)
+    end
+
+    -- Skip remaining validation if value is nil and not required
+    if value == nil then
+        return true, nil
+    end
+
+    -- Type validation is handled by the caller, as the type checks differ
+    -- between variables and input fields
+
+    -- String validations
+    if type(value) == "string" then
+        -- Min length
+        if validation.minLength and #value < validation.minLength then
+            return false, string.format("%s must be at least %d characters", fieldName, validation.minLength)
+        end
+        
+        -- Max length
+        if validation.maxLength and #value > validation.maxLength then
+            return false, string.format("%s must be at most %d characters", fieldName, validation.maxLength)
+        end
+        
+        -- Pattern
+        if validation.pattern then
+            local pattern = validation.pattern:gsub("\\/", "/")
+            if not string.match(value, pattern) then
+                return false, string.format("%s: %s", fieldName, validation.message or "Invalid format")
+            end
+        end
+    end
+    
+    -- Number validations
+    if type(value) == "number" then
+        -- Min value
+        if validation.min and value < validation.min then
+            return false, string.format("%s must be at least %s", fieldName, tostring(validation.min))
+        end
+        
+        -- Max value
+        if validation.max and value > validation.max then
+            return false, string.format("%s must be at most %s", fieldName, tostring(validation.max))
+        end
+    end
+    
+    return true, nil
+end
+
+
+  __loaded["src/variables/validation"] = ValidationModule
+  return __loaded["src/variables/validation"]
+end
+-- End module: src/variables/validation.lua
+
 -- Begin module: src/variables/variable_manager.lua
 __modules["src/variables/variable_manager"] = function()
   if __loaded["src/variables/variable_manager"] then return __loaded["src/variables/variable_manager"] end
-  local module = {}
-  __loaded["src/variables/variable_manager"] = module
-
+local VcValidator = __modules["src/vc-validator"]()
+local ValidationModule = __modules["src/variables/validation"]()
 local VariableManager = {}
 
 function VariableManager.new(variables)
     local self = {
         variables = {}
     }
-
-    -- Handle both array and object formats
-    if type(variables) == "table" then
-        if #variables > 0 then
-            -- Array format
-            for _, var in ipairs(variables) do
-                self.variables[var.id] = {
-                    value = var.value,
-                    type = var.type,
-                    name = var.name,
-                    description = var.description,
-                    validation = var.validation,
-                    get = function(self)
-                        return self.value
-                    end,
-                    set = function(self, newValue)
-                        if self.validation then
-                            if self.validation.required and (newValue == nil or newValue == "") then
-                                error(string.format("Variable %s is required", self.name))
-                            end
-
-                            if self.validation.minLength and type(newValue) == "string" and #newValue < self.validation.minLength then
-                                error(string.format("Variable %s must be at least %d characters", self.name, self.validation.minLength))
-                            end
-
-                            if self.validation.pattern and type(newValue) == "string" then
-                                local pattern = self.validation.pattern:gsub("\\/", "/")
-                                if not string.match(newValue, pattern) then
-                                    error(string.format("Variable %s: %s", self.name, self.validation.message or "Invalid format"))
-                                end
-                            end
-
-                            if self.validation.min and type(newValue) == "number" and newValue < self.validation.min then
-                                error(string.format("Variable %s must be at least %s", self.name, tostring(self.validation.min)))
-                            end
-                        end
-                        self.value = newValue
+    
+    for id, var in pairs(variables) do
+        self.variables[id] = {
+            value = var.value,
+            type = var.type,
+            name = var.name,
+            description = var.description,
+            validation = var.validation,
+            get = function(self)
+                return self.value
+            end,
+            set = function(self, newValue)
+                if self.validation then
+                    -- Use shared validation module for common validations
+                    local isValid, errorMsg = ValidationModule.validateValue(newValue, self.validation, self.name)
+                    if not isValid then
+                        error(errorMsg)
                     end
-                }
+                end
+                self.value = newValue
             end
-        else
-            -- Object format
-            for id, var in pairs(variables) do
-                self.variables[id] = {
-                    value = var.value,
-                    type = var.type,
-                    name = var.name,
-                    description = var.description,
-                    validation = var.validation,
-                    get = function(self)
-                        return self.value
-                    end,
-                    set = function(self, newValue)
-                        if self.validation then
-                            if self.validation.required and (newValue == nil or newValue == "") then
-                                error(string.format("Variable %s is required", self.name))
-                            end
-
-                            if self.validation.minLength and type(newValue) == "string" and #newValue < self.validation.minLength then
-                                error(string.format("Variable %s must be at least %d characters", self.name, self.validation.minLength))
-                            end
-
-                            if self.validation.pattern and type(newValue) == "string" then
-                                local pattern = self.validation.pattern:gsub("\\/", "/")
-                                if not string.match(newValue, pattern) then
-                                    error(string.format("Variable %s: %s", self.name, self.validation.message or "Invalid format"))
-                                end
-                            end
-
-                            if self.validation.min and type(newValue) == "number" and newValue < self.validation.min then
-                                error(string.format("Variable %s must be at least %s", self.name, tostring(self.validation.min)))
-                            end
-                        end
-                        self.value = newValue
-                    end
-                }
-            end
-        end
+        }
     end
 
     setmetatable(self, { __index = VariableManager })
     return self
+end
+
+function VariableManager:isVariable(name)
+    return self.variables[name] ~= nil
 end
 
 function VariableManager:getVariable(name)
@@ -127,86 +710,83 @@ function VariableManager:getAllVariables()
     return result
 end
 
-  module = VariableManager
-  return module
+-- Given a string input, resolve it as a variable reference 
+-- (e.g. ${variables.partyAEthAddress.value} will return the nested property value)
+-- Otherwise, return nil
+function VariableManager:tryResolveExactStringAsVariableObject(possibleVariableReferenceString)
+    if type(possibleVariableReferenceString) ~= "string" then
+        return nil
+    end
+
+    local trimmed = possibleVariableReferenceString:match("^%s*(.-)%s*$")
+    
+    -- Check if the string has ${variables.x} format
+    local varPath = trimmed:match("^%${([^}]+)}$")
+    if not varPath or not varPath:match("^variables%.") then
+        return nil
+    end
+
+    -- Remove the "variables." prefix and split the remaining path
+    local path = varPath:sub(10) -- Remove "variables."
+    local parts = {}
+    for part in path:gmatch("[^%.]+") do
+        table.insert(parts, part)
+    end
+
+    if #parts == 0 then
+        return nil
+    end
+
+    -- Get the base variable definition
+    local varDef = self.variables[parts[1]]
+    if not varDef then
+        return nil
+    end
+
+    -- Start with the variable definition object itself
+    local current = varDef
+    
+    -- Handle different property paths
+    if #parts > 1 then
+        -- First property access (parts[2])
+        if parts[2] == "value" then
+            current = current:get()
+        else
+            current = current[parts[2]]
+        end
+        
+        if current == nil then
+            return nil
+        end
+        
+        -- Traverse any remaining nested properties (from index 3 onward)
+        for i = 3, #parts do
+            if type(current) ~= "table" then
+                return nil
+            end
+            current = current[parts[i]]
+            if current == nil then
+                return nil
+            end
+        end
+    end
+
+    return current
+end
+
+
+  __loaded["src/variables/variable_manager"] = VariableManager
+  return __loaded["src/variables/variable_manager"]
 end
 -- End module: src/variables/variable_manager.lua
-
--- Begin module: src/test-utils.lua
-__modules["src/test-utils"] = function()
-  if __loaded["src/test-utils"] then return __loaded["src/test-utils"] end
-  local module = {}
-  __loaded["src/test-utils"] = module
-
--- Utility functions for testing Lua AO Actors
-
--- Print a table recursively with nice formatting
-local function printTable(t, indent)
-  indent = indent or ""
-  for k, v in pairs(t) do
-    if type(v) == "table" then
-      print(indent .. tostring(k) .. " = {")
-      printTable(v, indent .. "  ")
-      print(indent .. "}")
-    else
-      print(indent .. tostring(k) .. " = " .. tostring(v))
-    end
-  end
-end
-
--- Compare two tables recursively by value
-local function tablesEqual(t1, t2)
-  -- If either isn't a table, compare directly
-  if type(t1) ~= "table" or type(t2) ~= "table" then
-    return t1 == t2
-  end
-  
-  -- Check if all keys in t1 exist with same value in t2
-  for k, v in pairs(t1) do
-    if not tablesEqual(v, t2[k]) then
-      return false
-    end
-  end
-  
-  -- Check if all keys in t2 exist in t1 (to catch extra keys in t2)
-  for k in pairs(t2) do
-    if t1[k] == nil then
-      return false
-    end
-  end
-  
-  return true
-end
-
--- Format boolean test results with colored output
-local function formatResult(bool)
-  if bool then
-    return '\x1b[6;30;42m'..'SUCCESS'..'\x1b[0m'
-  else
-    return '\x1b[0;30;41m'..'FAILURE'..'\x1b[0m'
-  end
-end
-
--- Export the utility functions
-return {
-  printTable = printTable,
-  tablesEqual = tablesEqual,
-  formatResult = formatResult
-}
-
-end
--- End module: src/test-utils.lua
 
 -- Begin module: src/verifiers/input_verifier.lua
 __modules["src/verifiers/input_verifier"] = function()
   if __loaded["src/verifiers/input_verifier"] then return __loaded["src/verifiers/input_verifier"] end
-  local module = {}
-  __loaded["src/verifiers/input_verifier"] = module
-
-local InputVerifier = {}
-local TestUtils = __modules["src/test-utils"]()
 local json = require("json")
 local crypto = require(".crypto")
+local VcValidator = __modules["src/vc-validator"]()
+local FieldValidator = __modules["src/variables/validation"]()
 
 local ETHEREUM_ADDRESS_REGEX = "^0x(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)$"
 
@@ -241,22 +821,15 @@ end
 
 -- Shared validation module
 local ValidationUtils = {
+    ethAddressEqual = function (address1, address2)
+            return string.lower(address1) == string.lower(address2)
+        end,
     validateField = function(field, value)
         if not field.validation then
-            return true
+            return false, "Field validation is missing"
         end
 
-        -- Check required field
-        if field.validation.required and (value == nil or value == "") then
-            return false, string.format("Field %s is required", field.name or field.id)
-        end
-
-        -- Skip validation if value is nil and not required
-        if not value then
-            return true
-        end
-
-        -- Validate type
+        -- Validate type first (specific to InputVerifier)
         if field.type == "string" and type(value) ~= "string" then
             return false, string.format("Field %s must be a string", field.name or field.id)
         elseif field.type == "address" then
@@ -280,369 +853,200 @@ local ValidationUtils = {
             return false, string.format("Field %s must be a number", field.name or field.id)
         end
 
-        -- Optional: Check min length for strings
-        if field.validation.minLength and type(value) == "string" and #value < field.validation.minLength then
-            return false, string.format("Field %s must be at least %d characters", field.name or field.id, field.validation.minLength)
-        end
-
-        -- Optional: Check pattern for strings
-        if field.validation.pattern and type(value) == "string" then
-            local pattern = field.validation.pattern:gsub("\\/", "/")
-            if not string.match(value, pattern) then
-                return false, string.format("Field %s: %s", field.name or field.id, field.validation.message or "Invalid format")
-            end
-        end
-
-        -- Optional: Check min value for numbers
-        if field.validation.min and type(value) == "number" and value < field.validation.min then
-            return false, string.format("Field %s must be at least %s", field.name or field.id, tostring(field.validation.min))
+        -- Use shared validation for common validations
+        local fieldName = field.name or field.id
+        local isValid, errorMsg = FieldValidator.validateValue(value, field.validation, fieldName)
+        
+        if not isValid then
+            return false, errorMsg
         end
 
         return true
     end
 }
 
--- Default verifiers
-local defaultVerifiers = {
-    VerifiedCredentialEIP712 = function(input, value)
-        -- Parse the input value
-        local vcJson
-        if type(value) == "string" then
-            vcJson = json.decode(value)
-        else
-            vcJson = value
-        end
+-- Base Verifier class
+local BaseVerifier = {}
+BaseVerifier.__index = BaseVerifier
 
-        -- Validate credential subject structure
-        if not vcJson.credentialSubject then
-            return false, "Missing credentialSubject in input"
-        end
-
-        local credentialSubject = vcJson.credentialSubject
-
-        -- Validate fields against input definition
-        for _, fieldDef in ipairs(input.data) do
-            local fieldValue = nil
-            
-            -- Find the field value in the credential subject
-            if credentialSubject.fields then
-                for _, field in ipairs(credentialSubject.fields) do
-                    if field.id == fieldDef.id then
-                        fieldValue = field.value
-                        break
-                    end
-                end
-            end
-
-            -- Validate the field using shared validation
-            local isValid, errorMsg = ValidationUtils.validateField(fieldDef, fieldValue)
-            if not isValid then
-                return false, errorMsg
-            end
-        end
-
-        -- Validate issuer if specified
-        if input.issuer then
-            local expectedIssuer = input.issuer
-            if expectedIssuer:match("^%${.*}$") then
-                -- If issuer is a variable reference, get the value
-                local varName = expectedIssuer:match("^%${(.*)}$")
-                expectedIssuer = credentialSubject.fields and credentialSubject.fields[varName] or nil
-            end
-            
-            if expectedIssuer and credentialSubject.issuer ~= expectedIssuer then
-                return false, string.format("Issuer mismatch: expected %s, got %s", expectedIssuer, credentialSubject.issuer)
-            end
-        end
-
-        return true
-    end,
-    
-    EVMTransaction = function(input, value)
-        -- TODO: Implement actual EVM transaction verification
-        return true
-    end
-}
-
-function InputVerifier.new(customVerifiers)
-    local self = {
-        verifiers = {}
-    }
-
-    -- Merge default verifiers with custom ones
-    for k, v in pairs(defaultVerifiers) do
-        self.verifiers[k] = v
-    end
-    if customVerifiers then
-        for k, v in pairs(customVerifiers) do
-            self.verifiers[k] = v
-        end
-    end
-
-    setmetatable(self, { __index = InputVerifier })
+function BaseVerifier:new()
+    local self = setmetatable({}, BaseVerifier)
     return self
 end
 
-function InputVerifier:verify(input, value)
-    print("VICTOR TEST", input);
+-- EIP712 Verifier implementation
+local EIP712Verifier = BaseVerifier:new()
+EIP712Verifier.__index = EIP712Verifier
 
+function EIP712Verifier:new()
+    local self = setmetatable({}, EIP712Verifier)
+    return self
+end
+
+function EIP712Verifier:verify(input, value, variables, validate)
+    local vcJson, credentialSubject, issuerAddress
+    
+    -- Default to not validating if not explicitly set
+    validate = validate == true
+    
+    if type(value) == "string" then
+        if validate then
+            -- Use cryptographic validation in production
+            local success, parsedVcJson, recoveredIssuerAddress = VcValidator.validate(value)
+            if not success then
+                return false, "Invalid VC"
+            end
+            vcJson = parsedVcJson
+            issuerAddress = recoveredIssuerAddress
+        else
+            -- Parse the JSON without cryptographic validation (for tests)
+            vcJson = json.decode(value)
+        end
+    else
+        -- Already parsed object
+        vcJson = value
+    end
+    
+    credentialSubject = vcJson.credentialSubject
+    
+    -- If we didn't do cryptographic validation, extract issuer address from the format
+    if not validate and vcJson.issuer and vcJson.issuer.id then
+        local id = vcJson.issuer.id
+        local parts = {}
+        for part in string.gmatch(id or "", "[^:]+") do
+            table.insert(parts, part)
+        end
+        
+        if #parts >= 5 and parts[1] == "did" and parts[2] == "pkh" then
+            issuerAddress = parts[5]
+        end
+    end
+    
+    -- Validate credential subject structure
+    if not credentialSubject then
+        return false, "Missing credentialSubject in input"
+    end
+
+    if not credentialSubject.values then
+        return false, "Missing values in credentialSubject"
+    end
+
+    -- Validate fields against input definition
+    for fieldId, fieldDef in pairs(input.data) do
+        local fieldValue = credentialSubject.values[fieldId]
+        
+        -- If the value is a string, try to resolve it as a variable
+        if type(fieldDef) == "string" and variables then
+            local resolvedValue = variables:tryResolveExactStringAsVariableObject(fieldDef)
+            if resolvedValue then
+                fieldDef = resolvedValue
+            end
+        end
+
+        -- Validate the field using shared validation
+        local isValid, errorMsg = ValidationUtils.validateField(fieldDef, fieldValue)
+        if not isValid then
+            return false, errorMsg
+        end
+    end
+
+    -- Validate issuer if specified
+    if input.issuer and issuerAddress then
+        local expectedIssuer = input.issuer
+        if variables then
+            -- Try to resolve if it's a variable reference
+            local resolvedIssuer = variables:tryResolveExactStringAsVariableObject(expectedIssuer)
+            if resolvedIssuer then
+                expectedIssuer = resolvedIssuer
+            end
+        end
+        
+        if expectedIssuer and not ValidationUtils.ethAddressEqual(expectedIssuer, issuerAddress) then
+            local errorMsg = string.format("Issuer mismatch: expected ${%s.value}, got %s", input.issuer, issuerAddress)
+            return false, errorMsg
+        end
+    end
+
+    return true, credentialSubject.values
+end
+
+-- EVM Transaction Verifier implementation
+local EVMTransactionVerifier = BaseVerifier:new()
+EVMTransactionVerifier.__index = EVMTransactionVerifier
+
+function EVMTransactionVerifier:new()
+    local self = setmetatable({}, EVMTransactionVerifier)
+    return self
+end
+
+function EVMTransactionVerifier:verify(input, value, variables)
+    -- TODO: Implement actual EVM transaction verification
+    return true
+end
+
+-- Factory function to get the appropriate verifier
+local function getVerifier(inputType)
+    if not inputType then
+        return nil, "Input type is missing"
+    end
+
+    local verifiers = {
+        VerifiedCredentialEIP712 = EIP712Verifier:new(),
+        EVMTransaction = EVMTransactionVerifier:new()
+    }
+
+    local verifier = verifiers[inputType]
+    if not verifier then
+        return nil, string.format("Unsupported input type: %s", inputType)
+    end
+
+    return verifier
+end
+
+-- Main verification function
+local function verify(input, value, variables, validate)
     if not input then
         return false, "Input definition is nil"
     end
 
-    if not input.type then
-        return false, "Input type is missing"
-    end
-
-    local verifier = self.verifiers[input.type]
+    local verifier, error = getVerifier(input.type)
     if not verifier then
-        return false, string.format("Unsupported input type: %s", input.type)
+        return false, error
     end
 
-    local isValid, errorMsg = verifier(input, value)
-    if not isValid then
-        return false, string.format("Input validation failed: %s", errorMsg)
-    end
-
-    return true, nil
+    return verifier:verify(input, value, variables, validate)
 end
 
-return {
-    InputVerifier = InputVerifier,
-    ValidationUtils = ValidationUtils
-} end
+
+  __loaded["src/verifiers/input_verifier"] = {
+    verify = verify,
+    ValidationUtils = ValidationUtils,
+}
+  return __loaded["src/verifiers/input_verifier"]
+end
 -- End module: src/verifiers/input_verifier.lua
-
--- Begin module: src/utils/table_utils.lua
-__modules["src/utils/table_utils"] = function()
-  if __loaded["src/utils/table_utils"] then return __loaded["src/utils/table_utils"] end
-  local module = {}
-  __loaded["src/utils/table_utils"] = module
-
--- Table utility functions
-
--- Helper function to perform deep comparison of two values
-local function deepCompare(a, b)
-    -- Handle nil cases
-    if a == nil and b == nil then return true end
-    if a == nil or b == nil then return false end
-    -- Handle different types
-    if type(a) ~= type(b) then return false end
-    -- Handle non-table types
-    if type(a) ~= "table" then
-        return a == b
-    end
-    -- Handle arrays (tables with numeric keys)
-    if #a > 0 or #b > 0 then
-        if #a ~= #b then return false end
-        for i = 1, #a do
-            if not deepCompare(a[i], b[i]) then
-                return false
-            end
-        end
-        return true
-    end
-    -- Handle objects (tables with string keys)
-    local aKeys = {}
-    local bKeys = {}
-    -- Collect keys
-    for k in pairs(a) do
-        aKeys[k] = true
-    end
-    for k in pairs(b) do
-        bKeys[k] = true
-    end
-    -- Check if they have the same keys
-    for k in pairs(aKeys) do
-        if not bKeys[k] then return false end
-    end
-    for k in pairs(bKeys) do
-        if not aKeys[k] then return false end
-    end
-    -- Compare values for each key
-    for k in pairs(a) do
-        if not deepCompare(a[k], b[k]) then
-            return false
-        end
-    end
-
-    return true
-end
-
--- Helper function to replace variable references with their values
-local function replaceVariableReferences(obj, variablesTable)
-    if type(obj) ~= "table" then
-        if type(obj) == "string" then
-            -- Look for ${variableName} pattern
-            return obj:gsub("%${([^}]+)}", function(varName)
-                local var = variablesTable[varName]
-                if var then
-                    return tostring(var:get())
-                end
-                return "${" .. varName .. "}" -- Keep original if variable not found
-            end)
-        end
-        return obj
-    end
-    -- Handle arrays
-    if #obj > 0 then
-        local result = {}
-        for i, v in ipairs(obj) do
-            result[i] = replaceVariableReferences(v, variablesTable)
-        end
-        return result
-    end
-    -- Handle objects
-    local result = {}
-    for k, v in pairs(obj) do
-        result[k] = replaceVariableReferences(v, variablesTable)
-    end
-    return result
-end
-
--- Helper function to print a table in a readable format
-local function printTable(t, indent, visited)
-    indent = indent or 0
-    visited = visited or {}
-    
-    -- Handle non-table values
-    if type(t) ~= "table" then
-        print(string.rep("  ", indent) .. tostring(t))
-        return
-    end
-    
-    -- Handle already visited tables to prevent infinite recursion
-    if visited[t] then
-        print(string.rep("  ", indent) .. "[circular reference]")
-        return
-    end
-    visited[t] = true
-    
-    -- Handle empty table
-    if next(t) == nil then
-        print(string.rep("  ", indent) .. "{}")
-        return
-    end
-    
-    -- Handle arrays (tables with numeric keys)
-    if #t > 0 then
-        print(string.rep("  ", indent) .. "[")
-        for i, v in ipairs(t) do
-            print(string.rep("  ", indent + 1) .. tostring(i) .. ":")
-            printTable(v, indent + 2, visited)
-        end
-        print(string.rep("  ", indent) .. "]")
-        return
-    end
-    
-    -- Handle objects (tables with string keys)
-    print(string.rep("  ", indent) .. "{")
-    for k, v in pairs(t) do
-        print(string.rep("  ", indent + 1) .. tostring(k) .. ":")
-        printTable(v, indent + 2, visited)
-    end
-    print(string.rep("  ", indent) .. "}")
-end
-
-return {
-    deepCompare = deepCompare,
-    replaceVariableReferences = replaceVariableReferences,
-    printTable = printTable
-} end
--- End module: src/utils/table_utils.lua
 
 -- Begin module: src/dfsm.lua
 __modules["src/dfsm"] = function()
   if __loaded["src/dfsm"] then return __loaded["src/dfsm"] end
-  local module = {}
-  __loaded["src/dfsm"] = module
-
 -- DFSM (Deterministic Finite State Machine) implementation
 local VariableManager = __modules["src/variables/variable_manager"]()
 local InputVerifier = __modules["src/verifiers/input_verifier"]()
-local TableUtils = __modules["src/utils/table_utils"]()
 local json = require("json")
+local VcValidator = __modules["src/vc-validator"]()
+local base64 = require(".base64")
 
--- Input verifier handlers
-local inputVerifiers = {
-    -- Verifies EIP712 signed credentials
-    VerifiedCredentialEIP712 = function(input, value)
-        -- TODO: Implement actual EIP712 verification
-        return true
-    end,
-    
-    -- Verifies EVM transactions
-    EVMTransaction = function(input, value)
-        -- TODO: Implement actual EVM transaction verification
-        return true
-    end
-}
+local ValidationUtils = InputVerifier.ValidationUtils
 
--- Helper function to process VC wrapper
-local function processVCWrapper(vc, expectedIssuer, validateVC)
-    -- validate by default
-    validateVC = validateVC == nil and true or validateVC
-    local vcJson = json.decode(vc)
-    if validateVC then
-        local issuer = vcJson.credentialSubject.issuer
-        if expectedIssuer then
-            assert(issuer == expectedIssuer, "Issuer mismatch")
-        end
-        -- Vlad-Todo: add VC validation here
-        return vcJson.credentialSubject
-    else
-        return vcJson.credentialSubject or vcJson
-    end
-end
-
--- Helper function to validate input values against schema
-local function validateInputValues(inputDef, values)
-    if not inputDef.data then
-        return true, nil
-    end
-
-    for _, field in ipairs(inputDef.data) do
-        local value = values[field.id]
-        
-        -- Check required fields
-        if field.validation and field.validation.required and not value then
-            return false, string.format("Missing required field: %s", field.id)
-        end
-
-        -- Skip validation if value is nil and not required
-        if not value then
-            goto continue
-        end
-
-        -- Validate pattern if specified
-        if field.validation and field.validation.pattern then
-            local pattern = field.validation.pattern
-            if not string.match(value, pattern) then
-                return false, string.format("Field %s does not match pattern: %s", field.id, pattern)
-            end
-        end
-
-        -- Validate type
-        if field.type == "string" and type(value) ~= "string" then
-            return false, string.format("Field %s must be a string", field.id)
-        elseif field.type == "address" and not string.match(value, "^0x[a-fA-F0-9]{40}$") then
-            return false, string.format("Field %s must be a valid Ethereum address", field.id)
-        end
-
-        ::continue::
-    end
-
-    return true, nil
-end
+-- DFSM class definition
+local DFSM = {}
 
 -- Helper function to check if a transition's conditions are met
-local function areTransitionConditionsMet(transition, inputDef, inputValue, variables)
+function DFSM:areTransitionConditionsMet(transition, inputId)
     for _, condition in ipairs(transition.conditions) do
         if condition.type == "isValid" then
-            for _, requiredInput in ipairs(condition.inputs) do
-                if requiredInput == inputDef.id then
-                    return true
-                end
+            if condition.input == inputId then
+                return true
             end
         end
     end
@@ -650,89 +1054,112 @@ local function areTransitionConditionsMet(transition, inputDef, inputValue, vari
 end
 
 -- Helper function to check if a state has outgoing transitions
-local function hasOutgoingTransitions(state, transitions)
-    for _, t in ipairs(transitions) do
-        if t.from == state then
+function DFSM:hasOutgoingTransitions(stateId)
+    for _, t in ipairs(self.transitions) do
+        if t.from == stateId then
             return true
         end
     end
     return false
 end
 
--- DFSM class definition
-local DFSM = {}
-
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(doc, debug, initial)
+function DFSM.new(doc, expectVCWrapper)
     local self = {
-        state = nil,
+        currentState = nil, -- Will store the entire state object
         inputs = {},
-        inputMap = {},
         transitions = {},
         variables = nil,
         received = {},
         complete = false,
-        debug = debug or false,
-        inputVerifier = InputVerifier.InputVerifier.new(inputVerifiers)
+        states = {}, -- Store state information (name, description)
     }
 
-    -- Parse agreement document
-    local agreement = json.decode(doc)
+    -- Allow skipping VC wrapper processing if not needed for testing
+    local agreement = nil
+    local initialValues = nil
+    if expectVCWrapper then
+        -- The agreement template VC is expected to base64 encode the agreement contents
+        -- to simplify EIP-712 encoding.
+        local credentialSubject = DFSM:processVCWrapper(doc, nil, true)
+        agreement = json.decode(base64.decode(credentialSubject.agreement))
+        initialValues = credentialSubject.params
+    else
+        local credentialSubject = json.decode(doc)
+        agreement = credentialSubject.agreement
+        initialValues = credentialSubject.params
+    end
 
     -- Initialize variables
     self.variables = VariableManager.new(agreement.variables)
 
     -- Set initial values if provided
-    if initial then
-        for id, value in pairs(initial) do
-            self.variables:setVariable(id, value)
+    if initialValues then
+        for id, value in pairs(initialValues) do
+            if self.variables:isVariable(id) then
+                self.variables:setVariable(id, value)
+            else
+                error(string.format("Attempted to set undeclared variable: %s", id))
+            end
         end
     end
 
     -- Validate and set initial state
-    if not agreement.execution or not agreement.execution.states or #agreement.execution.states == 0 then
+    if not agreement.execution or not agreement.execution.states then
+        error("Agreement document must have states defined")
+    end
+    
+    -- Process states - only support object format
+    if type(agreement.execution.states) ~= "table" then
+        error("States must be defined as an object")
+    end
+    
+    -- It's an object format with state objects
+    local initialStateId = nil
+    for stateId, stateObj in pairs(agreement.execution.states) do
+        self.states[stateId] = {
+            id = stateId, -- Include the ID in the state object for reference
+            name = stateObj.name or stateId,
+            description = stateObj.description or "",
+            isInitial = stateObj.isInitial or false
+        }
+        
+        -- Track initial state
+        if stateObj.isInitial then
+            if initialStateId then
+                error("Multiple initial states found: " .. initialStateId .. " and " .. stateId)
+            end
+            initialStateId = stateId
+        end
+    end
+    
+    if not next(self.states) then
         error("Agreement document must have at least one state")
     end
 
-    -- Create valid states lookup
-    local states = {}
-    for _, state in ipairs(agreement.execution.states) do
-        states[state] = true
+    -- Set initial state
+    if not initialStateId then
+        error("No initial state (isInitial=true) found in state definitions")
     end
+    self.currentState = self.states[initialStateId]
 
-    -- Set initial state (first state in the list)
-    self.state = agreement.execution.states[1]
-
-    -- Process inputs
+    -- Process inputs (assuming object structure)
     if agreement.execution.inputs then
-        if type(agreement.execution.inputs) == "table" then
-            if #agreement.execution.inputs > 0 then
-                -- Array format
-                for _, input in ipairs(agreement.execution.inputs) do
-                    if not input.id then
-                        error("Input must have an id")
-                    end
-                    self.inputs[input.id] = input
-                    self.inputMap[input.id] = input
-                end
-            else
-                -- Object format
-                for id, input in pairs(agreement.execution.inputs) do
-                    input.id = id -- Ensure id is set from the key
-                    self.inputs[id] = input
-                    self.inputMap[id] = input
-                end
-            end
+        if type(agreement.execution.inputs) ~= "table" then
+            error("Inputs must be an object with input IDs as keys")
+        end
+        for id, input in pairs(agreement.execution.inputs) do
+            self.inputs[id] = input
         end
     end
 
     -- Process transitions
     if agreement.execution.transitions then
         for _, transition in ipairs(agreement.execution.transitions) do
-            if not states[transition.from] then
+            if not self.states[transition.from] then
                 error(string.format("Invalid 'from' state in transition: %s", transition.from))
             end
-            if not states[transition.to] then
+            if not self.states[transition.to] then
                 error(string.format("Invalid 'to' state in transition: %s", transition.to))
             end
             table.insert(self.transitions, transition)
@@ -743,40 +1170,76 @@ function DFSM.new(doc, debug, initial)
     return self
 end
 
+-- process VC wrapper
+function DFSM:processVCWrapper(vc, expectedIssuer, validateVC)
+    -- validate by default
+    validateVC = validateVC == nil or validateVC
+    if validateVC then
+        local success, vcJson, ownerAddress = VcValidator.validate(vc)
+        assert(success, "Invalid VC");
+
+        if expectedIssuer then
+            if not ValidationUtils.ethAddressEqual(ownerAddress, expectedIssuer) then
+                local errorMsg = string.format("Issuer mismatch: expected ${variables.partyAEthAddress.value}, got %s", ownerAddress)
+                error(errorMsg)
+            end
+        end
+        return vcJson.credentialSubject
+    else
+        local vcJson = json.decode(vc)
+        return vcJson.credentialSubject or vcJson
+    end
+end
+
 -- Validate the state machine definition
 function DFSM:validate()
     -- Check that we have at least one state
-    if #self.states == 0 then
+    if not next(self.states) then
         error("DFSM must have at least one state")
     end
 
-    -- Check that all states referenced in transitions exist
-    local validStates = {}
-    for _, state in ipairs(self.states) do
-        validStates[state] = true
+    -- Find initial state
+    local initialStateId = nil
+    for stateId, stateInfo in pairs(self.states) do
+        if stateInfo.isInitial then
+            if initialStateId then
+                error(string.format("Multiple initial states found: %s and %s", initialStateId, stateId))
+            end
+            initialStateId = stateId
+        end
+    end
+    
+    if not initialStateId then
+        error("No initial state (isInitial=true) found in state definitions")
     end
 
+    -- Check that all states referenced in transitions exist
     for _, transition in ipairs(self.transitions) do
-        if not validStates[transition.from] then
+        if not self.states[transition.from] then
             error(string.format("Invalid 'from' state in transition: %s", transition.from))
         end
-        if not validStates[transition.to] then
+        if not self.states[transition.to] then
             error(string.format("Invalid 'to' state in transition: %s", transition.to))
         end
     end
 
     -- Check that all inputs referenced in conditions exist
     local validInputs = {}
-    for _, input in ipairs(self.inputs) do
-        validInputs[input.id] = true
+    for inputId, _ in pairs(self.inputs) do
+        validInputs[inputId] = true
     end
 
     for _, transition in ipairs(self.transitions) do
         for _, condition in ipairs(transition.conditions) do
             if condition.type == "isValid" then
-                for _, inputId in ipairs(condition.inputs) do
-                    if not validInputs[inputId] then
-                        error(string.format("Invalid input referenced in condition: %s", inputId))
+                if condition.input and not validInputs[condition.input] then
+                    error(string.format("Invalid input referenced in condition: %s", condition.input))
+                end
+                if condition.inputs then
+                    for _, inputId in ipairs(condition.inputs) do
+                        if not validInputs[inputId] then
+                            error(string.format("Invalid input referenced in condition: %s", inputId))
+                        end
                     end
                 end
             end
@@ -784,12 +1247,12 @@ function DFSM:validate()
     end
 
     -- Validate input schemas
-    for _, input in ipairs(self.inputs) do
+    for inputId, input in pairs(self.inputs) do
         if not input.type then
-            error(string.format("Input %s missing type", input.id))
+            error(string.format("Input %s missing type", inputId))
         end
         if not input.schema then
-            error(string.format("Input %s missing schema", input.id))
+            error(string.format("Input %s missing schema", inputId))
         end
     end
 end
@@ -805,38 +1268,41 @@ function DFSM:processInput(inputId, inputValue, validateVC)
         return false, string.format("Input %s has already been processed", inputId)
     end
 
-    -- Get input definition from map
-    local inputDef = self.inputMap[inputId]
+    -- Get input definition
+    local inputDef = self.inputs[inputId]
     if not inputDef then
         return false, string.format("Unknown input: %s", inputId)
     end
 
-    -- Assume all inputs are VC-wrapped
-    local vc = processVCWrapper(inputValue, inputDef.issuer, validateVC);
-
+    -- For tests, we set validateVC=false to bypass cryptographic validation
+    -- For production, validateVC should be true to ensure proper signature validation
+    
     -- Verify input type and schema
-    local isValid, errorMsg = self.inputVerifier:verify(inputDef, inputValue)
+    local isValid, result = InputVerifier.verify(inputDef, inputValue, self.variables, validateVC)
     if not isValid then
-        return false, errorMsg
+        return false, result
     end
 
-    -- Validate input values against schema
-    local values = vc.values or {}
-    isValid, errorMsg = validateInputValues(inputDef, values)
-    if not isValid then
-        return false, errorMsg
+    -- Update variables with the verified values
+    if type(result) == "table" then
+        for id, value in pairs(result) do
+            if self.variables:isVariable(id) then
+                self.variables:setVariable(id, value)
+            end
+        end
     end
 
     -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
-        if transition.from == self.state then
-            if areTransitionConditionsMet(transition, inputDef, inputValue, self.variables) then
+        if transition.from == self.currentState.id then
+            -- Note, because we previously validated the input, we can just check if the inputId is in the transition.conditions.inputs
+            if self:areTransitionConditionsMet(transition, inputId) then
                 -- Store the input and update state
                 self.received[inputId] = inputValue
-                self.state = transition.to
+                self.currentState = self.states[transition.to]
                 
                 -- Check if we've reached a terminal state
-                if not hasOutgoingTransitions(self.state, self.transitions) then
+                if not self:hasOutgoingTransitions(self.currentState.id) then
                     self.complete = true
                 end
                 return true, "Transition successful"
@@ -847,9 +1313,54 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     return false, "No valid transition found"
 end
 
--- Get the current state
+-- validate input values against schema
+function DFSM:validateInputValues(inputDef, values)
+    if not inputDef.data then
+        return true, nil
+    end
+
+    -- Handle object data structure
+    if type(inputDef.data) == "table" then
+        for fieldId, field in pairs(inputDef.data) do
+            -- If field is a variable reference (like in partyAData/partyBData)
+            if type(field) ~= "table" then
+                local isValid, errorMsg = self:validateField({id = fieldId}, field)
+                if not isValid then
+                    return false, errorMsg
+                end
+            else
+                -- If field is a field definition (like in accepted/rejected)
+                local isValid, errorMsg = self:validateField(field, values[fieldId])
+                if not isValid then
+                    return false, errorMsg
+                end
+            end
+        end
+    else
+        error("Input data must be an object")
+    end
+
+    return true, nil
+end
+
+-- Get the current state ID
+function DFSM:getCurrentStateId()
+    return self.currentState.id
+end
+
+-- Get the current state object
 function DFSM:getCurrentState()
-    return self.state
+    return self.currentState
+end
+
+-- Get details for a specific state
+function DFSM:getStateDetails(stateId)
+    return self.states[stateId]
+end
+
+-- Get all states
+function DFSM:getAllStates()
+    return self.states
 end
 
 -- Check if the state machine is complete
@@ -879,7 +1390,7 @@ end
 
 -- Get input definition by ID
 function DFSM:getInput(inputId)
-    return self.inputMap[inputId]
+    return self.inputs[inputId]
 end
 
 -- Get all inputs
@@ -888,11 +1399,11 @@ function DFSM:getInputs()
 end
 
 -- Export the DFSM module
-return {
+
+  __loaded["src/dfsm"] = {
     new = DFSM.new,
 }
-
-
+  return __loaded["src/dfsm"]
 end
 -- End module: src/dfsm.lua
 
@@ -940,14 +1451,13 @@ Handlers.add(
 
     -- expecting msg.Data to contain a valid agreement VC
     local document = Data.document
-    local initialValues = Data.initialValues
 
     if Document then
       reply_error(msg, 'Document is already initialized and cannot be overwritten')
       return
     end
     
-    local dfsm = DFSM.new(document, false, initialValues)
+    local dfsm = DFSM.new(document, true)
 
     if not dfsm then
       reply_error(msg, 'Invalid agreement document')
@@ -990,7 +1500,7 @@ Handlers.add(
       return
     end
     
-    local isValid, errorMsg = StateMachine:processInput(inputId, inputValue, false)
+    local isValid, errorMsg = StateMachine:processInput(inputId, inputValue, true)
     
     if not isValid then
       reply_error(msg, errorMsg or 'Failed to process input')
