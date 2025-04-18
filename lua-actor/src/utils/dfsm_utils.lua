@@ -39,7 +39,7 @@ end
 function DFSMUtils.formatFSMState(dfsm)
     local summary = {
         "\nDFSM State:\n",
-        string.format("- Current State: %s", dfsm.state),
+        string.format("- Current State: %s (%s)", dfsm.currentState.name, dfsm.currentState.id),
         string.format("- Complete: %s", dfsm.complete and "Yes" or "No")
     }
 
@@ -49,7 +49,7 @@ end
 -- Render DFSM state machine visualization
 function DFSMUtils.renderDFSMState(dfsm)
     local state = {
-        string.format("Current State: %s", dfsm.state),
+        string.format("Current State: %s (%s)", dfsm.currentState.name, dfsm.currentState.id),
         string.format("Complete: %s", tostring(dfsm.complete)),
         "\nReceived Inputs:"
     }
