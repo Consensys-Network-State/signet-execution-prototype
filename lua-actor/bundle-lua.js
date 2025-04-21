@@ -23,7 +23,10 @@ if (args.length === 0) {
 const baseDir = process.cwd(); // Base directory for resolving paths
 
 // Special case handling
-const GLOBAL_MODULES = ['handlers', 'secp256k1']; // Modules provided globally by AOS
+// Hacky way to remove use of secp256k1 library in the bundled file
+// Right now our only use of secp256k1 is in the recover_public_key function in this way. So let's remove it by regex.
+// We can discuss a better solution in the future.
+const GLOBAL_MODULES = [{name: 'handlers', removeUsage: false}, {name: 'secp256k1', removeUsage: true}]; // Modules provided globally by AOS
 const WHITELIST_MODULES = ['base64', 'bint', 'json', 'crypto', 'utils']; // Modules to keep as-is
 
 // Track processed modules to avoid circular dependencies
@@ -68,8 +71,14 @@ function processFile(filePath) {
       let originalModulePath = modulePath; // Store the original path for replacement
 
       // Handle global modules - We can remove these since they are provided globally by AOS module
-      if (GLOBAL_MODULES.includes(modulePath)) {
+      if (GLOBAL_MODULES.map((m) => m.name).includes(modulePath)) {
         content = content.replace(req.fullMatch, '');
+
+        const matchedGlobalModule = GLOBAL_MODULES.find((m) => m.name === modulePath);
+        if (matchedGlobalModule.removeUsage) {
+          // Use a regular expression with global flag to replace all occurrences
+          content = content.replace(new RegExp(`${escapeRegExp(req.variableName)}\\.`, 'g'), '');
+        }
         continue;
       }
 

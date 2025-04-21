@@ -2,9 +2,6 @@
 local __modules = {}
 local __loaded = {}
 
-local secp256k1 = require("secp256k1")
-local Handlers = require("handlers")
-
 -- Begin module: src/eip712.lua
 __modules["src/eip712"] = function()
   if __loaded["src/eip712"] then return __loaded["src/eip712"] end
@@ -456,7 +453,7 @@ __modules["src/vc-validator"] = function()
   if __loaded["src/vc-validator"] then return __loaded["src/vc-validator"] end
 -- Explicitly importing secp256k1 and exposing recover_public_key, which is a global var in our custom AO module.
 
-local recover_public_key = secp256k1.recover_public_key
+local recover_public_key = recover_public_key
 
 local json = require("json")
 local Array = require(".crypto.util.array")
