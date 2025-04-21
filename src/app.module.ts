@@ -2,12 +2,12 @@
 import { Module } from '@nestjs/common';
 import { AppController } from '@/app.controller';
 import { AppService } from '@/app.service';
-import { DocumentModule } from '@/document/document.module';
+import { AgreementModule } from '@/agreement/agreement.module';
 import { ConfigurationModule } from '@/config/configuration.module';
 
 @Module({
   imports: [
-    DocumentModule,
+    AgreementModule,
     ConfigurationModule
   ],
   controllers: [AppController],
