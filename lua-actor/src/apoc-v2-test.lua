@@ -30,9 +30,7 @@ local inputAReject = loadInputDoc("./test-data/simple-grant/simple.grant.partyA-
 -- Evaluate a message
 local response = Handlers.evaluate({
     Tags = { Action = 'Init' },
-    Data = json.encode({
-        document = agreementDoc,
-    }),
+    Data = json.encode(agreementDoc),
     reply = function (response)
       -- printTable(response.Data)
       local success = response.Data.success

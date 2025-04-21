@@ -1444,10 +1444,8 @@ Handlers.add(
   "Init",
   Handlers.utils.hasMatchingTag("Action", "Init"),
   function (msg)
-    local Data = json.decode(msg.Data)
-
     -- expecting msg.Data to contain a valid agreement VC
-    local document = Data.document
+    local document = msg.Data
 
     if Document then
       reply_error(msg, 'Document is already initialized and cannot be overwritten')
