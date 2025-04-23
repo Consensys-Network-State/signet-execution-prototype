@@ -1,6 +1,5 @@
 import { getDb } from './mongo';
 import { AgreementVC, AgreementState, AgreementRecord } from '@/permaweb/types';
-import { ObjectId } from 'mongodb';
 
 const COLLECTION = 'agreements';
 
