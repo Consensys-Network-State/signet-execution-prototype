@@ -174,6 +174,32 @@ interface AgreementInputVC extends Omit<VerifiableCredential, 'issuer' | 'type' 
 
 export type TagType = { name: string; value: string };
 
+export interface AgreementState {
+    State: {
+        id: string;
+        name: string;
+        description: string;
+        isInitial: boolean;
+    };
+    IsComplete: boolean;
+    Variables: Record<string, {
+        value: any;
+        type: string;
+        name: string;
+        description: string;
+    }>;
+    Inputs: Record<string, any>;
+}
+
+export interface AgreementRecord {
+    id: string;
+    document: any; // AgreementVC or similar
+    state: AgreementState;
+    contributors: string[];
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 export type {
     DocumentSignatureVC,
     CounterSignatureCredentialSubject,
