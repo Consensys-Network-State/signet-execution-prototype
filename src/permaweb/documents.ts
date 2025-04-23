@@ -1,5 +1,6 @@
 import { messageResult, readHandler, spawnProcess } from '@/permaweb';
 import { AgreementVC, AgreementInputVC } from '@/permaweb/types';
+import { InternalServerErrorException } from '@nestjs/common';
 import * as fs from 'node:fs/promises';
 import { join } from 'node:path';
 
@@ -22,7 +23,7 @@ export async function getAgreementStateById(agreementId: string): Promise<any> {
 
         return state;
     } catch (e: any) {
-        throw new Error(`Failed to fetch agreement state: ${e.message}`);
+        throw new InternalServerErrorException(`Failed to fetch agreement state: ${e.message}`);
     }
 }
 
@@ -37,7 +38,7 @@ export async function getAgreementStateById(agreementId: string): Promise<any> {
 
         return state;
     } catch (e: any) {
-        throw new Error(`Failed to fetch agreement document: ${e.message}`);
+        throw new InternalServerErrorException(`Failed to fetch agreement document: ${e.message}`);
     }
 }
 
@@ -54,7 +55,7 @@ export async function createAgreement(
         });
 
         if (!result?.processId) {
-            throw new Error('Failed to create agreement process');
+            throw new InternalServerErrorException('Failed to create agreement process');
         }
 
         // Get the code from local file system
@@ -86,7 +87,7 @@ export async function createAgreement(
         }
         return processResult;
     } catch (e: any) {
-        throw new Error(`Failed to create agreement: ${e.message}`);
+        throw new InternalServerErrorException(`Failed to create agreement: ${e.message}`);
     }
 }
 
@@ -97,15 +98,17 @@ export async function processInput(
     wallet: any
 ) {
     try {
+        // Doing this seems unnecessary given that we have our own records 
+
         // Verify document exists first
-        const document = await readHandler({
-            processId: agreementId,
-            action: 'GetState',
-            data: null,
-        });
-        if (!document) {
-            throw new Error('Agreement not found');
-        }
+        // const document = await readHandler({
+        //     processId: agreementId,
+        //     action: 'GetState',
+        //     data: null,
+        // });
+        // if (!document) {
+        //     throw new Error('Agreement not found');
+        // }
 
         // Send input to the agreement
         const result = await messageResult({
@@ -120,6 +123,6 @@ export async function processInput(
         });
         return result?.ProcessInput?.data;
     } catch (e: any) {
-        throw new Error(`Failed to process input: ${e.message}`);
+        throw new InternalServerErrorException(`Failed to process input: ${e.message}`);
     }
 }

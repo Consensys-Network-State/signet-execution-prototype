@@ -1,10 +1,10 @@
 // document.controller.ts
-import { Controller, Post, Body, Get, Param } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, BadRequestException, Query } from '@nestjs/common';
 import { VeramoService } from '@/veramo/veramo.service';
 import { AgreementVC, AgreementInputVC } from '@/permaweb/types';
 import { AgreementService } from '@/agreement/agreement.service';
 
-@Controller('agreement')
+@Controller('agreements')
 export class AgreementController {
     constructor(
         private readonly agreementService: AgreementService,
@@ -21,7 +21,7 @@ export class AgreementController {
     async createAgreement(@Body() agreementVC: AgreementVC) {
         const verificationResult = await this.veramoService.verifyCredential(agreementVC);
         if (!verificationResult.verified) {
-            throw new Error(verificationResult.error);
+          throw new BadRequestException(verificationResult.error);
         }
         return this.agreementService.createAgreement(agreementVC);
     }
@@ -33,7 +33,7 @@ export class AgreementController {
     ) {
         const verificationResult = await this.veramoService.verifyCredential(payload.inputValue);
         if (!verificationResult.verified) {
-            throw new Error(verificationResult.error);
+          throw new BadRequestException(verificationResult.error);
         }
         return this.agreementService.processInput(id, payload.inputId, payload.inputValue);
     }
@@ -42,5 +42,13 @@ export class AgreementController {
     async getState(@Param('id') id: string) {
         // This maps to the "GetState" handler in the Lua actor
         return this.agreementService.getState(id);
+    }
+
+    @Get()
+    async findByContributor(@Query('contributor') contributor: string) {
+        if (!contributor) {
+            throw new BadRequestException('Missing collaborator address');
+        }
+        return this.agreementService.findByContributor(contributor);
     }
 }
