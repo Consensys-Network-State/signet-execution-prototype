@@ -32,18 +32,15 @@ Handlers.add(
   "Init",
   Handlers.utils.hasMatchingTag("Action", "Init"),
   function (msg)
-    local Data = json.decode(msg.Data)
-
     -- expecting msg.Data to contain a valid agreement VC
-    local document = Data.document
-    local initialValues = Data.initialValues
+    local document = msg.Data
 
     if Document then
       reply_error(msg, 'Document is already initialized and cannot be overwritten')
       return
     end
     
-    local dfsm = DFSM.new(document, false, initialValues)
+    local dfsm = DFSM.new(document, true)
 
     if not dfsm then
       reply_error(msg, 'Invalid agreement document')
@@ -86,7 +83,7 @@ Handlers.add(
       return
     end
     
-    local isValid, errorMsg = StateMachine:processInput(inputId, inputValue, false)
+    local isValid, errorMsg = StateMachine:processInput(inputId, inputValue, true)
     
     if not isValid then
       reply_error(msg, errorMsg or 'Failed to process input')

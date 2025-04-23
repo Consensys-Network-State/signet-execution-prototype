@@ -1897,6 +1897,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@sqltools/formatter@npm:^1.2.5":
+  version: 1.2.5
+  resolution: "@sqltools/formatter@npm:1.2.5"
+  checksum: 10c0/4b4fa62b8cd4880784b71cc5edd4a13da04fda0a915c14282765a8ec1a900a495e69b322704413e2052d221b5646d9fb0e20e87911f9a8f438f33180eecb11a4
+  languageName: node
+  linkType: hard
+
 "@stablelib/aead@npm:^1.0.1":
   version: 1.0.1
   resolution: "@stablelib/aead@npm:1.0.1"
@@ -2016,6 +2023,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@stablelib/nacl@npm:^1.0.4":
+  version: 1.0.4
+  resolution: "@stablelib/nacl@npm:1.0.4"
+  dependencies:
+    "@stablelib/poly1305": "npm:^1.0.1"
+    "@stablelib/random": "npm:^1.0.2"
+    "@stablelib/wipe": "npm:^1.0.1"
+    "@stablelib/x25519": "npm:^1.0.3"
+    "@stablelib/xsalsa20": "npm:^1.0.2"
+  checksum: 10c0/8b9d3bf6fa12a8e47cedac73c65a7278dd934b5bf41bb3403bf6e470a2c78f4a830618066768f2679357bb574f68ac784f20ff94698f20be63881be3c8123bb0
+  languageName: node
+  linkType: hard
+
 "@stablelib/poly1305@npm:^1.0.1":
   version: 1.0.1
   resolution: "@stablelib/poly1305@npm:1.0.1"
@@ -2033,6 +2053,17 @@ __metadata:
     "@stablelib/binary": "npm:^1.0.1"
     "@stablelib/wipe": "npm:^1.0.1"
   checksum: 10c0/ebb217cfb76db97d98ec07bd7ce03a650fa194b91f0cb12382738161adff1830f405de0e9bad22bbc352422339ff85f531873b6a874c26ea9b59cfcc7ea787e0
+  languageName: node
+  linkType: hard
+
+"@stablelib/salsa20@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "@stablelib/salsa20@npm:1.0.2"
+  dependencies:
+    "@stablelib/binary": "npm:^1.0.1"
+    "@stablelib/constant-time": "npm:^1.0.1"
+    "@stablelib/wipe": "npm:^1.0.1"
+  checksum: 10c0/c0e34551a8a3cf41251d0d69ea7c4479c965a333f8af34053f7930a35932d241fe1f213f9414f6d2541162fc26a2342b21dba79e994be873136c11fab78de103
   languageName: node
   linkType: hard
 
@@ -2054,7 +2085,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stablelib/x25519@npm:^1.0.0":
+"@stablelib/x25519@npm:^1.0.0, @stablelib/x25519@npm:^1.0.3":
   version: 1.0.3
   resolution: "@stablelib/x25519@npm:1.0.3"
   dependencies:
@@ -2086,6 +2117,17 @@ __metadata:
     "@stablelib/wipe": "npm:^1.0.1"
     "@stablelib/xchacha20": "npm:^1.0.1"
   checksum: 10c0/cd1e525bdbd15894b1b51f41bf6e546cd6bc1c5408a1399cbe97677211aca92641503c040576f8c51df88ef70796ed69de690a4ee1ab81a64ba4327f449dcd1c
+  languageName: node
+  linkType: hard
+
+"@stablelib/xsalsa20@npm:^1.0.2":
+  version: 1.0.2
+  resolution: "@stablelib/xsalsa20@npm:1.0.2"
+  dependencies:
+    "@stablelib/binary": "npm:^1.0.1"
+    "@stablelib/salsa20": "npm:^1.0.2"
+    "@stablelib/wipe": "npm:^1.0.1"
+  checksum: 10c0/616917d1ddfc94b79b432d4a43d14ded362ac943df553119ac22be67de050ea2e0c84fb0591c74630080fcd4b06b04c75ab3e92b0c6f508abc46669727b163ed
   languageName: node
   linkType: hard
 
@@ -2841,6 +2883,23 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@veramo/data-store@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "@veramo/data-store@npm:6.0.0"
+  dependencies:
+    "@veramo/core-types": "npm:^6.0.0"
+    "@veramo/did-discovery": "npm:^6.0.0"
+    "@veramo/did-manager": "npm:^6.0.0"
+    "@veramo/key-manager": "npm:^6.0.0"
+    "@veramo/utils": "npm:^6.0.0"
+    debug: "npm:^4.3.3"
+    did-jwt-vc: "npm:^4.0.0"
+    typeorm: "npm:^0.3.17"
+    uuid: "npm:^9.0.0"
+  checksum: 10c0/8c9977811b47706d89215a2a63425c1952b51850222ee991831cabda2a31bb62e681e528dbf0079f741aaef0637fa03ecc5f536d1f04f992997091b7c2893475
+  languageName: node
+  linkType: hard
+
 "@veramo/did-discovery@npm:^6.0.0":
   version: 6.0.0
   resolution: "@veramo/did-discovery@npm:6.0.0"
@@ -2858,6 +2917,19 @@ __metadata:
     "@veramo/core-types": "npm:^6.0.0"
     "@veramo/did-discovery": "npm:^6.0.0"
   checksum: 10c0/57619e2f2a4eb0c48720a9764963ee61f6d908494e6dad536612cc0cdd59da3a6ad2602f6185a2bcc84365342de46824060cc7d5ca9aa15f2c5defd2272e2e8d
+  languageName: node
+  linkType: hard
+
+"@veramo/did-provider-ethr@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "@veramo/did-provider-ethr@npm:6.0.0"
+  dependencies:
+    "@veramo/core-types": "npm:^6.0.0"
+    "@veramo/did-manager": "npm:^6.0.0"
+    debug: "npm:^4.3.3"
+    ethers: "npm:^6.11.1"
+    ethr-did: "npm:^3.0.5"
+  checksum: 10c0/df0cab75531942459d93827d0011a4de6dfa08361d7afbd7513b2d43846b3ca851249a405896209bbf52b3ffa8578f59536df9a8fa758b332a7bc75be304154b
   languageName: node
   linkType: hard
 
@@ -2885,6 +2957,39 @@ __metadata:
     debug: "npm:^4.3.3"
     did-resolver: "npm:^4.1.0"
   checksum: 10c0/7e6ac5e4efe680b61641ac7d47983e7ea4df4e2ca33fcb46c1544d1f4787dc6fbfe594f03584a9670d326bd6b42ca53c023e9de67a96ec6651d0dfa287a5fa24
+  languageName: node
+  linkType: hard
+
+"@veramo/key-manager@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "@veramo/key-manager@npm:6.0.0"
+  dependencies:
+    "@noble/curves": "npm:^1.1.0"
+    "@veramo/core-types": "npm:^6.0.0"
+    "@veramo/utils": "npm:^6.0.0"
+    debug: "npm:^4.3.4"
+    did-jwt: "npm:^8.0.0"
+    ethers: "npm:^6.11.1"
+    uint8arrays: "npm:^4.0.6"
+    uuid: "npm:^9.0.0"
+  checksum: 10c0/86d2dfe7dd9be610b831b3a0eb5bc399cd9b1ffbb8a43f945e4effa9642f69cce45056aa10b6a612bf3da806191790d91ed95bf4db0888a0d27551052cd5e214
+  languageName: node
+  linkType: hard
+
+"@veramo/kms-local@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "@veramo/kms-local@npm:6.0.0"
+  dependencies:
+    "@noble/curves": "npm:^1.1.0"
+    "@stablelib/nacl": "npm:^1.0.4"
+    "@stablelib/random": "npm:^1.0.2"
+    "@veramo/core-types": "npm:^6.0.0"
+    "@veramo/key-manager": "npm:^6.0.0"
+    "@veramo/utils": "npm:^6.0.0"
+    debug: "npm:^4.3.3"
+    did-jwt: "npm:^8.0.0"
+    ethers: "npm:^6.11.1"
+  checksum: 10c0/6f0fff7bacdd18c3701117e177bf27d52fbab4c10ae4cf72a96273b8d38452df396f7690c85b6c217cbcd82efc433e7d2952813463f2d584063da3165e499697
   languageName: node
   linkType: hard
 
@@ -3380,8 +3485,11 @@ __metadata:
     "@veramo/core": "npm:^6.0.0"
     "@veramo/credential-eip712": "npm:^6.0.0"
     "@veramo/credential-w3c": "npm:^6.0.0"
+    "@veramo/data-store": "npm:^6.0.0"
+    "@veramo/did-provider-ethr": "npm:^6.0.0"
     "@veramo/did-provider-pkh": "npm:^6.0.0"
     "@veramo/did-resolver": "npm:^6.0.0"
+    "@veramo/kms-local": "npm:^6.0.0"
     "@veramo/utils": "npm:^6.0.0"
     add: "npm:^2.0.6"
     arweave: "npm:^1.15.5"
@@ -3392,6 +3500,7 @@ __metadata:
     eslint: "npm:^8.0.0"
     eslint-config-prettier: "npm:^9.0.0"
     eslint-plugin-prettier: "npm:^5.0.0"
+    ethr-did-resolver: "npm:^11.0.3"
     jest: "npm:^29.5.0"
     prettier: "npm:^3.0.0"
     reflect-metadata: "npm:^0.2.0"
@@ -3402,7 +3511,9 @@ __metadata:
     ts-loader: "npm:^9.4.3"
     ts-node: "npm:^10.9.1"
     tsconfig-paths: "npm:^4.2.0"
+    typeorm: "npm:^0.3.22"
     typescript: "npm:^5.1.3"
+    web-did-resolver: "npm:^2.0.30"
     webpack: "npm:^4.47.0"
     yarn: "npm:^1.22.22"
   languageName: unknown
@@ -3540,6 +3651,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ansis@npm:^3.17.0":
+  version: 3.17.0
+  resolution: "ansis@npm:3.17.0"
+  checksum: 10c0/d8fa94ca7bb91e7e5f8a7d323756aa075facce07c5d02ca883673e128b2873d16f93e0dec782f98f1eeb1f2b3b4b7b60dcf0ad98fb442e75054fe857988cc5cb
+  languageName: node
+  linkType: hard
+
 "anymatch@npm:^2.0.0":
   version: 2.0.0
   resolution: "anymatch@npm:2.0.0"
@@ -3557,6 +3675,13 @@ __metadata:
     normalize-path: "npm:^3.0.0"
     picomatch: "npm:^2.0.4"
   checksum: 10c0/57b06ae984bc32a0d22592c87384cd88fe4511b1dd7581497831c56d41939c8a001b28e7b853e1450f2bf61992dfcaa8ae2d0d161a0a90c4fb631ef07098fbac
+  languageName: node
+  linkType: hard
+
+"app-root-path@npm:^3.1.0":
+  version: 3.1.0
+  resolution: "app-root-path@npm:3.1.0"
+  checksum: 10c0/4a0fd976de1bffcdb18a5e1f8050091f15d0780e0582bca99aaa9d52de71f0e08e5185355fcffc781180bfb898499e787a2f5ed79b9c448b942b31dc947acaa9
   languageName: node
   linkType: hard
 
@@ -4975,7 +5100,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"cross-fetch@npm:^4.0.0":
+"cross-fetch@npm:^4.0.0, cross-fetch@npm:^4.1.0":
   version: 4.1.0
   resolution: "cross-fetch@npm:4.1.0"
   dependencies:
@@ -5065,6 +5190,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dayjs@npm:^1.11.13":
+  version: 1.11.13
+  resolution: "dayjs@npm:1.11.13"
+  checksum: 10c0/a3caf6ac8363c7dade9d1ee797848ddcf25c1ace68d9fe8678ecf8ba0675825430de5d793672ec87b24a69bf04a1544b176547b2539982275d5542a7955f35b7
+  languageName: node
+  linkType: hard
+
 "debug@npm:2.6.9, debug@npm:^2.2.0, debug@npm:^2.3.3":
   version: 2.6.9
   resolution: "debug@npm:2.6.9"
@@ -5074,7 +5206,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"debug@npm:4, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.3, debug@npm:^4.3.4, debug@npm:^4.3.7":
+"debug@npm:4, debug@npm:^4.1.0, debug@npm:^4.1.1, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.3, debug@npm:^4.3.4, debug@npm:^4.3.7, debug@npm:^4.4.0":
   version: 4.4.0
   resolution: "debug@npm:4.4.0"
   dependencies:
@@ -5880,6 +6012,43 @@ __metadata:
     tslib: "npm:2.7.0"
     ws: "npm:8.17.1"
   checksum: 10c0/64bc7b8907de199392b8a88c15c9a085892919cff7efa2e5326abc7fe5c426001726c51d91e10c74e5fc5e2547188297ce4127f6e52ea42a97ade0b2ae474677
+  languageName: node
+  linkType: hard
+
+"ethers@npm:^6.8.1":
+  version: 6.13.6
+  resolution: "ethers@npm:6.13.6"
+  dependencies:
+    "@adraffy/ens-normalize": "npm:1.10.1"
+    "@noble/curves": "npm:1.2.0"
+    "@noble/hashes": "npm:1.3.2"
+    "@types/node": "npm:22.7.5"
+    aes-js: "npm:4.0.0-beta.5"
+    tslib: "npm:2.7.0"
+    ws: "npm:8.17.1"
+  checksum: 10c0/e757b2995e1298396d120e9cb92a07c4308e93ea28eedb577d4e7a43b0b1cdf4be2460a6722294e42c1da9a9b1dddd9f2c885c9e6120fa845ccdd1b706e0ec04
+  languageName: node
+  linkType: hard
+
+"ethr-did-resolver@npm:11.0.3, ethr-did-resolver@npm:^11.0.3":
+  version: 11.0.3
+  resolution: "ethr-did-resolver@npm:11.0.3"
+  dependencies:
+    did-resolver: "npm:^4.1.0"
+    ethers: "npm:^6.8.1"
+  checksum: 10c0/2e0a7e5c994350df3a75df1288b0cf9040657de24239028044dc3f6a9492727f373cf33b970a3ad3fd2ae65b2a431cf144a7f915d0bd1e48a08dd0294886f4d8
+  languageName: node
+  linkType: hard
+
+"ethr-did@npm:^3.0.5":
+  version: 3.0.28
+  resolution: "ethr-did@npm:3.0.28"
+  dependencies:
+    did-jwt: "npm:^8.0.0"
+    did-resolver: "npm:^4.1.0"
+    ethers: "npm:^6.8.1"
+    ethr-did-resolver: "npm:11.0.3"
+  checksum: 10c0/e331ec7a38f6950ac25a1c7b1a9e53cba7c5a3061d43eaa2a59e5da5a1e947509d56dad9864766aaae4ce6b27cd29e21418efb3a3cd9c3dce8adcaf887f9e137
   languageName: node
   linkType: hard
 
@@ -6723,7 +6892,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"glob@npm:10.4.5, glob@npm:^10.2.2, glob@npm:^10.3.10, glob@npm:^10.3.7":
+"glob@npm:10.4.5, glob@npm:^10.2.2, glob@npm:^10.3.10, glob@npm:^10.3.7, glob@npm:^10.4.5":
   version: 10.4.5
   resolution: "glob@npm:10.4.5"
   dependencies:
@@ -11005,6 +11174,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"sql-highlight@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "sql-highlight@npm:6.0.0"
+  checksum: 10c0/f79998ad298d90eeefbbbc2a3b6424defda5ff1252259fa701466ac830224da598aca6ee97b84fd56948bb5d4d671ee59d3096fe6402013a66c646ec481139eb
+  languageName: node
+  linkType: hard
+
 "ssri@npm:^12.0.0":
   version: 12.0.0
   resolution: "ssri@npm:12.0.0"
@@ -11721,6 +11897,85 @@ __metadata:
   languageName: node
   linkType: hard
 
+"typeorm@npm:^0.3.17, typeorm@npm:^0.3.22":
+  version: 0.3.22
+  resolution: "typeorm@npm:0.3.22"
+  dependencies:
+    "@sqltools/formatter": "npm:^1.2.5"
+    ansis: "npm:^3.17.0"
+    app-root-path: "npm:^3.1.0"
+    buffer: "npm:^6.0.3"
+    dayjs: "npm:^1.11.13"
+    debug: "npm:^4.4.0"
+    dotenv: "npm:^16.4.7"
+    glob: "npm:^10.4.5"
+    sha.js: "npm:^2.4.11"
+    sql-highlight: "npm:^6.0.0"
+    tslib: "npm:^2.8.1"
+    uuid: "npm:^11.1.0"
+    yargs: "npm:^17.7.2"
+  peerDependencies:
+    "@google-cloud/spanner": ^5.18.0 || ^6.0.0 || ^7.0.0
+    "@sap/hana-client": ^2.12.25
+    better-sqlite3: ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+    hdb-pool: ^0.1.6
+    ioredis: ^5.0.4
+    mongodb: ^5.8.0 || ^6.0.0
+    mssql: ^9.1.1 || ^10.0.1 || ^11.0.1
+    mysql2: ^2.2.5 || ^3.0.1
+    oracledb: ^6.3.0
+    pg: ^8.5.1
+    pg-native: ^3.0.0
+    pg-query-stream: ^4.0.0
+    redis: ^3.1.1 || ^4.0.0
+    reflect-metadata: ^0.1.14 || ^0.2.0
+    sql.js: ^1.4.0
+    sqlite3: ^5.0.3
+    ts-node: ^10.7.0
+    typeorm-aurora-data-api-driver: ^2.0.0 || ^3.0.0
+  peerDependenciesMeta:
+    "@google-cloud/spanner":
+      optional: true
+    "@sap/hana-client":
+      optional: true
+    better-sqlite3:
+      optional: true
+    hdb-pool:
+      optional: true
+    ioredis:
+      optional: true
+    mongodb:
+      optional: true
+    mssql:
+      optional: true
+    mysql2:
+      optional: true
+    oracledb:
+      optional: true
+    pg:
+      optional: true
+    pg-native:
+      optional: true
+    pg-query-stream:
+      optional: true
+    redis:
+      optional: true
+    sql.js:
+      optional: true
+    sqlite3:
+      optional: true
+    ts-node:
+      optional: true
+    typeorm-aurora-data-api-driver:
+      optional: true
+  bin:
+    typeorm: cli.js
+    typeorm-ts-node-commonjs: cli-ts-node-commonjs.js
+    typeorm-ts-node-esm: cli-ts-node-esm.js
+  checksum: 10c0/bb4c283170fbb0890ed326db3e0fb25bbe5480ee4e60dab89f1b51d3bcc1bc6ce808ee61aeeb1c0a716755e2de198ab999153ae89842954656e4f8ac9abbf57f
+  languageName: node
+  linkType: hard
+
 "typescript@npm:5.7.2":
   version: 5.7.2
   resolution: "typescript@npm:5.7.2"
@@ -12008,6 +12263,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"uuid@npm:^11.1.0":
+  version: 11.1.0
+  resolution: "uuid@npm:11.1.0"
+  bin:
+    uuid: dist/esm/bin/uuid
+  checksum: 10c0/34aa51b9874ae398c2b799c88a127701408cd581ee89ec3baa53509dd8728cbb25826f2a038f9465f8b7be446f0fbf11558862965b18d21c993684297628d4d3
+  languageName: node
+  linkType: hard
+
 "uuid@npm:^9.0.0, uuid@npm:^9.0.1":
   version: 9.0.1
   resolution: "uuid@npm:9.0.1"
@@ -12129,6 +12393,16 @@ __metadata:
   dependencies:
     defaults: "npm:^1.0.3"
   checksum: 10c0/5b61ca583a95e2dd85d7078400190efd452e05751a64accb8c06ce4db65d7e0b0cde9917d705e826a2e05cc2548f61efde115ffa374c3e436d04be45c889e5b4
+  languageName: node
+  linkType: hard
+
+"web-did-resolver@npm:^2.0.30":
+  version: 2.0.30
+  resolution: "web-did-resolver@npm:2.0.30"
+  dependencies:
+    cross-fetch: "npm:^4.1.0"
+    did-resolver: "npm:^4.1.0"
+  checksum: 10c0/685e89797bd4f41766fe1c2d469a26883553adea8debf7b2aa8a476d4f1c45365f4fa192289d617920adea4a9a084e465ba466e174dab820cdc09c67293a9405
   languageName: node
   linkType: hard
 

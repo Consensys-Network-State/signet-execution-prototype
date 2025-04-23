@@ -1,4 +1,4 @@
-import { DocumentVC, DocumentSignatureVC } from '@/permaweb/types';
+import { AgreementVC, AgreementInputVC } from '@/permaweb/types';
 import { Injectable } from '@nestjs/common';
 import type {
     W3CVerifiableCredential,
@@ -14,7 +14,7 @@ export class VeramoService {
     private agent: any = null;
     private modules: any = null;
 
-    async verifyCredential(credential: DocumentVC | DocumentSignatureVC): Promise<VerificationResult> {
+    async verifyCredential(credential: AgreementVC | AgreementInputVC): Promise<VerificationResult> {
         try {
             if (!this.agent) {
                 await this.initializeAgent();
