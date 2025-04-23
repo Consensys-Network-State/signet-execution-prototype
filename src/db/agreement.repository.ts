@@ -39,4 +39,11 @@ export async function upsertAgreementRecord(record: AgreementRecord) {
     { $set: { ...record } },
     { upsert: true }
   );
+}
+
+export async function findAgreementsByContributor(address: string) {
+  const db = await getDb();
+  return db.collection(COLLECTION)
+    .find({ contributors: address.toLowerCase() })
+    .toArray();
 } 

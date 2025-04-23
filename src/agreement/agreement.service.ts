@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, InternalServerErrorException } from '@ne
 import { AgreementVC, AgreementInputVC, AgreementState, AgreementRecord } from '@/permaweb/types';
 import { createAgreement, getAgreementDocumentById, getAgreementStateById, processInput } from '@/permaweb/documents';
 import { ConfigService } from '@nestjs/config';
-import { upsertAgreementRecord, findAgreementById } from '@/db/agreement.repository';
+import { upsertAgreementRecord, findAgreementById, findAgreementsByContributor } from '@/db/agreement.repository';
 import asyncRetry from 'async-retry';
 
 @Injectable()
@@ -41,6 +41,11 @@ export class AgreementService {
 
   async getAgreement(id: string) {
     return getAgreementDocumentById(id); 
+  }
+
+  async findByContributor(address: string) {
+    // Normalize address to lowercase for consistent querying
+    return findAgreementsByContributor(address);
   }
 }
 
@@ -109,6 +114,6 @@ function extractContributors(agreement: AgreementVC, state: AgreementState): str
     .map(varName => addressVars.find(v => v.key === varName)?.value)
     .filter((v): v is string => typeof v === 'string');
 
-  // return unique contributors
-  return [...new Set(contributors)];
+  // return unique contributors. We lowercase them to be able to consistently query the database.
+  return [...new Set(contributors)].map(c => c.toLowerCase());
 }

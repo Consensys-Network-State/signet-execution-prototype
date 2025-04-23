@@ -1,5 +1,5 @@
 // document.controller.ts
-import { Controller, Post, Body, Get, Param, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Get, Param, BadRequestException, Query } from '@nestjs/common';
 import { VeramoService } from '@/veramo/veramo.service';
 import { AgreementVC, AgreementInputVC } from '@/permaweb/types';
 import { AgreementService } from '@/agreement/agreement.service';
@@ -42,5 +42,13 @@ export class AgreementController {
     async getState(@Param('id') id: string) {
         // This maps to the "GetState" handler in the Lua actor
         return this.agreementService.getState(id);
+    }
+
+    @Get()
+    async findByContributor(@Query('contributor') contributor: string) {
+        if (!contributor) {
+            throw new BadRequestException('Missing collaborator address');
+        }
+        return this.agreementService.findByContributor(contributor);
     }
 }
