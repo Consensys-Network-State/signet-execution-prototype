@@ -52,7 +52,7 @@ function DFSM:validateInitialParams(stateId, initialParams, initialValues)
 end
 
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(doc, expectVCWrapper)
+function DFSM.new(doc, expectVCWrapper, params)
     local self = {
         currentState = nil, -- Will store the entire state object
         inputs = {},
@@ -73,9 +73,8 @@ function DFSM.new(doc, expectVCWrapper)
         agreement = json.decode(base64.decode(credentialSubject.agreement))
         initialValues = credentialSubject.params
     else
-        local credentialSubject = json.decode(doc)
-        agreement = credentialSubject.agreement
-        initialValues = credentialSubject.params
+        agreement = json.decode(doc)
+        initialValues = params
     end
 
     -- Initialize variables

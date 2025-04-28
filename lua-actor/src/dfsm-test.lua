@@ -18,7 +18,11 @@ end
 
 local agreementDoc = loadAgreementDoc()
 
-local dfsm = DFSM.new(agreementDoc, false)
+local dfsm = DFSM.new(agreementDoc, false, json.decode([[
+{
+    "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+}
+]]))
 
 print(DFSMUtils.formatFSMSummary(dfsm))
 

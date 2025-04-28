@@ -44,8 +44,8 @@ end
 
 -- Variable validation function
 ValidationUtils.validateVariable = function(varDef, value)
-    if not varDef.validation then
-        return false, "Variable validation is missing"
+    if varDef == nil then
+        return false, "Variable definition is missing"
     end
 
     -- Validate type first (specific to InputVerifier)
@@ -67,12 +67,13 @@ ValidationUtils.validateVariable = function(varDef, value)
         return false, string.format("Variable %s must be a number", varDef.name or varDef.id)
     end
 
-    -- Use shared validation for common validations
-    local varName = varDef.name or varDef.id
-    local isValid, errorMsg = FieldValidator.validateValue(value, varDef.validation, varName)
-    
-    if not isValid then
+    -- Use shared validation for common validations, if validation is defined
+    if varDef.validation then
+        local varName = varDef.name or varDef.id
+        local isValid, errorMsg = FieldValidator.validateValue(value, varDef.validation, varName)
+        if not isValid then
         return false, errorMsg
+        end
     end
 
     return true
