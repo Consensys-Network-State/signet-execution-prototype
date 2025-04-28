@@ -14,7 +14,6 @@
         "type": "address",
         "name": "Party A Ethereum Address",
         "description": "Ethereum address of the first party",
-        "initiallyRequired": true,
         "validation": {
           "required": true,
           "pattern": "^0x5B38Da6a701c568545dCfcB03FcB875f56beddC4$"
@@ -64,7 +63,10 @@
         "PENDING_PARTY_A_SIGNATURE": {
           "name": "Pending Signature From A",
           "description": "This state awaits until Party A supplies Party B's address along with their own name.",
-          "isInitial": true
+          "isInitial": true,
+          "initialParams": {
+            "partyAEthAddress": "${variables.partyAEthAddress}"
+          }
         },
         "PENDING_PARTY_B_SIGNATURE": {
           "name": "Pending Signature From B",

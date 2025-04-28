@@ -20,9 +20,10 @@ function VariableManager.new(variables)
             set = function(self, newValue)
                 if self.validation then
                     -- Use shared validation module for common validations
-                    local isValid, errorMsg = ValidationModule.validateValue(newValue, self.validation, self.name)
+                    local isValid, errorMsg = ValidationModule.validateValue(newValue, self.validation, self.name or id)
                     if not isValid then
-                        error(errorMsg)
+                        error(string.format("Validation failed for variable '%s': %s (value: %s, type: %s)", 
+                            self.name or id, errorMsg, tostring(newValue), type(newValue)))
                     end
                 end
                 self.value = newValue
@@ -51,7 +52,12 @@ function VariableManager:setVariable(name, value)
     if not var then
         error(string.format("Variable not found: %s", name))
     end
-    var:set(value)
+    
+    local success, err = pcall(function() var:set(value) end)
+    if not success then
+        error(string.format("Failed to set variable '%s' (type: %s): %s", 
+            name, var.type, err))
+    end
 end
 
 function VariableManager:getAllVariables()
