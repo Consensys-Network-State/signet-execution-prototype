@@ -1,0 +1,303 @@
+{
+    "metadata": {
+      "id": "did:example:123456789abcdefghi",
+      "templateId": "did:template:grant-agreement-v1",
+      "version": "1.0.0",
+      "createdAt": "2024-03-20T12:00:00Z",
+      "name": "Grant Agreement",
+      "author": "Ecosystem Name Foundation",
+      "description": "Standard grant agreement for ecosystem development funding"
+    },
+    "variables": [
+      {
+        "id": "effectiveDate",
+        "type": "dateTime",
+        "name": "Effective Date",
+        "description": "The date when this agreement becomes effective",
+        "value": "",
+        "validation": {
+          "required": true,
+          "message": "Effective date is required"
+        }
+      },
+      {
+        "id": "foundationName",
+        "type": "string",
+        "name": "Foundation Name",
+        "description": "Legal name of the foundation entity",
+        "value": "Ecosystem Name Foundation",
+        "validation": {
+          "required": true,
+          "minLength": 3,
+          "message": "Foundation name is required"
+        }
+      },
+      {
+        "id": "jurisdiction",
+        "type": "string",
+        "name": "Jurisdiction",
+        "description": "Legal jurisdiction under which the foundation operates",
+        "value": "Jurisdiction",
+        "validation": {
+          "required": true,
+          "message": "Jurisdiction is required"
+        }
+      },
+      {
+        "id": "foundationAddress",
+        "type": "address",
+        "name": "Foundation Address",
+        "description": "Blockchain address of the foundation",
+        "value": "0x123f6e75d1BE0ee699C7Eb67594FEbC14ab3AA78",
+        "validation": {
+          "required": true,
+          "pattern": "^0x[a-fA-F0-9]{40}$",
+          "message": "Invalid D3 address format"
+        }
+      },
+      {
+        "id": "grantRecipientName",
+        "type": "string",
+        "name": "Grant Recipient Name",
+        "description": "Full name of the grant recipient",
+        "value": "",
+        "validation": {
+          "required": true,
+          "minLength": 2,
+          "message": "Grant recipient name is required"
+        }
+      },
+      {
+        "id": "grantRecipientAddress",
+        "type": "address",
+        "name": "Grant Recipient Address",
+        "description": "Blockchain address of the grant recipient",
+        "value": "0xb800b70d15bc235c81d483d19e91e69a91328b98",
+        "validation": {
+          "required": true,
+          "pattern": "^0x[a-fA-F0-9]{40}$",
+          "message": "Invalid D3 address format"
+        }
+      },
+      {
+        "id": "ecosystemName",
+        "type": "string",
+        "name": "Ecosystem Name",
+        "description": "Name of the blockchain ecosystem",
+        "value": "Ecosystem Name",
+        "validation": {
+          "required": true,
+          "message": "Ecosystem name is required"
+        }
+      },
+      {
+        "id": "workTokenName",
+        "type": "string",
+        "name": "Work Token Name",
+        "description": "Name of the ecosystem's native token",
+        "value": "WORK",
+        "validation": {
+          "required": true,
+          "message": "Token name is required"
+        }
+      },
+      {
+        "id": "tokenAllocatorName",
+        "type": "string",
+        "name": "Token Allocator Name",
+        "description": "Name of the person designated to allocate tokens",
+        "value": "",
+        "validation": {
+          "required": true,
+          "message": "Token allocator name is required"
+        }
+      },
+      {
+        "id": "tokenAllocatorAddress",
+        "type": "address",
+        "name": "Token Allocator Address",
+        "description": "Blockchain address of the token allocator",
+        "value": "0xb47855e843c4f9d54408372da4ca79d20542d168",
+        "validation": {
+          "required": true,
+          "pattern": "^0x[a-fA-F0-9]{40}$",
+          "message": "Invalid D3 address format"
+        }
+      },
+      {
+        "id": "rfpNumber",
+        "type": "string",
+        "name": "RFP Number",
+        "description": "Reference number for the Request for Proposal",
+        "value": "",
+        "validation": {
+          "required": true,
+          "pattern": "^WRFP-[0-9]+$",
+          "message": "RFP number must be in format WRFP-XXX"
+        }
+      },
+      {
+        "id": "rfpLink",
+        "type": "string",
+        "name": "RFP Link",
+        "description": "URL link to the Request for Proposal document",
+        "value": "",
+        "validation": {
+          "required": true,
+          "pattern": "^https?:\\/\\/.*",
+          "message": "Must be a valid URL"
+        }
+      },
+      {
+        "id": "grantAmount",
+        "type": "number",
+        "name": "Grant Amount",
+        "description": "Amount of tokens to be granted to the recipient",
+        "value": 68395011620287000,
+        "validation": {
+          "required": true,
+          "min": 1,
+          "message": "Grant amount must be greater than zero"
+        }
+      }
+    ],
+    "contracts": [
+      {
+        "id": "workToken",
+        "description": "The Work Token",
+        "address": "0xCbb43b582dD6aE0b6AFCE96613440A3B39004Ec0",
+        "chainId": "59144",
+        "abi": "[{\"inputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"AccessControlBadConfirmation\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"internalType\":\"bytes32\",\"name\":\"neededRole\",\"type\":\"bytes32\"}],\"name\":\"AccessControlUnauthorizedAccount\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"allowance\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"needed\",\"type\":\"uint256\"}],\"name\":\"ERC20InsufficientAllowance\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"balance\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"needed\",\"type\":\"uint256\"}],\"name\":\"ERC20InsufficientBalance\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"approver\",\"type\":\"address\"}],\"name\":\"ERC20InvalidApprover\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"receiver\",\"type\":\"address\"}],\"name\":\"ERC20InvalidReceiver\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"ERC20InvalidSender\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"ERC20InvalidSpender\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Approval\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"previousAdminRole\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"newAdminRole\",\"type\":\"bytes32\"}],\"name\":\"RoleAdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleGranted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleRevoked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"DEFAULT_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"MINTER_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"}],\"name\":\"allowance\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"spender\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"approve\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"balanceOf\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"decimals\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"}],\"name\":\"getRoleAdmin\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"grantRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"hasRole\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"mint\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"callerConfirmation\",\"type\":\"address\"}],\"name\":\"renounceRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"}],\"name\":\"revokeMinter\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"revokeRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"minter\",\"type\":\"address\"}],\"name\":\"setMinter\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"symbol\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"totalSupply\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"transfer\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"value\",\"type\":\"uint256\"}],\"name\":\"transferFrom\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"transfersLocked\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"unlockTransfers\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+      }
+    ],
+    "content": {
+      "type": "md",
+      "data": "# **Grant Agreement**\n\nThis Grant Agreement (**\"Agreement\"**) is entered into on :variable{id=\"effectiveDate\"}, (the **:variable{id=\"effectiveDate\" property=\"name\"}**), between :variable{id=\"foundationName\"}, a :variable{id=\"jurisdiction\"} foundation company (the **:variable{id=\"foundationName\" property=\"name\"}**) with D3 address :address{value=\"0x123f6e75d1BE0ee699C7Eb67594FEbC14ab3AA78\" display=\"truncated\"}, and :variable{id=\"grantRecipientName\"}, an individual with address :variable{id=\"grantRecipientAddress\"} (**:variable{id=\"grantRecipientName\" property=\"name\"}**).\n\nThe Foundation has been established, in part, to help promote growth of the :variable{id=\"ecosystemName\"} ecosystem and seeks to award grants to promote development consistent with the collective decision making of the :variable{id=\"workTokenName\"} token (**:variable{id=\"workTokenName\"}**) holder community (the **:variable{id=\"workTokenName\"} Community**).\n\nThe Grant Recipient has been selected by the Foundation Designated Token Allocator :variable{id=\"tokenAllocatorName\"} (**:variable{id=\"tokenAllocatorName\" property=\"name\"}**) with address :variable{id=\"tokenAllocatorAddress\"} to receive a grant subject and in accordance with the terms and conditions of this Agreement.\n\nTHEREFORE, the parties agree as follows:\n\n## **1. GRANT RECIPIENT ACTIVITIES**\n\n1.1 Grants. Foundation and Grant Recipient are entering into this Agreement in connection with RFP#: :variable{id=\"rfpNumber\"}, as set forth at :variable{id=\"rfpLink\"}, which describes the specific activities to be performed by Grant Recipient (the **\"Grant\"**).\n\n1.2 Performance of Grant Recipient Activities. Grant Recipient will perform the activities described in the Grant (the **\"Grant Recipient Activities\"**) in accordance with the terms and conditions set forth in each such Grant and this Agreement and with any applicable laws.\n\n## **2. GRANT DISTRIBUTION**\n\nThe Token Allocator will pay Grant Recipient on behalf of the Foundation the amount of :variable{id=\"grantAmount\"} :variable{id=\"workTokenName\"} tokens in accordance with the terms set forth in this agreement.\n\nIN WITNESS WHEREOF, the Grant Recipient has executed this Agreement on the date first written above.\n\nName: :variable{id=\"grantRecipientName\"}"
+    },
+    "execution": {
+      "type": "dfsm",
+      "data": {
+        "states": [
+          "AWAITING_SIGNATURES",
+          "ACTIVE_PENDING_REVIEW",
+          "APPROVED",
+          "REJECTED",
+          "AWAITING_FUNDS"
+        ],
+        "inputs": {
+          "grantRecipientSignature": {
+            "id": "grantRecipientSignature",
+            "type": "VerifiedCredentialEIP712",
+            "schema": "verified-credential-eip712.schema.json",
+            "displayName": "Grant Recipient Signature",
+            "description": "EIP712 signature from the grant recipient accepting the terms of the grant agreement",
+            "value": {
+              "isGrantRecipientApproved": true
+            },
+            "signer": "${grantRecipientAddress}"
+          },
+          "fundsSentTx": {
+            "id": "fundsSentTxHash",
+            "type": "EVMTransaction",
+            "schema": "verified-credential-eip712.schema.json",
+            "displayName": "Work Approved Signature",
+            "description": "EIP712 signature from the token allocator attesting that funds have been transfered to the grantee",
+            "txMetadata": {
+              "transactionType": "nativeTransfer",
+              "chainId": "1",
+              "from": "${tokenAllocatorAddress}",
+              "to": "${grantRecipientAddress}",
+              "value": "${grantAmount}"
+            },
+            "signer": "${tokenAllocatorAddress}"
+          },
+          "workTokenSentTx": {
+            "id": "workTokenSentTx",
+            "type": "EVMTransaction",
+            "schema": "verified-credential-eip712.schema.json",
+            "displayName": "Work Approved Signature",
+            "description": "EIP712 signature from the token allocator attesting that work token has been transfered to the grantee",
+            "txMetadata": {
+              "transactionType": "contractCall",
+              "method": "mint",
+              "params": ["0x1e8564a52fc67a68fee78fc6422f19c07cfae198", 1000000000000000000],
+              "contractReference": "workToken"
+            },
+            "signer": "${tokenAllocatorAddress}"
+          },
+          "workApprovedSignature": {
+            "id": "workApprovedSignature",
+            "type": "VerifiedCredentialEIP712",
+            "schema": "verified-credential-eip712.schema.json",
+            "displayName": "Work Approved Signature",
+            "description": "EIP712 signature from the token allocator attesting that the grant work has been completed successfully",
+            "value": {
+              "isApproved": true
+            },
+            "signer": "${tokenAllocatorAddress}"
+          },
+          "workRejectedSignature": {
+            "id": "workRejectedSignature",
+            "type": "VerifiedCredentialEIP712",
+            "schema": "verified-credential-eip712.schema.json",
+            "displayName": "Work Rejected Signature",
+            "description": "EIP712 signature from the token allocator attesting that the grant work has been rejected",
+            "value": {
+              "isApproved": false
+            },
+            "signer": "${tokenAllocatorAddress}"
+          }
+        },
+        "transitions": [
+          {
+            "from": "AWAITING_SIGNATURES",
+            "to": "ACTIVE_PENDING_REVIEW",
+            "conditions": [
+              {
+                "type": "isValid",
+                "inputs": [
+                  "grantRecipientSignature"
+                ]
+              }
+            ]
+          },
+          {
+            "from": "ACTIVE_PENDING_REVIEW",
+            "to": "AWAITING_FUNDS",
+            "conditions": [
+              {
+                "type": "isValid",
+                "inputs": [
+                  "workApprovedSignature"
+                ]
+              }
+            ]
+          },
+          {
+            "from": "AWAITING_FUNDS",
+            "to": "APPROVED",
+            "conditions": [
+              {
+                "type": "isValid",
+                "inputs": [
+                  "workTokenSentTx"
+                ]
+              }
+            ]
+          },
+          {
+            "from": "ACTIVE_PENDING_REVIEW",
+            "to": "REJECTED",
+            "conditions": [
+              {
+                "type": "isValid",
+                "inputs": [
+                  "workRejectedSignature"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
