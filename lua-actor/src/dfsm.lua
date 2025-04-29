@@ -32,8 +32,27 @@ function DFSM:hasOutgoingTransitions(stateId)
     return false
 end
 
+-- Helper function to validate initialParams against initialValues
+function DFSM:validateInitialParams(stateId, initialParams, initialValues)
+    if not initialParams or type(initialParams) ~= "table" then
+        return true
+    end
+    
+    if not initialValues then
+        error("Initial state " .. stateId .. " requires parameters, but no initial values provided")
+    end
+    
+    -- Validate the variable values against variable definitions
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self.variables)
+    if not isValid then
+        error("Invalid parameter value for state " .. stateId .. ": " .. errorMsg)
+    end
+    
+    return true
+end
+
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(doc, expectVCWrapper)
+function DFSM.new(doc, expectVCWrapper, params)
     local self = {
         currentState = nil, -- Will store the entire state object
         inputs = {},
@@ -54,9 +73,8 @@ function DFSM.new(doc, expectVCWrapper)
         agreement = json.decode(base64.decode(credentialSubject.agreement))
         initialValues = credentialSubject.params
     else
-        local credentialSubject = json.decode(doc)
-        agreement = credentialSubject.agreement
-        initialValues = credentialSubject.params
+        agreement = json.decode(doc)
+        initialValues = params
     end
 
     -- Initialize variables
@@ -66,12 +84,18 @@ function DFSM.new(doc, expectVCWrapper)
     if initialValues then
         for id, value in pairs(initialValues) do
             if self.variables:isVariable(id) then
-                self.variables:setVariable(id, value)
+                local success, err = pcall(function() self.variables:setVariable(id, value) end)
+                if not success then
+                    error(string.format("Error setting variable '%s' to '%s': %s", id, tostring(value), err))
+                end
             else
                 error(string.format("Attempted to set undeclared variable: %s", id))
             end
         end
     end
+
+    -- Set metatable early so methods can be called
+    setmetatable(self, { __index = DFSM })
 
     -- Validate and set initial state
     if not agreement.execution or not agreement.execution.states then
@@ -90,7 +114,8 @@ function DFSM.new(doc, expectVCWrapper)
             id = stateId, -- Include the ID in the state object for reference
             name = stateObj.name or stateId,
             description = stateObj.description or "",
-            isInitial = stateObj.isInitial or false
+            isInitial = stateObj.isInitial or false,
+            initialParams = stateObj.initialParams or {}
         }
         
         -- Track initial state
@@ -99,6 +124,9 @@ function DFSM.new(doc, expectVCWrapper)
                 error("Multiple initial states found: " .. initialStateId .. " and " .. stateId)
             end
             initialStateId = stateId
+            
+            -- Check that all required parameters are provided in initialValues
+            self:validateInitialParams(stateId, stateObj.initialParams, initialValues)
         end
     end
     
@@ -135,7 +163,6 @@ function DFSM.new(doc, expectVCWrapper)
         end
     end
 
-    setmetatable(self, { __index = DFSM })
     return self
 end
 
@@ -280,36 +307,6 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     end
 
     return false, "No valid transition found"
-end
-
--- validate input values against schema
-function DFSM:validateInputValues(inputDef, values)
-    if not inputDef.data then
-        return true, nil
-    end
-
-    -- Handle object data structure
-    if type(inputDef.data) == "table" then
-        for fieldId, field in pairs(inputDef.data) do
-            -- If field is a variable reference (like in partyAData/partyBData)
-            if type(field) ~= "table" then
-                local isValid, errorMsg = self:validateField({id = fieldId}, field)
-                if not isValid then
-                    return false, errorMsg
-                end
-            else
-                -- If field is a field definition (like in accepted/rejected)
-                local isValid, errorMsg = self:validateField(field, values[fieldId])
-                if not isValid then
-                    return false, errorMsg
-                end
-            end
-        end
-    else
-        error("Input data must be an object")
-    end
-
-    return true, nil
 end
 
 -- Get the current state ID

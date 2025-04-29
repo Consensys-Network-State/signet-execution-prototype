@@ -47,10 +47,54 @@ local function formatResult(bool)
   end
 end
 
+-- Log a successful test with a checkmark
+local function logTest(message, testCounter)
+  if testCounter then
+    testCounter.count = testCounter.count + 1
+  end
+  print("✅ PASSED: " .. message)
+end
+
+-- Helper function to run a test case for DFSM
+local function runTest(description, dfsm, inputId, inputValue, expectedSuccess, expectedErrorContains, expectedState, DFSMUtils, testCounter)
+    print("\n---------------------------------------------")
+    print("TEST: " .. description)
+    print("Processing input: " .. inputId)
+    
+    local initialState = dfsm.currentState and dfsm.currentState.id or "nil"
+    
+    -- Set validateVC to false for testing
+    local success, result = dfsm:processInput(inputId, inputValue, false)
+    
+    -- Use built-in assert for success/failure expectation
+    assert(success == expectedSuccess, 
+        "Expected " .. (expectedSuccess and "success" or "failure") .. 
+        " for " .. inputId .. ", got: " .. tostring(success))
+    logTest("State machine " .. (expectedSuccess and "successfully processed" or "correctly rejected") .. " input", testCounter)
+    
+    -- If we expect an error, check that the error message contains expected text
+    if not expectedSuccess and expectedErrorContains then
+        assert(result:find(expectedErrorContains, 1, true) ~= nil, 
+            "Error message should contain '" .. expectedErrorContains .. "', got: " .. result)
+        logTest("Error message contains expected text: " .. expectedErrorContains, testCounter)
+    end
+    
+    -- Check expected state transition if provided
+    if expectedState then
+        assert(dfsm.currentState and dfsm.currentState.id == expectedState, 
+            "Expected state " .. expectedState .. ", got " .. (dfsm.currentState and dfsm.currentState.id or "nil"))
+        logTest("State machine transitioned to expected state: " .. expectedState, testCounter)
+    end
+    
+    print(DFSMUtils.renderDFSMState(dfsm))
+end
+
 -- Export the utility functions
 return {
   printTable = printTable,
   tablesEqual = tablesEqual,
-  formatResult = formatResult
+  formatResult = formatResult,
+  logTest = logTest,
+  runTest = runTest
 }
 

@@ -35,50 +35,94 @@ local function validateEthAddressChecksum(address)
 end
 
 -- Shared validation module
-local ValidationUtils = {
-    ethAddressEqual = function (address1, address2)
-            return string.lower(address1) == string.lower(address2)
-        end,
-    validateField = function(field, value)
-        if not field.validation then
-            return false, "Field validation is missing"
-        end
+local ValidationUtils = {}
 
-        -- Validate type first (specific to InputVerifier)
-        if field.type == "string" and type(value) ~= "string" then
-            return false, string.format("Field %s must be a string", field.name or field.id)
-        elseif field.type == "address" then
-            print("--Address Validation Debug--")
-            print("Value type:", type(value))
-            print("Value:", value)
-            print("Value length:", #value)
-            
-            -- Basic format validation
-            if not string.match(value, ETHEREUM_ADDRESS_REGEX) then
-                return false, string.format("Field %s must be a valid Ethereum address format", field.name or field.id)
-            end
-            
-            -- Checksum validation
-            if not validateEthAddressChecksum(value) then
-                return false, string.format("Field %s must be a valid Ethereum address with correct checksum", field.name or field.id)
-            end
-            
-            print("Address validation passed")
-        elseif field.type == "number" and type(value) ~= "number" then
-            return false, string.format("Field %s must be a number", field.name or field.id)
-        end
+-- Helper function for address equality
+ValidationUtils.ethAddressEqual = function (address1, address2)
+    return string.lower(address1) == string.lower(address2)
+end
 
-        -- Use shared validation for common validations
-        local fieldName = field.name or field.id
-        local isValid, errorMsg = FieldValidator.validateValue(value, field.validation, fieldName)
+-- Variable validation function
+ValidationUtils.validateVariable = function(varDef, value)
+    if varDef == nil then
+        return false, "Variable definition is missing"
+    end
+
+    -- Validate type first (specific to InputVerifier)
+    if varDef.type == "string" and type(value) ~= "string" then
+        return false, string.format("Variable %s must be a string", varDef.name or varDef.id)
+    elseif varDef.type == "address" then
+        -- Basic format validation
+        if not string.match(value, ETHEREUM_ADDRESS_REGEX) then
+            return false, string.format("Variable %s must be a valid Ethereum address format", varDef.name or varDef.id)
+        end
         
+        -- Checksum validation
+        if not validateEthAddressChecksum(value) then
+            return false, string.format("Variable %s must be a valid Ethereum address with correct checksum", varDef.name or varDef.id)
+        end
+        
+        print("Address validation passed")
+    elseif varDef.type == "number" and type(value) ~= "number" then
+        return false, string.format("Variable %s must be a number", varDef.name or varDef.id)
+    end
+
+    -- Use shared validation for common validations, if validation is defined
+    if varDef.validation then
+        local varName = varDef.name or varDef.id
+        local isValid, errorMsg = FieldValidator.validateValue(value, varDef.validation, varName)
+        if not isValid then
+        return false, errorMsg
+        end
+    end
+
+    return true
+end
+
+-- Process variable definitions from input data and resolve variables
+ValidationUtils.processVariableDefinitions = function(varDefs, variables)
+    local processedDefs = {}
+    for varId, varDef in pairs(varDefs) do
+        -- If the value is a string, try to resolve it as a variable
+        local processedDef = varDef
+        if type(varDef) == "string" and variables then
+            local resolvedValue = variables:tryResolveExactStringAsVariableObject(varDef)
+            if resolvedValue then
+                processedDef = resolvedValue
+            end
+        end
+        processedDefs[varId] = processedDef
+    end
+    return processedDefs
+end
+
+-- Validate values against processed variable definitions
+ValidationUtils.validateVariableValues = function(varDefs, values)
+    for varId, varDef in pairs(varDefs) do
+        local varValue = values[varId]
+        
+        -- Check if the variable exists in values
+        if varValue == nil then
+            return false, string.format("Required variable '%s' is missing", varId)
+        end
+        
+        -- Validate the variable using shared validation
+        local isValid, errorMsg = ValidationUtils.validateVariable(varDef, varValue)
         if not isValid then
             return false, errorMsg
         end
-
-        return true
     end
-}
+    return true
+end
+
+-- Process variable definitions and validate values in one step
+ValidationUtils.processAndValidateVariables = function(varDefs, values, variables)
+    -- Step 1: Process variable definitions
+    local processedDefs = ValidationUtils.processVariableDefinitions(varDefs, variables)
+    
+    -- Step 2: Validate values against variable definitions
+    return ValidationUtils.validateVariableValues(processedDefs, values)
+end
 
 -- Base Verifier class
 local BaseVerifier = {}
@@ -146,23 +190,10 @@ function EIP712Verifier:verify(input, value, variables, validate)
         return false, "Missing values in credentialSubject"
     end
 
-    -- Validate fields against input definition
-    for fieldId, fieldDef in pairs(input.data) do
-        local fieldValue = credentialSubject.values[fieldId]
-        
-        -- If the value is a string, try to resolve it as a variable
-        if type(fieldDef) == "string" and variables then
-            local resolvedValue = variables:tryResolveExactStringAsVariableObject(fieldDef)
-            if resolvedValue then
-                fieldDef = resolvedValue
-            end
-        end
-
-        -- Validate the field using shared validation
-        local isValid, errorMsg = ValidationUtils.validateField(fieldDef, fieldValue)
-        if not isValid then
-            return false, errorMsg
-        end
+    -- Validate variable values against variable definitions
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, variables)
+    if not isValid then
+        return false, errorMsg
     end
 
     -- Validate issuer if specified
