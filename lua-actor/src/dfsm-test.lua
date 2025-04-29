@@ -4,6 +4,8 @@ local DFSMUtils = require("utils.dfsm_utils")
 local json = require("json")
 -- this imports the DFSM processor code
 local DFSM = require("dfsm")
+-- Import test utilities
+local TestUtils = require("test-utils")
 
 -- Load agreement document from JSON file
 local function loadAgreementDoc()
@@ -25,109 +27,155 @@ local dfsm = DFSM.new(agreementDoc, false, json.decode([[
 ]]))
 
 print(DFSMUtils.formatFSMSummary(dfsm))
-
 print(DFSMUtils.renderDFSMState(dfsm))
 
--- Helper function to process input and display results
-local function processInputAndDisplay(dfsm, inputId, inputValue)
-    print("\nProcessing input:", inputId)
-    
-    -- Set validateVC to false for testing
-    local success, result = dfsm:processInput(inputId, inputValue, false)
-    
-    if success then
-        print("✅ Success:", result)
-    else
-        print("❌ Error:", result)
-    end
-    
-    print(DFSMUtils.renderDFSMState(dfsm))
-end
--- Party A data
-processInputAndDisplay(dfsm, "partyAData", [[
-{
-    "type": "VerifiedCredentialEIP712",
-    "issuer": {
-        "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-    },
-    "credentialSubject": {
-        "id": "partyAData",
-        "type": "signedFields",
-        "values": {
-            "partyAName": "Damian",
-            "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+-- Test counter for tracking results
+local testCounter = { count = 0 }
+
+-- Test 1: Valid Party A data - should succeed and transition to PENDING_PARTY_B_SIGNATURE
+TestUtils.runTest(
+    "Valid Party A data submission", 
+    dfsm, 
+    "partyAData", 
+    [[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": {
+            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+        },
+        "credentialSubject": {
+            "id": "partyAData",
+            "type": "signedFields",
+            "values": {
+                "partyAName": "Damian",
+                "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+            }
         }
-    }
-}]])
+    }]],
+    true,  -- expect success
+    nil,
+    "PENDING_PARTY_B_SIGNATURE",
+    DFSMUtils,
+    testCounter
+)
 
--- Test duplicate input handling
-processInputAndDisplay(dfsm, "partyAData", [[
-{
-    "type": "VerifiedCredentialEIP712",
-    "issuer": {
-        "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-    },
-    "credentialSubject": {
-        "id": "partyAData",
-        "type": "signedFields",
-        "values": {
-            "partyAName": "Damian",
-            "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+-- Test 2: Duplicate Party A data submission - should fail with already processed error
+TestUtils.runTest(
+    "Duplicate Party A data submission", 
+    dfsm, 
+    "partyAData", 
+    [[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": {
+            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+        },
+        "credentialSubject": {
+            "id": "partyAData",
+            "type": "signedFields",
+            "values": {
+                "partyAName": "Damian",
+                "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+            }
         }
-    }
-}]])
+    }]],
+    false,  -- expect failure
+    "has already been processed",
+    "PENDING_PARTY_B_SIGNATURE",  -- state should not change
+    DFSMUtils,
+    testCounter
+)
 
--- Test invalid input handling
-processInputAndDisplay(dfsm, "invalidInput", [[{
-    "someValue": true
-}]])
+-- Test 3: Invalid input ID - should fail with unknown input error
+TestUtils.runTest(
+    "Invalid input ID", 
+    dfsm, 
+    "invalidInput", 
+    [[{
+        "someValue": true
+    }]],
+    false,  -- expect failure
+    "Unknown input",
+    "PENDING_PARTY_B_SIGNATURE",  -- state should not change
+    DFSMUtils,
+    testCounter
+)
 
--- Party B data
-processInputAndDisplay(dfsm, "partyBData", [[
-{
-    "type": "VerifiedCredentialEIP712",
-    "issuer": {
-        "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
-    },
-    "credentialSubject": {
-        "id": "partyBData",
-        "type": "signedFields",
-        "values": {
-            "partyBName": "Leif"
+-- Test 4: Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
+TestUtils.runTest(
+    "Valid Party B data submission", 
+    dfsm, 
+    "partyBData", 
+    [[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": {
+            "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+        },
+        "credentialSubject": {
+            "id": "partyBData",
+            "type": "signedFields",
+            "values": {
+                "partyBName": "Leif"
+            }
         }
-    }
-}]])
+    }]],
+    true,  -- expect success
+    nil,
+    "PENDING_ACCEPTANCE",
+    DFSMUtils,
+    testCounter
+)
 
--- Party A accepts
-processInputAndDisplay(dfsm, "accepted", [[
-{
-    "type": "VerifiedCredentialEIP712",
-    "issuer": {
-        "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-    },
-    "credentialSubject": {
-        "id": "accepted",
-        "type": "signedFields",
-        "values": {
-            "partyAAcceptance": "ACCEPTED"
+-- Test 5: Valid acceptance - should succeed and transition to ACCEPTED
+TestUtils.runTest(
+    "Valid acceptance submission", 
+    dfsm, 
+    "accepted", 
+    [[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": {
+            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+        },
+        "credentialSubject": {
+            "id": "accepted",
+            "type": "signedFields",
+            "values": {
+                "partyAAcceptance": "ACCEPTED"
+            }
         }
-    }
-}]])
+    }]],
+    true,  -- expect success
+    nil,
+    "ACCEPTED",
+    DFSMUtils,
+    testCounter
+)
 
--- Party A rejects
-processInputAndDisplay(dfsm, "rejected", [[
-{
-    "type": "VerifiedCredentialEIP712",
-    "issuer": {
-        "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-    },
-    "credentialSubject": {
-        "id": "rejected",
-        "type": "signedFields",
-        "values": {
-            "partyARejection": "REJECTED"
+-- Test 6: Rejection after completion - should fail because state machine is complete
+TestUtils.runTest(
+    "Attempting rejection after completion", 
+    dfsm, 
+    "rejected", 
+    [[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": {
+            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+        },
+        "credentialSubject": {
+            "id": "rejected",
+            "type": "signedFields",
+            "values": {
+                "partyARejection": "REJECTED"
+            }
         }
-    }
-}]])
+    }]],
+    false,  -- expect failure
+    "State machine is complete",
+    "ACCEPTED",  -- state should not change
+    DFSMUtils,
+    testCounter
+)
 
--- print(DFSMUtils.formatFSMSummary(dfsm))
+-- Print test summary
+print("\n---------------------------------------------")
+print("✅ ALL TESTS PASSED: " .. testCounter.count .. " tests completed successfully!")
+print("No tests failed (execution would have stopped at first failure)")
+print("---------------------------------------------")
