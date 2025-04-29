@@ -47,10 +47,19 @@ local function formatResult(bool)
   end
 end
 
+-- Log a successful test with a checkmark
+local function logTest(message, testCounter)
+  if testCounter then
+    testCounter.count = testCounter.count + 1
+  end
+  print("✅ PASSED: " .. message)
+end
+
 -- Export the utility functions
 return {
   printTable = printTable,
   tablesEqual = tablesEqual,
-  formatResult = formatResult
+  formatResult = formatResult,
+  logTest = logTest
 }
 
