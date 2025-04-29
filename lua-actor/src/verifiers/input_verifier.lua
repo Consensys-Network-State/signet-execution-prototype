@@ -2,6 +2,7 @@ local json = require("json")
 local crypto = require("crypto")
 local VcValidator = require("vc-validator")
 local FieldValidator = require("variables.validation")
+local verifyEVMTransactionInputVerifier = require("verifiers.evm_transaction_input_verifier")
 
 local ETHEREUM_ADDRESS_REGEX = "^0x(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)$"
 
@@ -142,7 +143,7 @@ function EIP712Verifier:new()
     return self
 end
 
-function EIP712Verifier:verify(input, value, variables, validate)
+function EIP712Verifier:verify(input, value, variables, contracts, validate)
     local vcJson, credentialSubject, issuerAddress
     
     -- Default to not validating if not explicitly set
@@ -225,9 +226,9 @@ function EVMTransactionVerifier:new()
     return self
 end
 
-function EVMTransactionVerifier:verify(input, value, variables)
+function EVMTransactionVerifier:verify(input, value, variables, contracts)
     -- TODO: Implement actual EVM transaction verification
-    return true
+    return verifyEVMTransactionInputVerifier(input, value, variables, contracts)
 end
 
 -- Factory function to get the appropriate verifier
@@ -250,7 +251,7 @@ local function getVerifier(inputType)
 end
 
 -- Main verification function
-local function verify(input, value, variables, validate)
+local function verify(input, value, variables, contracts, validate)
     if not input then
         return false, "Input definition is nil"
     end
@@ -260,7 +261,7 @@ local function verify(input, value, variables, validate)
         return false, error
     end
 
-    return verifier:verify(input, value, variables, validate)
+    return verifier:verify(input, value, variables, contracts, validate)
 end
 
 return {

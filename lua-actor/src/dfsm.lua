@@ -3,6 +3,7 @@ local VariableManager = require("variables.variable_manager")
 local InputVerifier = require("verifiers.input_verifier")
 local json = require("json")
 local VcValidator = require("vc-validator")
+local ContractManager = require("contracts.contract_manager")
 local base64 = require(".base64")
 
 local ValidationUtils = InputVerifier.ValidationUtils
@@ -58,6 +59,7 @@ function DFSM.new(doc, expectVCWrapper, params)
         inputs = {},
         transitions = {},
         variables = nil,
+        contracts = nil,
         received = {},
         complete = false,
         states = {}, -- Store state information (name, description)
@@ -79,6 +81,7 @@ function DFSM.new(doc, expectVCWrapper, params)
 
     -- Initialize variables
     self.variables = VariableManager.new(agreement.variables)
+    self.contracts = ContractManager.new(agreement.contracts or {})
 
     -- Set initial values if provided
     if initialValues then
@@ -274,7 +277,7 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     -- For production, validateVC should be true to ensure proper signature validation
     
     -- Verify input type and schema
-    local isValid, result = InputVerifier.verify(inputDef, inputValue, self.variables, validateVC)
+    local isValid, result = InputVerifier.verify(inputDef, inputValue, self.variables, self.contracts, validateVC)
     if not isValid then
         return false, result
     end
