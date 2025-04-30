@@ -102,6 +102,9 @@ function processFile(filePath) {
       if (modulePath.startsWith('.')) {
         // Relative path - resolve from current directory
         modulePath = path.resolve(directory, modulePath.replace(/^\./, '').replace(/\./g, path.sep));
+      } else if (modulePath.startsWith('..')) {
+        // Relative path - resolve from current directory
+        modulePath = path.resolve(directory, modulePath.replace(/^\./, '').replace(/\./g, path.sep));
       } else {
         // Non-relative path - treat dots as directory separators
         const entryDir = path.dirname(path.resolve(baseDir, entryFile));
@@ -148,6 +151,14 @@ function bundleLua() {
   // Combine all modules into a single file
   let bundledContent = '';
   
+  bundledContent += `-- TODO: BEGIN remove lines before copying the actor logic into the backend service
+local Handlers = require("Handlers")
+local secp256k1 = require("secp256k1")
+local recover_public_key = secp256k1.recover_public_key
+-- TODO: END remove lines
+
+`
+
   // Create module definitions for all dependencies
   // We'll define each module as a function and store it in a modules table
   bundledContent += '-- Module definitions\n';
