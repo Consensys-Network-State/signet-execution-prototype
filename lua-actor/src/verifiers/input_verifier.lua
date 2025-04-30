@@ -227,7 +227,6 @@ function EVMTransactionVerifier:new()
 end
 
 function EVMTransactionVerifier:verify(input, value, variables, contracts)
-    -- TODO: Implement actual EVM transaction verification
     return verifyEVMTransactionInputVerifier(input, value, variables, contracts)
 end
 
