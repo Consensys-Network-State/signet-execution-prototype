@@ -30,11 +30,11 @@ local inputAReject = loadInputDoc("./test-data/simple-grant/simple.grant.partyA-
 -- Evaluate a message
 local response = Handlers.evaluate({
     Tags = { Action = 'Init' },
-    Data = json.encode(agreementDoc),
+    Data = agreementDoc,
     reply = function (response)
       -- printTable(response.Data)
       local success = response.Data.success
-      print("Init message processing:", success)
+      print(TestUtils.formatResult(success) .. " Init message processing")
       assert(success == true)
     end
     },
@@ -50,7 +50,7 @@ response = Handlers.evaluate({
     reply = function (response)
       -- printTable(response.Data)
       local success = response.Data.success
-      print("Party A Data processing:", success)
+      print(TestUtils.formatResult(success) .. " Party A Data processing")
       assert(success == true)
     end
     },
@@ -66,7 +66,8 @@ response = Handlers.evaluate({
     reply = function (response)
       -- printTable(response.Data)
       local success = response.Data.success
-      print("Party A Data duplicate processing:", success)
+      -- print("Party A Data duplicate processing:", success)
+      print(TestUtils.formatResult(not success) .. " Party A Data duplicate processing")
       assert(success == false)
     end
     },
@@ -84,7 +85,7 @@ response = Handlers.evaluate({
     reply = function (response)
       -- printTable(response.Data)
       local success = response.Data.success
-      print("Invalid input processing:", success)
+      print(TestUtils.formatResult(not success) .. " Invalid input processing")
       assert(success == false)
     end
     },
@@ -100,7 +101,7 @@ response = Handlers.evaluate({
     reply = function (response)
       -- printTable(response.Data)
       local success = response.Data.success
-      print("Party B Data processing:", success)
+      print(TestUtils.formatResult(success) .. " Party B Data processing")
       assert(success == true)
     end
     },
@@ -117,7 +118,8 @@ response = Handlers.evaluate({
     reply = function (response)
       -- printTable(response.Data)
       local success = response.Data.success
-      print("Accept signature processing:", success)
+      -- print("Accept signature processing:", success)
+      print(TestUtils.formatResult(success) .. " Accept signature processing")
       assert(success == true)
     end
     },
@@ -133,7 +135,7 @@ response = Handlers.evaluate({
     reply = function (response)
       -- printTable(response.Data)
       local success = response.Data.success
-      print("Accept signature processing:", success)
+      print(TestUtils.formatResult(not success) .. " Accept signature duplicate processing")
       assert(success == false)
     end
     },
@@ -149,6 +151,7 @@ response = Handlers.evaluate({
       local isComplete = response.Data.IsComplete
       assert(isComplete == true)
       assert(state.id == "ACCEPTED")
+      print(TestUtils.formatResult(true) .. " Final state check")
     end
     },
     { envKey = "envValue" }

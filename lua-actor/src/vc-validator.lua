@@ -90,16 +90,16 @@ local function vc_validate(vc)
 
   local structHash = eip712.hashStruct(primaryType, message, types)
   local signingInput = eip712.getSigningInput(domainSeparator, structHash)
-  print('Signing Input:', signingInput)
+  -- print('Signing Input:', signingInput)
 
   -- Recover public key and verify
   local pubkey_hex = recover_public_key(signature_hex, signingInput)
   local eth_address = pubkey_to_eth_address(pubkey_hex)
   local success = eth_address == owner_eth_address
 
-  print('Recovered ETH Address:', eth_address)
-  print('Validation Result:', success)
-  print('===================')
+  -- print('Recovered ETH Address:', eth_address)
+  -- print('Validation Result:', success)
+  -- print('===================')
 
   return success, vc_json, owner_eth_address
 end

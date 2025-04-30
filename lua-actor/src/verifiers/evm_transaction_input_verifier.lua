@@ -1,8 +1,8 @@
 
 local crypto = require(".crypto.init")
 local json = require("json")
-local MockOracle = require("../mock-oracle")  -- Import the MockOracle module
-local replaceVariableReferences = require("../utils/table_utils").replaceVariableReferences
+local MockOracle = require("mock-oracle")  -- Import the MockOracle module
+local replaceVariableReferences = require("utils/table_utils").replaceVariableReferences
 
 -- Helper functions
 -- EIP-712 specific functions
