@@ -53,7 +53,7 @@ local function replaceVariableReferences(obj, variablesTable)
     if type(obj) ~= "table" then
         if type(obj) == "string" then
             -- Look for ${variableName} pattern
-            return obj:gsub("%${([^}]+)}", function(varName)
+            return obj:gsub("%${variables%.([^%.]+)%.value}", function(varName)
                 local var = variablesTable[varName]
                 if var then
                     return tostring(var:get())
