@@ -100,9 +100,9 @@ function processFile(filePath) {
       
       // Resolve module path - consolidated logic
       if (modulePath.startsWith('.')) {
-        // Relative path - resolve from current directory
-        modulePath = path.resolve(directory, modulePath.replace(/^\./, '').replace(/\./g, path.sep));
-      } else if (modulePath.startsWith('..')) {
+        
+        // TODO: handle the case when the path is relative and starts with '..'
+
         // Relative path - resolve from current directory
         modulePath = path.resolve(directory, modulePath.replace(/^\./, '').replace(/\./g, path.sep));
       } else {
