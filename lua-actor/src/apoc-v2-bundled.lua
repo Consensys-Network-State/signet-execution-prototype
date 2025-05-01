@@ -1005,7 +1005,8 @@ __modules["verifiers/evm_transaction_input_verifier"] = function()
 
 local crypto = require(".crypto.init")
 local json = require("json")
-local MockOracle = __modules["mock-oracle"]()  -- Import the MockOracle module
+local base64 = require(".base64")
+-- local MockOracle = __modules["mock-oracle"]()  -- Import the MockOracle module
 local replaceVariableReferences = __modules["utils/table_utils"]().replaceVariableReferences
 
 -- Helper functions
@@ -1690,25 +1691,28 @@ local function verifyProof(txHash, txIndex, txRoot, txProof, txValue, receiptRoo
 end
 
 -- Export the verifier function
-local function verifyEVMTransaction(input, value, variables, contracts)
-    -- TODO: Implement actual EVM transaction verification
-    -- Extract the transaction hash from the VC (Also verify VC?)
-    -- Mock the Oracle call
-    value = json.decode(value)
-    local oracle = MockOracle.new()
-    if not oracle:exists(value.txHash) then
-        return false, {}
+local function verifyEVMTransaction(input, value, variables, contracts, expectVc)
+    if expectVc then
+        local base64Proof = json.decode(value).credentialSubject.txProof;
+        value = json.decode(base64.decode(base64Proof))
+    else
+      value = json.decode(value)
     end
+    -- Mock the Oracle call
+    -- local oracle = MockOracle.new()
+    -- if not oracle:exists(value.txHash) then
+    --     return false, {}
+    -- end
     
     -- Retrieve the transaction data from the oracle
-    local oracleResponse = oracle:retrieve(value.txHash)
+    -- local oracleResponse = oracle:retrieve(value.txHash)
 
-    if not oracleResponse then
+    -- if not oracleResponse then
 
-        return false, {}
-    end
+    --     return false, {}
+    -- end
 
-    local isValid = verifyProof(oracleResponse.TxHash, oracleResponse.TxIndex, oracleResponse.TxRoot, oracleResponse.TxProof, oracleResponse.TxEncodedValue, oracleResponse.ReceiptRoot, oracleResponse.ReceiptProof, oracleResponse.ReceiptEncodedValue)
+    local isValid = verifyProof(value.TxHash, value.TxIndex, value.TxRoot, value.TxProof, value.TxEncodedValue, value.ReceiptRoot, value.ReceiptProof, value.ReceiptEncodedValue)
 
     if not isValid then
         return false, {}
@@ -1716,22 +1720,22 @@ local function verifyEVMTransaction(input, value, variables, contracts)
 
     local processedRequiredInput = replaceVariableReferences(input.txMetadata, variables.variables)
     if processedRequiredInput.transactionType == "nativeTransfer" then
-        if string.lower(oracleResponse.TxRaw.from) ~= string.lower(processedRequiredInput.from) 
-            or string.lower(oracleResponse.TxRaw.to) ~= string.lower(processedRequiredInput.to) 
-            or oracleResponse.TxRaw.value ~= processedRequiredInput.value
-            or oracleResponse.TxRaw.chainId ~= processedRequiredInput.chainId then
+        if string.lower(value.TxRaw.from) ~= string.lower(processedRequiredInput.from) 
+            or string.lower(value.TxRaw.to) ~= string.lower(processedRequiredInput.to) 
+            or value.TxRaw.value ~= processedRequiredInput.value
+            or value.TxRaw.chainId ~= processedRequiredInput.chainId then
             return false
         end
         return true, {}
     elseif processedRequiredInput.transactionType == "contractCall" then
         local contract = contracts.contracts[processedRequiredInput.contractReference]
-        local decodedTx = contract:decode(oracleResponse.TxRaw.input)
+        local decodedTx = contract:decode(value.TxRaw.input)
         if (decodedTx.function_name ~= processedRequiredInput.method) then
             return false
         end
 
         for i, param in ipairs(decodedTx.parameters) do
-            if (param.value ~= processedRequiredInput.params[i]) then
+            if (string.lower(param.value) ~= string.lower(processedRequiredInput.params[i])) then
                 return false
             end
         end
@@ -1980,8 +1984,9 @@ function EVMTransactionVerifier:new()
     return self
 end
 
-function EVMTransactionVerifier:verify(input, value, variables, contracts)
-    return verifyEVMTransactionInputVerifier(input, value, variables, contracts)
+function EVMTransactionVerifier:verify(input, value, variables, contracts, expectVc)
+  -- TODO: since we expect the Tx proof to be supplied as a VC, first validate this input as a VC
+  return verifyEVMTransactionInputVerifier(input, value, variables, contracts, expectVc)
 end
 
 -- Factory function to get the appropriate verifier
