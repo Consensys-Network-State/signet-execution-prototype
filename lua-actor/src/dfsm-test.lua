@@ -7,18 +7,7 @@ local DFSM = require("dfsm")
 -- Import test utilities
 local TestUtils = require("test-utils")
 
--- Load agreement document from JSON file
-local function loadAgreementDoc()
-    local file = io.open("./test-data/simple-grant/simple.grant.json", "r")
-    if not file then
-        error("Could not open agreement document file")
-    end
-    local content = file:read("*all")
-    file:close()
-    return content
-end
-
-local agreementDoc = loadAgreementDoc()
+local agreementDoc = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.json")
 
 local dfsm = DFSM.new(agreementDoc, false, json.decode([[
 {

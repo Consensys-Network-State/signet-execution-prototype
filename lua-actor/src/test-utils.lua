@@ -89,12 +89,23 @@ local function runTest(description, dfsm, inputId, inputValue, expectedSuccess, 
     print(DFSMUtils.renderDFSMState(dfsm))
 end
 
+local function loadInputDoc(path)
+  local file = io.open(path, "r")
+  if not file then
+      error("Could not open input document file: " .. path)
+  end
+  local content = file:read("*all")
+  file:close()
+  return content
+end
+
 -- Export the utility functions
 return {
   printTable = printTable,
   tablesEqual = tablesEqual,
   formatResult = formatResult,
   logTest = logTest,
-  runTest = runTest
+  runTest = runTest,
+  loadInputDoc = loadInputDoc
 }
 

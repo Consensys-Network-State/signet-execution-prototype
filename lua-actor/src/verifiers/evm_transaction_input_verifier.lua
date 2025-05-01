@@ -1,7 +1,7 @@
 
 local crypto = require(".crypto.init")
 local json = require("json")
-local MockOracle = require("mock-oracle")  -- Import the MockOracle module
+-- local MockOracle = require("mock-oracle")  -- Import the MockOracle module
 local replaceVariableReferences = require("utils/table_utils").replaceVariableReferences
 
 -- Helper functions
@@ -691,20 +691,20 @@ local function verifyEVMTransaction(input, value, variables, contracts)
     -- Extract the transaction hash from the VC (Also verify VC?)
     -- Mock the Oracle call
     value = json.decode(value)
-    local oracle = MockOracle.new()
-    if not oracle:exists(value.txHash) then
-        return false, {}
-    end
+    -- local oracle = MockOracle.new()
+    -- if not oracle:exists(value.txHash) then
+    --     return false, {}
+    -- end
     
     -- Retrieve the transaction data from the oracle
-    local oracleResponse = oracle:retrieve(value.txHash)
+    -- local oracleResponse = oracle:retrieve(value.txHash)
 
-    if not oracleResponse then
+    -- if not oracleResponse then
 
-        return false, {}
-    end
+    --     return false, {}
+    -- end
 
-    local isValid = verifyProof(oracleResponse.TxHash, oracleResponse.TxIndex, oracleResponse.TxRoot, oracleResponse.TxProof, oracleResponse.TxEncodedValue, oracleResponse.ReceiptRoot, oracleResponse.ReceiptProof, oracleResponse.ReceiptEncodedValue)
+    local isValid = verifyProof(value.TxHash, value.TxIndex, value.TxRoot, value.TxProof, value.TxEncodedValue, value.ReceiptRoot, value.ReceiptProof, value.ReceiptEncodedValue)
 
     if not isValid then
         return false, {}
@@ -712,16 +712,16 @@ local function verifyEVMTransaction(input, value, variables, contracts)
 
     local processedRequiredInput = replaceVariableReferences(input.txMetadata, variables.variables)
     if processedRequiredInput.transactionType == "nativeTransfer" then
-        if string.lower(oracleResponse.TxRaw.from) ~= string.lower(processedRequiredInput.from) 
-            or string.lower(oracleResponse.TxRaw.to) ~= string.lower(processedRequiredInput.to) 
-            or oracleResponse.TxRaw.value ~= processedRequiredInput.value
-            or oracleResponse.TxRaw.chainId ~= processedRequiredInput.chainId then
+        if string.lower(value.TxRaw.from) ~= string.lower(processedRequiredInput.from) 
+            or string.lower(value.TxRaw.to) ~= string.lower(processedRequiredInput.to) 
+            or value.TxRaw.value ~= processedRequiredInput.value
+            or value.TxRaw.chainId ~= processedRequiredInput.chainId then
             return false
         end
         return true, {}
     elseif processedRequiredInput.transactionType == "contractCall" then
         local contract = contracts.contracts[processedRequiredInput.contractReference]
-        local decodedTx = contract:decode(oracleResponse.TxRaw.input)
+        local decodedTx = contract:decode(value.TxRaw.input)
         if (decodedTx.function_name ~= processedRequiredInput.method) then
             return false
         end
