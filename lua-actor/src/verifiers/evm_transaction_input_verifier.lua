@@ -687,13 +687,14 @@ local function verifyProof(txHash, txIndex, txRoot, txProof, txValue, receiptRoo
 end
 
 -- Export the verifier function
-local function verifyEVMTransaction(input, value, variables, contracts)
-    -- TODO: Implement actual EVM transaction verification
-    -- Extract the transaction hash from the VC (Also verify VC?)
+local function verifyEVMTransaction(input, value, variables, contracts, expectVc)
+    if expectVc then
+        local base64Proof = json.decode(value).credentialSubject.txProof;
+        value = json.decode(base64.decode(base64Proof))
+    else
+      value = json.decode(value)
+    end
     -- Mock the Oracle call
-    local base64Proof = json.decode(value).credentialSubject.txProof;
-    value = json.decode(base64.decode(base64Proof))
-    -- json.decode(base64.decode(json.decode(value).credentialSubject.txProof))
     -- local oracle = MockOracle.new()
     -- if not oracle:exists(value.txHash) then
     --     return false, {}
