@@ -1,6 +1,7 @@
 
 local crypto = require(".crypto.init")
 local json = require("json")
+local base64 = require(".base64")
 -- local MockOracle = require("mock-oracle")  -- Import the MockOracle module
 local replaceVariableReferences = require("utils/table_utils").replaceVariableReferences
 
@@ -690,7 +691,9 @@ local function verifyEVMTransaction(input, value, variables, contracts)
     -- TODO: Implement actual EVM transaction verification
     -- Extract the transaction hash from the VC (Also verify VC?)
     -- Mock the Oracle call
-    value = json.decode(value)
+    local base64Proof = json.decode(value).credentialSubject.txProof;
+    value = json.decode(base64.decode(base64Proof))
+    -- json.decode(base64.decode(json.decode(value).credentialSubject.txProof))
     -- local oracle = MockOracle.new()
     -- if not oracle:exists(value.txHash) then
     --     return false, {}
