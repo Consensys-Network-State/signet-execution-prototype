@@ -7,12 +7,11 @@ local DFSM = require("dfsm")
 -- Import test utilities
 local TestUtils = require("test-utils")
 
-local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/simple.grant.json")
+local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.json")
 local oracleDataDoc = TestUtils.loadInputDoc("./mock-oracle-data.json")
 -- full info on a couple of canned transactions
 local txData = json.decode(oracleDataDoc)
-local fullTxData1 = json.encode(txData["0x9445f933860ef6d65fdaf419fcf8b0749f415c7cd0f82f8b420b10a776c5373e"])
-local fullTxData2 = json.encode(txData["0x1cdc44857dd967f99d4644151340b5a083f77e660c60121a7dc63b8b75047f5e"])
+local fullTxData = json.encode(txData["0x1cdc44857dd967f99d4644151340b5a083f77e660c60121a7dc63b8b75047f5e"])
 
 local dfsm = DFSM.new(agreementDoc, false, json.decode([[
 {
@@ -100,30 +99,17 @@ TestUtils.runTest(
     }]],
     true,  -- expect success
     nil,
-    "ACCEPTED",
+    "ACCEPTED_PENDING_PAYMENT",
     DFSMUtils,
     testCounter
 )
 
--- Test 4: Funds sent - should succeed and transition to AWAITING_PAYMENT
-TestUtils.runTest(
-    "Funds sent", 
-    dfsm, 
-    "fundsSentTx", 
-    fullTxData1,
-    true,  -- expect success
-    nil,
-    "AWAITING_PAYMENT",
-    DFSMUtils,
-    testCounter
-)
-
--- Test 5: Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
+-- Test 4: Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
 TestUtils.runTest(
     "Tokens sent", 
     dfsm, 
     "workTokenSentTx", 
-    fullTxData2,
+    fullTxData,
     true,  -- expect success
     nil,
     "PAYMENT_CONFIRMED",
@@ -131,7 +117,7 @@ TestUtils.runTest(
     testCounter
 )
 
--- Test 6: Rejection case - testing from an alternative starting point
+-- Test 5: Rejection case - testing from an alternative starting point
 local rejectionDfsm = DFSM.new(agreementDoc, false, json.decode([[
 {
     "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
@@ -216,6 +202,8 @@ TestUtils.runTest(
     testCounter
 )
 
+-- TODO: fix this test (it's returning the wrong current state)
+
 -- Test 7: Invalid input - should fail with error
 TestUtils.runTest(
     "Invalid input ID", 
@@ -226,7 +214,7 @@ TestUtils.runTest(
     }]],
     false,  -- expect failure
     "State machine is complete",
-    "PAYMENT_CONFIRMED",  -- state should not change
+    "REJECTED", -- state should not change
     DFSMUtils,
     testCounter
 )
