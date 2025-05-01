@@ -228,7 +228,11 @@ end
 
 function EVMTransactionVerifier:verify(input, value, variables, contracts, expectVc)
   -- TODO: since we expect the Tx proof to be supplied as a VC, first validate this input as a VC
-  return verifyEVMTransactionInputVerifier(input, value, variables, contracts, expectVc)
+  local tableVale = value
+  if type(value) == "string" then
+    tableVale = json.decode(value);
+  end
+  return verifyEVMTransactionInputVerifier(input, tableVale, variables, contracts, expectVc)
 end
 
 -- Factory function to get the appropriate verifier

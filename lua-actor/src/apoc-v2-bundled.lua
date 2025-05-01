@@ -1693,10 +1693,8 @@ end
 -- Export the verifier function
 local function verifyEVMTransaction(input, value, variables, contracts, expectVc)
     if expectVc then
-        local base64Proof = json.decode(value).credentialSubject.txProof;
+        local base64Proof = value.credentialSubject.txProof;
         value = json.decode(base64.decode(base64Proof))
-    else
-      value = json.decode(value)
     end
     -- Mock the Oracle call
     -- local oracle = MockOracle.new()
@@ -1986,7 +1984,11 @@ end
 
 function EVMTransactionVerifier:verify(input, value, variables, contracts, expectVc)
   -- TODO: since we expect the Tx proof to be supplied as a VC, first validate this input as a VC
-  return verifyEVMTransactionInputVerifier(input, value, variables, contracts, expectVc)
+  local tableVale = value
+  if type(value) == "string" then
+    tableVale = json.decode(value);
+  end
+  return verifyEVMTransactionInputVerifier(input, tableVale, variables, contracts, expectVc)
 end
 
 -- Factory function to get the appropriate verifier

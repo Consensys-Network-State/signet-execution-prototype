@@ -2,9 +2,9 @@
 local __modules = {}
 local __loaded = {}
 
--- Begin module: src/eip712.lua
-__modules["src/eip712"] = function()
-  if __loaded["src/eip712"] then return __loaded["src/eip712"] end
+-- Begin module: eip712.lua
+__modules["eip712"] = function()
+  if __loaded["eip712"] then return __loaded["eip712"] end
 local crypto = require(".crypto.init")
 local Array = require(".crypto.util.array")
 
@@ -436,7 +436,7 @@ local function createDomainSeparator(domain, types)
 end
 
 
-  __loaded["src/eip712"] = {
+  __loaded["eip712"] = {
     createDomainSeparator = createDomainSeparator,
     hashStruct = hashStruct,
     getSigningInput = getSigningInput,
@@ -444,13 +444,13 @@ end
     typeHash = typeHash,
     abiEncode = abiEncode
 }
-  return __loaded["src/eip712"]
+  return __loaded["eip712"]
 end
--- End module: src/eip712.lua
+-- End module: eip712.lua
 
--- Begin module: src/vc-validator.lua
-__modules["src/vc-validator"] = function()
-  if __loaded["src/vc-validator"] then return __loaded["src/vc-validator"] end
+-- Begin module: vc-validator.lua
+__modules["vc-validator"] = function()
+  if __loaded["vc-validator"] then return __loaded["vc-validator"] end
 -- Explicitly importing secp256k1 and exposing recover_public_key, which is a global var in our custom AO module.
 
 local recover_public_key = recover_public_key
@@ -459,7 +459,7 @@ local json = require("json")
 local Array = require(".crypto.util.array")
 local crypto = require(".crypto.init")
 
-local eip712 = __modules["src/eip712"]()
+local eip712 = __modules["eip712"]()
 
 local function strip_hex_prefix(hex_str)
   if hex_str:sub(1, 2) == "0x" then
@@ -543,31 +543,31 @@ local function vc_validate(vc)
 
   local structHash = eip712.hashStruct(primaryType, message, types)
   local signingInput = eip712.getSigningInput(domainSeparator, structHash)
-  print('Signing Input:', signingInput)
+  -- print('Signing Input:', signingInput)
 
   -- Recover public key and verify
   local pubkey_hex = recover_public_key(signature_hex, signingInput)
   local eth_address = pubkey_to_eth_address(pubkey_hex)
   local success = eth_address == owner_eth_address
 
-  print('Recovered ETH Address:', eth_address)
-  print('Validation Result:', success)
-  print('===================')
+  -- print('Recovered ETH Address:', eth_address)
+  -- print('Validation Result:', success)
+  -- print('===================')
 
   return success, vc_json, owner_eth_address
 end
 
 
-  __loaded["src/vc-validator"] = {
+  __loaded["vc-validator"] = {
   validate = vc_validate,
 }
-  return __loaded["src/vc-validator"]
+  return __loaded["vc-validator"]
 end
--- End module: src/vc-validator.lua
+-- End module: vc-validator.lua
 
--- Begin module: src/variables/validation.lua
-__modules["src/variables/validation"] = function()
-  if __loaded["src/variables/validation"] then return __loaded["src/variables/validation"] end
+-- Begin module: variables/validation.lua
+__modules["variables/validation"] = function()
+  if __loaded["variables/validation"] then return __loaded["variables/validation"] end
 -- Shared validation module for both InputVerifier and VariableManager
 local ValidationModule = {}
 
@@ -630,16 +630,16 @@ function ValidationModule.validateValue(value, validation, fieldName)
 end
 
 
-  __loaded["src/variables/validation"] = ValidationModule
-  return __loaded["src/variables/validation"]
+  __loaded["variables/validation"] = ValidationModule
+  return __loaded["variables/validation"]
 end
--- End module: src/variables/validation.lua
+-- End module: variables/validation.lua
 
--- Begin module: src/variables/variable_manager.lua
-__modules["src/variables/variable_manager"] = function()
-  if __loaded["src/variables/variable_manager"] then return __loaded["src/variables/variable_manager"] end
-local VcValidator = __modules["src/vc-validator"]()
-local ValidationModule = __modules["src/variables/validation"]()
+-- Begin module: variables/variable_manager.lua
+__modules["variables/variable_manager"] = function()
+  if __loaded["variables/variable_manager"] then return __loaded["variables/variable_manager"] end
+local VcValidator = __modules["vc-validator"]()
+local ValidationModule = __modules["variables/validation"]()
 local VariableManager = {}
 
 function VariableManager.new(variables)
@@ -660,9 +660,10 @@ function VariableManager.new(variables)
             set = function(self, newValue)
                 if self.validation then
                     -- Use shared validation module for common validations
-                    local isValid, errorMsg = ValidationModule.validateValue(newValue, self.validation, self.name)
+                    local isValid, errorMsg = ValidationModule.validateValue(newValue, self.validation, self.name or id)
                     if not isValid then
-                        error(errorMsg)
+                        error(string.format("Validation failed for variable '%s': %s (value: %s, type: %s)", 
+                            self.name or id, errorMsg, tostring(newValue), type(newValue)))
                     end
                 end
                 self.value = newValue
@@ -691,7 +692,12 @@ function VariableManager:setVariable(name, value)
     if not var then
         error(string.format("Variable not found: %s", name))
     end
-    var:set(value)
+    
+    local success, err = pcall(function() var:set(value) end)
+    if not success then
+        error(string.format("Failed to set variable '%s' (type: %s): %s", 
+            name, var.type, err))
+    end
 end
 
 function VariableManager:getAllVariables()
@@ -772,18 +778,981 @@ function VariableManager:tryResolveExactStringAsVariableObject(possibleVariableR
 end
 
 
-  __loaded["src/variables/variable_manager"] = VariableManager
-  return __loaded["src/variables/variable_manager"]
+  __loaded["variables/variable_manager"] = VariableManager
+  return __loaded["variables/variable_manager"]
 end
--- End module: src/variables/variable_manager.lua
+-- End module: variables/variable_manager.lua
 
--- Begin module: src/verifiers/input_verifier.lua
-__modules["src/verifiers/input_verifier"] = function()
-  if __loaded["src/verifiers/input_verifier"] then return __loaded["src/verifiers/input_verifier"] end
+-- Begin module: mock-oracle.lua
+__modules["mock-oracle"] = function()
+  if __loaded["mock-oracle"] then return __loaded["mock-oracle"] end
+-- MockOracle: A class that simulates an oracle by storing and retrieving data
+-- associated with transaction hashes
+local json = require("json")
+
+local function loadOracleData()
+    local file = io.open("./mock-oracle-data.json", "r")
+    if not file then
+        error("Could not open agreement document file")
+    end
+    local content = file:read("*all")
+    file:close()
+    return content
+end
+
+
+local MockOracle = {}
+MockOracle.__index = MockOracle
+
+-- Create a new MockOracle instance
+function MockOracle.new()
+    local self = setmetatable({}, MockOracle)
+    local data = loadOracleData()
+    self.data = json.decode(data)  -- Dictionary to store transaction hash -> data mappings
+    return self
+end
+
+-- Store data for a transaction hash
+-- @param txHash: The transaction hash to use as a key
+-- @param blobData: The data to store for this transaction
+function MockOracle:store(txHash, blobData)
+    self.data[txHash] = blobData
+end
+
+-- Retrieve data for a transaction hash
+-- @param txHash: The transaction hash to look up
+-- @return: The stored data if it exists, nil otherwise
+function MockOracle:retrieve(txHash)
+    return self.data[txHash]
+end
+
+-- Check if data exists for a transaction hash
+-- @param txHash: The transaction hash to check
+-- @return: true if data exists, false otherwise
+function MockOracle:exists(txHash)
+    return self.data[txHash] ~= nil
+end
+
+-- Remove data for a transaction hash
+-- @param txHash: The transaction hash to remove
+function MockOracle:remove(txHash)
+    self.data[txHash] = nil
+end
+
+-- Get all stored transaction hashes
+-- @return: An array of all transaction hashes in the oracle
+function MockOracle:getAllTxHashes()
+    local hashes = {}
+    for hash, _ in pairs(self.data) do
+        table.insert(hashes, hash)
+    end
+    return hashes
+end
+
+
+  __loaded["mock-oracle"] = MockOracle
+  return __loaded["mock-oracle"]
+end
+-- End module: mock-oracle.lua
+
+-- Begin module: utils/table_utils.lua
+__modules["utils/table_utils"] = function()
+  if __loaded["utils/table_utils"] then return __loaded["utils/table_utils"] end
+-- Table utility functions
+
+-- Helper function to perform deep comparison of two values
+local function deepCompare(a, b)
+    -- Handle nil cases
+    if a == nil and b == nil then return true end
+    if a == nil or b == nil then return false end
+    -- Handle different types
+    if type(a) ~= type(b) then return false end
+    -- Handle non-table types
+    if type(a) ~= "table" then
+        return a == b
+    end
+    -- Handle arrays (tables with numeric keys)
+    if #a > 0 or #b > 0 then
+        if #a ~= #b then return false end
+        for i = 1, #a do
+            if not deepCompare(a[i], b[i]) then
+                return false
+            end
+        end
+        return true
+    end
+    -- Handle objects (tables with string keys)
+    local aKeys = {}
+    local bKeys = {}
+    -- Collect keys
+    for k in pairs(a) do
+        aKeys[k] = true
+    end
+    for k in pairs(b) do
+        bKeys[k] = true
+    end
+    -- Check if they have the same keys
+    for k in pairs(aKeys) do
+        if not bKeys[k] then return false end
+    end
+    for k in pairs(bKeys) do
+        if not aKeys[k] then return false end
+    end
+    -- Compare values for each key
+    for k in pairs(a) do
+        if not deepCompare(a[k], b[k]) then
+            return false
+        end
+    end
+
+    return true
+end
+
+-- Helper function to replace variable references with their values
+local function replaceVariableReferences(obj, variablesTable)
+    if type(obj) ~= "table" then
+        if type(obj) == "string" then
+            -- Look for ${variableName} pattern
+            return obj:gsub("%${variables%.([^%.]+)%.value}", function(varName)
+                local var = variablesTable[varName]
+                if var then
+                    return tostring(var:get())
+                end
+                return "${" .. varName .. "}" -- Keep original if variable not found
+            end)
+        end
+        return obj
+    end
+    -- Handle arrays
+    if #obj > 0 then
+        local result = {}
+        for i, v in ipairs(obj) do
+            result[i] = replaceVariableReferences(v, variablesTable)
+        end
+        return result
+    end
+    -- Handle objects
+    local result = {}
+    for k, v in pairs(obj) do
+        result[k] = replaceVariableReferences(v, variablesTable)
+    end
+    return result
+end
+
+-- Helper function to print a table in a readable format
+local function printTable(t, indent, visited)
+    indent = indent or 0
+    visited = visited or {}
+    
+    -- Handle non-table values
+    if type(t) ~= "table" then
+        print(string.rep("  ", indent) .. tostring(t))
+        return
+    end
+    
+    -- Handle already visited tables to prevent infinite recursion
+    if visited[t] then
+        print(string.rep("  ", indent) .. "[circular reference]")
+        return
+    end
+    visited[t] = true
+    
+    -- Handle empty table
+    if next(t) == nil then
+        print(string.rep("  ", indent) .. "{}")
+        return
+    end
+    
+    -- Handle arrays (tables with numeric keys)
+    if #t > 0 then
+        print(string.rep("  ", indent) .. "[")
+        for i, v in ipairs(t) do
+            print(string.rep("  ", indent + 1) .. tostring(i) .. ":")
+            printTable(v, indent + 2, visited)
+        end
+        print(string.rep("  ", indent) .. "]")
+        return
+    end
+    
+    -- Handle objects (tables with string keys)
+    print(string.rep("  ", indent) .. "{")
+    for k, v in pairs(t) do
+        print(string.rep("  ", indent + 1) .. tostring(k) .. ":")
+        printTable(v, indent + 2, visited)
+    end
+    print(string.rep("  ", indent) .. "}")
+end
+
+
+  __loaded["utils/table_utils"] = {
+    deepCompare = deepCompare,
+    replaceVariableReferences = replaceVariableReferences,
+    printTable = printTable
+}
+  return __loaded["utils/table_utils"]
+end
+-- End module: utils/table_utils.lua
+
+-- Begin module: verifiers/evm_transaction_input_verifier.lua
+__modules["verifiers/evm_transaction_input_verifier"] = function()
+  if __loaded["verifiers/evm_transaction_input_verifier"] then return __loaded["verifiers/evm_transaction_input_verifier"] end
+
+local crypto = require(".crypto.init")
+local json = require("json")
+local base64 = require(".base64")
+-- local MockOracle = __modules["mock-oracle"]()  -- Import the MockOracle module
+local replaceVariableReferences = __modules["utils/table_utils"]().replaceVariableReferences
+
+-- Helper functions
+-- EIP-712 specific functions
+local function keccak256(input)
+    return crypto.digest.keccak256(input).asHex()
+end
+
+local function removeHexPrefix(val)
+    if val[1] % 2 == 1 then
+        -- In Lua, we can use table.move for slicing or manually recreate the array
+        local result = {}
+        for i = 2, #val do
+        result[i-1] = val[i]
+        end
+        return result
+    else
+        -- Create a new table without the first two elements
+        local result = {}
+        for i = 3, #val do
+        result[i-2] = val[i]
+        end
+        return result
+    end
+end
+
+local function rlpEncode(value)
+    -- RLP encoding implementation
+    -- For single bytes < 128, the byte itself is its own RLP encoding
+    -- For short strings (0-55 bytes), RLP is [0x80+len(data)] + data
+    -- For long strings, RLP is [0xb7+len(len(data))] + len(data) + data
+    -- For lists, similar rules apply with different offset values
+    
+    -- Handle integers
+    if type(value) == "number" then
+        -- Convert to hex string without leading zeros
+        local hex = string.format("%x", value)
+        if #hex % 2 ~= 0 then hex = "0" .. hex end
+        
+        -- Convert hex to bytes (as numbers in a table)
+        local bytes = {}
+        for i = 1, #hex, 2 do
+            local byte = tonumber(hex:sub(i, i+1), 16)
+            table.insert(bytes, byte)
+        end
+        
+        -- If value is 0, return [0x80] (empty string)
+        if value == 0 then
+            return {0x80}
+        -- Single byte < 128, return as is
+        elseif #bytes == 1 and bytes[1] < 128 then
+            return bytes
+        -- Short string
+        elseif #bytes <= 55 then
+            local result = {0x80 + #bytes}
+            for i = 1, #bytes do
+                table.insert(result, bytes[i])
+            end
+            return result
+        -- Long string
+        else
+            local lengthBytes = {}
+            local lengthHex = string.format("%x", #bytes)
+            if #lengthHex % 2 ~= 0 then lengthHex = "0" .. lengthHex end
+            
+            for i = 1, #lengthHex, 2 do
+                local byte = tonumber(lengthHex:sub(i, i+1), 16)
+                table.insert(lengthBytes, byte)
+            end
+            
+            local result = {0xb7 + #lengthBytes}
+            for i = 1, #lengthBytes do
+                table.insert(result, lengthBytes[i])
+            end
+            for i = 1, #bytes do
+                table.insert(result, bytes[i])
+            end
+            return result
+        end
+    end
+    
+    -- Handle other types (strings, tables, etc.) would go here
+    -- This implementation focuses on encoding integers which is what's needed for transaction indices
+end
+
+local function rlpDecode(rlpBytes)
+    -- Handle empty input
+    if #rlpBytes == 0 then
+        return nil
+    end
+    
+    local firstByte = rlpBytes[1]
+    local result = {}
+    local i = 1
+    
+    -- Case 1: Single byte < 0x80 (128) represents itself
+    if firstByte < 0x80 then
+        return {rlpBytes[1]} -- Return as a single-element byte array
+    
+    -- Case 2: Short string (0-55 bytes)
+    elseif firstByte <= 0xb7 then
+        local length = firstByte - 0x80
+        
+        -- Empty string case
+        if length == 0 then
+            return {} -- Return empty array
+        end
+        
+        -- Check if we have enough bytes
+        if #rlpBytes < length + 1 then
+            error("Invalid RLP: not enough bytes for short string")
+        end
+        
+        -- Extract the bytes directly
+        local result = {}
+        for i = 2, length + 1 do
+            table.insert(result, rlpBytes[i])
+        end
+        
+        return result
+    
+    -- Case 3: Long string (>55 bytes)
+    elseif firstByte <= 0xbf then
+        local lengthOfLength = firstByte - 0xb7
+        
+        -- Check if we have enough bytes for the length
+        if #rlpBytes < lengthOfLength + 1 then
+            error("Invalid RLP: not enough bytes for length prefix")
+        end
+        
+        -- Extract the length bytes
+        local lengthHex = ""
+        for i = 2, lengthOfLength + 1 do
+            lengthHex = lengthHex .. string.format("%02x", rlpBytes[i])
+        end
+        
+        local length = tonumber(lengthHex, 16)
+        
+        -- Check if we have enough bytes for the value
+        if #rlpBytes < lengthOfLength + 1 + length then
+            error("Invalid RLP: not enough bytes for long string")
+        end
+        
+        -- Extract the bytes directly
+        local result = {}
+        for i = lengthOfLength + 2, lengthOfLength + 1 + length do
+            table.insert(result, rlpBytes[i])
+        end
+        
+        return result
+    
+    -- Case 4: Lists
+    elseif firstByte <= 0xf7 then
+        -- Short list (0-55 bytes)
+        local length = firstByte - 0xc0
+        
+        -- Empty list case
+        if length == 0 then
+            return {} -- Return empty array
+        end
+        
+        -- Check if we have enough bytes
+        if #rlpBytes < length + 1 then
+            error("Invalid RLP: not enough bytes for short list")
+        end
+        
+        -- Extract the list items
+        local listBytes = {}
+        for i = 2, length + 1 do
+            table.insert(listBytes, rlpBytes[i])
+        end
+        
+        -- Decode the list items
+        local result = {}
+        local offset = 1
+        while offset <= #listBytes do
+            -- Create a sub-array of bytes starting from the current offset
+            local subBytes = {}
+            for i = offset, #listBytes do
+                table.insert(subBytes, listBytes[i])
+            end
+            
+            -- Recursively decode the item
+            local item = rlpDecode(subBytes)
+            table.insert(result, item)
+            
+            -- Calculate the length of the encoded item to update the offset
+            local itemLength = 0
+            local itemFirstByte = listBytes[offset]
+            
+            if itemFirstByte < 0x80 then
+                -- Single byte
+                itemLength = 1
+            elseif itemFirstByte <= 0xb7 then
+                -- Short string
+                itemLength = (itemFirstByte - 0x80) + 1
+            elseif itemFirstByte <= 0xbf then
+                -- Long string
+                local lengthOfLength = itemFirstByte - 0xb7
+                local lengthHex = ""
+                for i = offset + 1, offset + lengthOfLength do
+                    lengthHex = lengthHex .. string.format("%02x", listBytes[i])
+                end
+                local dataLength = tonumber(lengthHex, 16)
+                itemLength = 1 + lengthOfLength + dataLength
+            elseif itemFirstByte <= 0xf7 then
+                -- Short list
+                itemLength = (itemFirstByte - 0xc0) + 1
+            else
+                -- Long list
+                local lengthOfLength = itemFirstByte - 0xf7
+                local lengthHex = ""
+                for i = offset + 1, offset + lengthOfLength do
+                    lengthHex = lengthHex .. string.format("%02x", listBytes[i])
+                end
+                local dataLength = tonumber(lengthHex, 16)
+                itemLength = 1 + lengthOfLength + dataLength
+            end
+            
+            offset = offset + itemLength
+        end
+        
+        return result
+    
+    elseif firstByte <= 0xff then
+        -- Long list (>55 bytes)
+        local lengthOfLength = firstByte - 0xf7
+        
+        -- Check if we have enough bytes for the length
+        if #rlpBytes < lengthOfLength + 1 then
+            error("Invalid RLP: not enough bytes for length prefix in long list")
+        end
+        
+        -- Extract the length bytes
+        local lengthHex = ""
+        for i = 2, lengthOfLength + 1 do
+            lengthHex = lengthHex .. string.format("%02x", rlpBytes[i])
+        end
+        
+        local length = tonumber(lengthHex, 16)
+        
+        -- Check if we have enough bytes for the list
+        if #rlpBytes < lengthOfLength + 1 + length then
+            error("Invalid RLP: not enough bytes for long list")
+        end
+        
+        -- Extract the list bytes
+        local listBytes = {}
+        for i = lengthOfLength + 2, lengthOfLength + 1 + length do
+            table.insert(listBytes, rlpBytes[i])
+        end
+        
+        -- Decode the list items
+        local result = {}
+        local offset = 1
+        while offset <= #listBytes do
+            -- Create a sub-array of bytes starting from the current offset
+            local subBytes = {}
+            for i = offset, #listBytes do
+                table.insert(subBytes, listBytes[i])
+            end
+            
+            -- Recursively decode the item
+            local item = rlpDecode(subBytes)
+            table.insert(result, item)
+            
+            -- Calculate the length of the encoded item to update the offset
+            local itemLength = 0
+            local itemFirstByte = listBytes[offset]
+            
+            if itemFirstByte < 0x80 then
+                -- Single byte
+                itemLength = 1
+            elseif itemFirstByte <= 0xb7 then
+                -- Short string
+                itemLength = (itemFirstByte - 0x80) + 1
+            elseif itemFirstByte <= 0xbf then
+                -- Long string
+                local lengthOfLength = itemFirstByte - 0xb7
+                local lengthHex = ""
+                for i = offset + 1, offset + lengthOfLength do
+                    lengthHex = lengthHex .. string.format("%02x", listBytes[i])
+                end
+                local dataLength = tonumber(lengthHex, 16)
+                itemLength = 1 + lengthOfLength + dataLength
+            elseif itemFirstByte <= 0xf7 then
+                -- Short list
+                itemLength = (itemFirstByte - 0xc0) + 1
+            else
+                -- Long list
+                local lengthOfLength = itemFirstByte - 0xf7
+                local lengthHex = ""
+                for i = offset + 1, offset + lengthOfLength do
+                    lengthHex = lengthHex .. string.format("%02x", listBytes[i])
+                end
+                local dataLength = tonumber(lengthHex, 16)
+                itemLength = 1 + lengthOfLength + dataLength
+            end
+            
+            offset = offset + itemLength
+        end
+        
+        return result
+    else
+        error("Invalid RLP encoding")
+    end
+end
+
+local function bytesToString(bytes)
+    local chars = {}
+    for i = 1, #bytes do
+        chars[i] = string.char(bytes[i])
+    end
+    return table.concat(chars)
+end
+
+local function bytesToHex(bytes)
+    local hex = ""
+    for i = 1, #bytes do
+        -- Convert each byte to its hex representation
+        -- %02x formats as 2-digit hex with leading zeros
+        hex = hex .. string.format("%02x", bytes[i])
+    end
+    return hex
+end
+
+local function hexToBytes(hexString)
+    local bytes = {}
+    
+    -- Remove any non-hex characters (like spaces or 0x prefix)
+    hexString = hexString:gsub("[^0-9A-Fa-f]", "")
+    
+    -- Ensure we have an even number of hex digits
+    if #hexString % 2 ~= 0 then
+        hexString = "0" .. hexString
+    end
+    
+    -- Convert each pair of hex digits to a byte
+    for i = 1, #hexString, 2 do
+        local byteString = hexString:sub(i, i + 1)
+        local byte = tonumber(byteString, 16)
+        table.insert(bytes, byte)
+    end
+    
+    return bytes
+end
+
+local function bytesToNibbles(key)
+    local nibbles = {}
+    
+    for i = 1, #key do
+        local byte = key[i]
+        -- Get the high nibble (first 4 bits)
+        local highNibble = math.floor(byte / 16)
+        -- Get the low nibble (last 4 bits)
+        local lowNibble = byte % 16
+        
+        -- Store both nibbles
+        local q = (i - 1) * 2 + 1
+        nibbles[q] = highNibble
+        nibbles[q + 1] = lowNibble
+    end
+    
+    return nibbles
+end
+
+-- Add this helper function to compare byte arrays
+local function equalsBytes(bytes1, bytes2)
+    if #bytes1 ~= #bytes2 then
+        return false
+    end
+    
+    for i = 1, #bytes1 do
+        if bytes1[i] ~= bytes2[i] then
+            return false
+        end
+    end
+    
+    return true
+end
+
+local function isTerminator(key)
+    return key[1] > 1
+end
+
+local ExtensionNode = {}
+ExtensionNode.__index = ExtensionNode
+
+-- Constructor
+function ExtensionNode.new(nibbles, value)
+    local self = setmetatable({}, ExtensionNode)
+    self.nibbles = nibbles
+    self.value = value
+    return self
+end
+
+-- Method to check if an object is an instance of MyClass
+function ExtensionNode.isInstance(obj)
+    return type(obj) == "table" and getmetatable(obj) == ExtensionNode
+end
+
+local LeafNode = {}
+LeafNode.__index = LeafNode
+
+-- Constructor
+function LeafNode.new(nibbles, value)
+    local self = setmetatable({}, LeafNode)
+    self.nibbles = nibbles
+    self.value = value
+    return self
+end
+
+-- Method to check if an object is an instance of MyClass
+function LeafNode.isInstance(obj)
+    return type(obj) == "table" and getmetatable(obj) == LeafNode
+end
+
+local BranchNode = {}
+BranchNode.__index = BranchNode
+
+-- Constructor
+function BranchNode.new(array)
+    local self = setmetatable({}, BranchNode)
+    self.branches = {table.unpack(array, 1, 16)}
+    self.value = array[17]
+    return self
+end
+
+-- Method to check if an object is an instance of MyClass
+function BranchNode.isInstance(obj)
+    return type(obj) == "table" and getmetatable(obj) == BranchNode
+end
+
+
+Trie = {}
+Trie.__index = Trie
+
+-- Constructor function
+function Trie.new(root)
+    local self = setmetatable({}, Trie)
+    if root ~= nil then
+        self.root = root
+    end
+    self.db = {}
+    return self
+end
+
+function Trie:updateFromProof(proof)
+    local opStack = {}
+  
+    for i, nodeValue in ipairs(proof) do
+        local key = hexToBytes(keccak256(bytesToString(nodeValue))) 
+        table.insert(opStack, {key = key, value = nodeValue})
+    end
+
+    -- check if the root matches
+    if opStack[1] ~= nil then
+        if not equalsBytes(self.root, opStack[1].key) then
+            error('The provided proof does not have the expected trie root')
+        else 
+            -- print('root is good')
+        end
+    end
+
+    -- insert the proof into the db
+    for i, op in ipairs(opStack) do
+        self.db[bytesToHex(op.key)] = op.value
+        -- table.insert(self.db, {key = bytesToHex(op.key), value = op.value})
+    end
+end
+
+function Trie:lookupNode(node)
+    -- if (isRawNode(node)) {
+    --     const decoded = decodeRawNode(node)
+    --     return decoded
+    -- }
+    local key = bytesToHex(node)
+    local value = self.db[key]
+
+    if value == nil then
+        -- error('Missing node in DB')
+        return;
+    end
+
+    local raw = rlpDecode(value)
+    if raw == nil then
+        error('Failed to decode node')
+    end
+    if #raw == 17 then
+        return BranchNode.new(raw)
+    elseif #raw == 2 then
+        local nibbles = bytesToNibbles(raw[1])
+        if isTerminator(nibbles) then
+            return LeafNode.new(removeHexPrefix(nibbles), raw[2])
+        end
+        return ExtensionNode.new(removeHexPrefix(nibbles), raw[2])
+    else
+        error("Invalid node")
+    end    
+end
+
+-- function Trie:walkTrie()
+--     local node = self:lookupNode(self.root)
+--     self:processNode(self.root, node, {})
+-- end
+
+function Trie:findPath(key)
+    local targetKey = bytesToNibbles(key)
+    local keyLen = #targetKey
+    local stack = {}
+    local progress = 0
+    local result = nil
+
+    -- Helper function to process nodes during trie traversal
+    local function processNode(nodeRef, node, keyProgress)
+        if node == nil then
+            return
+        end
+
+        stack[progress + 1] = node
+
+        if BranchNode.isInstance(node) then
+            if progress == keyLen then
+                -- Found exact match at branch node
+                result = {
+                    node = node,
+                    remaining = {},
+                    stack = stack
+                }
+            else
+                -- Get branch index from target key
+                local branchIndex = targetKey[progress + 1]
+                local branchNode = node.branches[branchIndex + 1]
+
+                if branchNode == nil then
+                    -- No matching branch found
+                    result = {
+                        node = nil,
+                        remaining = {},  -- Create slice of targetKey from progress
+                        stack = stack
+                    }
+                    for i = progress + 1, keyLen do
+                        table.insert(result.remaining, targetKey[i])
+                    end
+                else
+                    progress = progress + 1
+                    -- Continue walking down this branch
+                    local nextNode = self:lookupNode(branchNode)
+                    processNode(branchNode, nextNode, keyProgress + 1)
+                end
+            end
+
+        elseif LeafNode.isInstance(node) then
+            local nodeKey = node.nibbles
+            local _progress = progress
+
+            -- Check if remaining key is longer than leaf node key
+            if keyLen - progress > #nodeKey then
+                result = {
+                    node = nil,
+                    remaining = {},
+                    stack = stack
+                }
+                -- Add remaining key to result
+                for i = _progress + 1, keyLen do
+                    table.insert(result.remaining, targetKey[i])
+                end
+                return
+            end
+
+            -- Compare each nibble
+            for i = 1, #nodeKey do
+                if nodeKey[i] ~= targetKey[progress + i] then
+                    result = {
+                        node = nil,
+                        remaining = {},
+                        stack = stack
+                    }
+                    -- Add remaining key to result
+                    for j = _progress + 1, keyLen do
+                        table.insert(result.remaining, targetKey[j])
+                    end
+                    return
+                end
+            end
+            progress = progress + #nodeKey
+            result = {
+                node = node,
+                remaining = {},
+                stack = stack
+            }
+
+        elseif ExtensionNode.isInstance(node) then
+            local nodeKey = node.nibbles
+            local _progress = progress
+
+            -- Compare extension node key with target key
+            for i = 1, #nodeKey do
+                if nodeKey[i] ~= targetKey[progress + i] then
+                    result = {
+                        node = nil,
+                        remaining = {},
+                        stack = stack
+                    }
+                    -- Add remaining key to result
+                    for j = _progress + 1, keyLen do
+                        table.insert(result.remaining, targetKey[j])
+                    end
+                    return
+                end
+            end
+            progress = progress + #nodeKey
+
+            -- Continue walking with the extension node's value
+            local nextNode = self:lookupNode(node.value)
+            processNode(node.value, nextNode, keyProgress + #nodeKey)
+        end
+    end
+
+    -- Start walking from root
+    local node = self:lookupNode(self.root)
+    processNode(self.root, node, 0)
+
+    -- If no result was found, return empty result
+    if result == nil then
+        result = {
+            node = nil,
+            remaining = {},
+            stack = stack
+        }
+    end
+
+    -- Filter out nil values from stack
+    local filteredStack = {}
+    for i = 1, #stack do
+        if stack[i] ~= nil then
+            table.insert(filteredStack, stack[i])
+        end
+    end
+    result.stack = filteredStack
+
+    return result
+end
+
+function Trie:get(key)
+    local result =self:findPath(key)
+    -- const { node, remaining } = self.findPath(key)
+    local value = nil
+    if result.node ~= nil and #result.remaining == 0 then
+        value = result.node.value
+    end
+    return value
+end
+
+local function verifyMerkleProof(key, root, proof, value)
+    -- 2. convert blocks transactions root to buffer
+    local rootBytes = {}
+    -- Remove '0x' prefix if present
+    if root:sub(1, 2) == "0x" then
+        root = root:sub(3)
+    end
+    
+    -- Convert hex string to byte array
+    for i = 1, #root, 2 do
+        local byte = tonumber(root:sub(i, i+1), 16)
+        table.insert(rootBytes, byte)
+    end
+    
+    -- 3. verify the proof by checking the transaction root and getting the value at the transaction index
+    local trie = Trie.new(rootBytes)
+    trie:updateFromProof(proof)
+
+    -- 4. compare the value to the expected value and return result
+    local proofValue = trie:get(key)
+    return equalsBytes(value, proofValue)
+end
+
+local function verifyProof(txHash, txIndex, txRoot, txProof, txValue, receiptRoot, receiptProof, receiptValue)
+    -- 1. RLP encode transaction index
+    local key = rlpEncode(tonumber(txIndex))
+    return verifyMerkleProof(key, txRoot, txProof, txValue) and verifyMerkleProof(key, receiptRoot, receiptProof, receiptValue)
+end
+
+-- Export the verifier function
+local function verifyEVMTransaction(input, value, variables, contracts, expectVc)
+    if expectVc then
+        local base64Proof = value.credentialSubject.txProof;
+        value = json.decode(base64.decode(base64Proof))
+    end
+    -- Mock the Oracle call
+    -- local oracle = MockOracle.new()
+    -- if not oracle:exists(value.txHash) then
+    --     return false, {}
+    -- end
+    
+    -- Retrieve the transaction data from the oracle
+    -- local oracleResponse = oracle:retrieve(value.txHash)
+
+    -- if not oracleResponse then
+
+    --     return false, {}
+    -- end
+
+    local isValid = verifyProof(value.TxHash, value.TxIndex, value.TxRoot, value.TxProof, value.TxEncodedValue, value.ReceiptRoot, value.ReceiptProof, value.ReceiptEncodedValue)
+
+    if not isValid then
+        return false, {}
+    end
+
+    local processedRequiredInput = replaceVariableReferences(input.txMetadata, variables.variables)
+    if processedRequiredInput.transactionType == "nativeTransfer" then
+        if string.lower(value.TxRaw.from) ~= string.lower(processedRequiredInput.from) 
+            or string.lower(value.TxRaw.to) ~= string.lower(processedRequiredInput.to) 
+            or value.TxRaw.value ~= processedRequiredInput.value
+            or value.TxRaw.chainId ~= processedRequiredInput.chainId then
+            return false
+        end
+        return true, {}
+    elseif processedRequiredInput.transactionType == "contractCall" then
+        local contract = contracts.contracts[processedRequiredInput.contractReference]
+        local decodedTx = contract:decode(value.TxRaw.input)
+        if (decodedTx.function_name ~= processedRequiredInput.method) then
+            return false
+        end
+
+        for i, param in ipairs(decodedTx.parameters) do
+            if (string.lower(param.value) ~= string.lower(processedRequiredInput.params[i])) then
+                return false
+            end
+        end
+        return true
+    else
+    end
+
+    return true, {}
+end
+
+-- Return the verifier function
+
+  __loaded["verifiers/evm_transaction_input_verifier"] = verifyEVMTransaction
+  return __loaded["verifiers/evm_transaction_input_verifier"]
+end
+-- End module: verifiers/evm_transaction_input_verifier.lua
+
+-- Begin module: verifiers/input_verifier.lua
+__modules["verifiers/input_verifier"] = function()
+  if __loaded["verifiers/input_verifier"] then return __loaded["verifiers/input_verifier"] end
 local json = require("json")
 local crypto = require(".crypto")
-local VcValidator = __modules["src/vc-validator"]()
-local FieldValidator = __modules["src/variables/validation"]()
+local VcValidator = __modules["vc-validator"]()
+local FieldValidator = __modules["variables/validation"]()
+local verifyEVMTransactionInputVerifier = __modules["verifiers/evm_transaction_input_verifier"]()
 
 local ETHEREUM_ADDRESS_REGEX = "^0x(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)$"
 
@@ -817,50 +1786,94 @@ local function validateEthAddressChecksum(address)
 end
 
 -- Shared validation module
-local ValidationUtils = {
-    ethAddressEqual = function (address1, address2)
-            return string.lower(address1) == string.lower(address2)
-        end,
-    validateField = function(field, value)
-        if not field.validation then
-            return false, "Field validation is missing"
-        end
+local ValidationUtils = {}
 
-        -- Validate type first (specific to InputVerifier)
-        if field.type == "string" and type(value) ~= "string" then
-            return false, string.format("Field %s must be a string", field.name or field.id)
-        elseif field.type == "address" then
-            print("--Address Validation Debug--")
-            print("Value type:", type(value))
-            print("Value:", value)
-            print("Value length:", #value)
-            
-            -- Basic format validation
-            if not string.match(value, ETHEREUM_ADDRESS_REGEX) then
-                return false, string.format("Field %s must be a valid Ethereum address format", field.name or field.id)
-            end
-            
-            -- Checksum validation
-            if not validateEthAddressChecksum(value) then
-                return false, string.format("Field %s must be a valid Ethereum address with correct checksum", field.name or field.id)
-            end
-            
-            print("Address validation passed")
-        elseif field.type == "number" and type(value) ~= "number" then
-            return false, string.format("Field %s must be a number", field.name or field.id)
-        end
+-- Helper function for address equality
+ValidationUtils.ethAddressEqual = function (address1, address2)
+    return string.lower(address1) == string.lower(address2)
+end
 
-        -- Use shared validation for common validations
-        local fieldName = field.name or field.id
-        local isValid, errorMsg = FieldValidator.validateValue(value, field.validation, fieldName)
+-- Variable validation function
+ValidationUtils.validateVariable = function(varDef, value)
+    if varDef == nil then
+        return false, "Variable definition is missing"
+    end
+
+    -- Validate type first (specific to InputVerifier)
+    if varDef.type == "string" and type(value) ~= "string" then
+        return false, string.format("Variable %s must be a string", varDef.name or varDef.id)
+    elseif varDef.type == "address" then
+        -- Basic format validation
+        if not string.match(value, ETHEREUM_ADDRESS_REGEX) then
+            return false, string.format("Variable %s must be a valid Ethereum address format", varDef.name or varDef.id)
+        end
         
+        -- Checksum validation
+        if not validateEthAddressChecksum(value) then
+            return false, string.format("Variable %s must be a valid Ethereum address with correct checksum", varDef.name or varDef.id)
+        end
+        
+        print("Address validation passed")
+    elseif varDef.type == "number" and type(value) ~= "number" then
+        return false, string.format("Variable %s must be a number", varDef.name or varDef.id)
+    end
+
+    -- Use shared validation for common validations, if validation is defined
+    if varDef.validation then
+        local varName = varDef.name or varDef.id
+        local isValid, errorMsg = FieldValidator.validateValue(value, varDef.validation, varName)
+        if not isValid then
+        return false, errorMsg
+        end
+    end
+
+    return true
+end
+
+-- Process variable definitions from input data and resolve variables
+ValidationUtils.processVariableDefinitions = function(varDefs, variables)
+    local processedDefs = {}
+    for varId, varDef in pairs(varDefs) do
+        -- If the value is a string, try to resolve it as a variable
+        local processedDef = varDef
+        if type(varDef) == "string" and variables then
+            local resolvedValue = variables:tryResolveExactStringAsVariableObject(varDef)
+            if resolvedValue then
+                processedDef = resolvedValue
+            end
+        end
+        processedDefs[varId] = processedDef
+    end
+    return processedDefs
+end
+
+-- Validate values against processed variable definitions
+ValidationUtils.validateVariableValues = function(varDefs, values)
+    for varId, varDef in pairs(varDefs) do
+        local varValue = values[varId]
+        
+        -- Check if the variable exists in values
+        if varValue == nil then
+            return false, string.format("Required variable '%s' is missing", varId)
+        end
+        
+        -- Validate the variable using shared validation
+        local isValid, errorMsg = ValidationUtils.validateVariable(varDef, varValue)
         if not isValid then
             return false, errorMsg
         end
-
-        return true
     end
-}
+    return true
+end
+
+-- Process variable definitions and validate values in one step
+ValidationUtils.processAndValidateVariables = function(varDefs, values, variables)
+    -- Step 1: Process variable definitions
+    local processedDefs = ValidationUtils.processVariableDefinitions(varDefs, variables)
+    
+    -- Step 2: Validate values against variable definitions
+    return ValidationUtils.validateVariableValues(processedDefs, values)
+end
 
 -- Base Verifier class
 local BaseVerifier = {}
@@ -880,7 +1893,7 @@ function EIP712Verifier:new()
     return self
 end
 
-function EIP712Verifier:verify(input, value, variables, validate)
+function EIP712Verifier:verify(input, value, variables, contracts, validate)
     local vcJson, credentialSubject, issuerAddress
     
     -- Default to not validating if not explicitly set
@@ -928,23 +1941,10 @@ function EIP712Verifier:verify(input, value, variables, validate)
         return false, "Missing values in credentialSubject"
     end
 
-    -- Validate fields against input definition
-    for fieldId, fieldDef in pairs(input.data) do
-        local fieldValue = credentialSubject.values[fieldId]
-        
-        -- If the value is a string, try to resolve it as a variable
-        if type(fieldDef) == "string" and variables then
-            local resolvedValue = variables:tryResolveExactStringAsVariableObject(fieldDef)
-            if resolvedValue then
-                fieldDef = resolvedValue
-            end
-        end
-
-        -- Validate the field using shared validation
-        local isValid, errorMsg = ValidationUtils.validateField(fieldDef, fieldValue)
-        if not isValid then
-            return false, errorMsg
-        end
+    -- Validate variable values against variable definitions
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, variables)
+    if not isValid then
+        return false, errorMsg
     end
 
     -- Validate issuer if specified
@@ -976,9 +1976,13 @@ function EVMTransactionVerifier:new()
     return self
 end
 
-function EVMTransactionVerifier:verify(input, value, variables)
-    -- TODO: Implement actual EVM transaction verification
-    return true
+function EVMTransactionVerifier:verify(input, value, variables, contracts, expectVc)
+  -- TODO: since we expect the Tx proof to be supplied as a VC, first validate this input as a VC
+  local tableVale = value
+  if type(value) == "string" then
+    tableVale = json.decode(value);
+  end
+  return verifyEVMTransactionInputVerifier(input, tableVale, variables, contracts, expectVc)
 end
 
 -- Factory function to get the appropriate verifier
@@ -1001,7 +2005,7 @@ local function getVerifier(inputType)
 end
 
 -- Main verification function
-local function verify(input, value, variables, validate)
+local function verify(input, value, variables, contracts, validate)
     if not input then
         return false, "Input definition is nil"
     end
@@ -1011,26 +2015,277 @@ local function verify(input, value, variables, validate)
         return false, error
     end
 
-    return verifier:verify(input, value, variables, validate)
+    return verifier:verify(input, value, variables, contracts, validate)
 end
 
 
-  __loaded["src/verifiers/input_verifier"] = {
+  __loaded["verifiers/input_verifier"] = {
     verify = verify,
     ValidationUtils = ValidationUtils,
 }
-  return __loaded["src/verifiers/input_verifier"]
+  return __loaded["verifiers/input_verifier"]
 end
--- End module: src/verifiers/input_verifier.lua
+-- End module: verifiers/input_verifier.lua
 
--- Begin module: src/dfsm.lua
-__modules["src/dfsm"] = function()
-  if __loaded["src/dfsm"] then return __loaded["src/dfsm"] end
+-- Begin module: contracts/contract_manager.lua
+__modules["contracts/contract_manager"] = function()
+  if __loaded["contracts/contract_manager"] then return __loaded["contracts/contract_manager"] end
+local ContractManager = {}
+
+local crypto = require(".crypto.init")
+local json = require("json") -- You'll need a JSON library for Lua
+
+-- Utility function to convert hex to bytes
+local function hex_to_bytes(hex)
+    hex = hex:gsub("^0x", "") -- Remove 0x prefix if present
+    local bytes = {}
+    for i = 1, #hex, 2 do
+        local byte_str = hex:sub(i, i + 1)
+        table.insert(bytes, tonumber(byte_str, 16))
+    end
+    return bytes
+end
+
+-- Utility function to convert bytes to hex
+local function bytes_to_hex(bytes)
+    local hex = ""
+    for i, byte in ipairs(bytes) do
+        hex = hex .. string.format("%02x", byte)
+    end
+    return "0x" .. hex
+end
+
+-- Utility function to extract a slice from bytes array
+local function slice_bytes(bytes, start, length)
+    local result = {}
+    for i = start, start + length - 1 do
+        table.insert(result, bytes[i])
+    end
+    return result
+end
+
+-- Utility function to convert bytes to integer
+local function bytes_to_int(bytes)
+    local result = 0
+    for i, byte in ipairs(bytes) do
+        result = result * 256 + byte
+    end
+    return result
+end
+
+-- Utility function to convert bytes to address (20 bytes)
+local function bytes_to_address(bytes)
+    return bytes_to_hex(bytes):sub(1, 42) -- 0x + 40 hex chars
+end
+
+-- Helper functions
+-- EIP-712 specific functions
+local function keccak256(input)
+    return crypto.digest.keccak256(input).asHex()
+end
+
+-- Function to get function signature from function name and parameter types
+local function get_function_signature(name, param_types)
+    local signature = name .. "("
+    for i, param_type in ipairs(param_types) do
+        if i > 1 then signature = signature .. "," end
+        signature = signature .. param_type
+    end
+    signature = signature .. ")"
+
+    local hash = keccak256(signature)
+    return string.sub(hash, 1, 8) -- First 4 bytes (8 hex chars + 0x)
+end
+
+-- Function to find matching function in ABI by signature
+local function find_function_by_signature(abi, signature)
+    for _, item in ipairs(abi) do
+        if item.type == "function" then
+            local param_types = {}
+            for _, input in ipairs(item.inputs or {}) do
+                table.insert(param_types, input.type)
+            end
+            local func_signature = get_function_signature(item.name, param_types)
+
+            if func_signature == string.sub(signature, 3) then
+                return item
+            end
+        end
+    end
+    return nil
+end
+
+-- Main function to decode transaction data
+function decode_transaction_data(tx_data, abi_json)
+    local abi = json.decode(abi_json)
+    
+    -- Remove 0x prefix if present
+    tx_data = tx_data:gsub("^0x", "")
+    
+    -- If data is empty, it's a simple Ether transfer
+    if #tx_data == 0 then
+        return {
+            function_name = "transfer",
+            function_signature = "",
+            parameters = {}
+        }
+    end
+    
+    -- Extract function signature (first 4 bytes)
+    local signature = "0x" .. tx_data:sub(1, 8)
+    local data_bytes = hex_to_bytes(tx_data)
+
+    
+    -- Find the matching function in the ABI
+    local function_def = find_function_by_signature(abi, signature)
+    if not function_def then
+        return {
+            function_name = "unknown",
+            function_signature = signature,
+            parameters = {}
+        }
+    end
+    
+    -- Decode parameters based on the function definition
+    local parameters = {}
+    local offset = 5 -- Start after the function signature (4 bytes)
+    
+    for i, input in ipairs(function_def.inputs or {}) do
+        local param_value
+        
+        if input.type == "uint256" or input.type:match("^uint%d+$") then
+            -- Decode uint256 (32 bytes)
+            local value_bytes = slice_bytes(data_bytes, offset, 32)
+            param_value = bytes_to_int(value_bytes)
+            offset = offset + 32
+        elseif input.type == "address" then
+            -- Decode address (20 bytes, but padded to 32 bytes in calldata)
+            local value_bytes = slice_bytes(data_bytes, offset + 12, 20) -- Skip 12 bytes of padding
+            param_value = bytes_to_address(value_bytes)
+            offset = offset + 32
+        elseif input.type == "bool" then
+            -- Decode boolean (1 byte, but padded to 32 bytes in calldata)
+            local value_bytes = slice_bytes(data_bytes, offset, 32)
+            param_value = bytes_to_int(value_bytes) ~= 0
+            offset = offset + 32
+        elseif input.type == "string" or input.type == "bytes" then
+            -- Dynamic types have their offset at the current position
+            local offset_bytes = slice_bytes(data_bytes, offset, 32)
+            local data_offset = bytes_to_int(offset_bytes) * 2 + 9 -- Convert to bytes position in hex string (8 chars for func sig + 1 for 0x)
+            
+            -- Get length of string/bytes
+            local length_bytes_pos = math.floor(data_offset / 2) + 1
+            local length_bytes = slice_bytes(data_bytes, length_bytes_pos, 32)
+            local length = bytes_to_int(length_bytes)
+            
+            -- Get actual string/bytes data
+            local data_start = length_bytes_pos + 32
+            local data_end = data_start + length - 1
+            local value_bytes = slice_bytes(data_bytes, data_start, length)
+            
+            if input.type == "string" then
+                -- Convert bytes to string
+                local str = ""
+                for _, b in ipairs(value_bytes) do
+                    str = str .. string.char(b)
+                end
+                param_value = str
+            else
+                param_value = bytes_to_hex(value_bytes)
+            end
+            
+            offset = offset + 32
+        else
+            -- For other types or complex types, return the raw bytes
+            local value_bytes = slice_bytes(data_bytes, offset, 32)
+            param_value = bytes_to_hex(value_bytes)
+            offset = offset + 32
+        end
+        
+        -- Add parameter to results
+        table.insert(parameters, {
+            name = input.name,
+            type = input.type,
+            value = param_value
+        })
+    end
+    
+    return {
+        function_name = function_def.name,
+        function_signature = signature,
+        parameters = parameters
+    }
+end
+
+
+function ContractManager.new(contracts)
+    local self = {
+        contracts = {}
+    }
+
+    for _, contract in ipairs(contracts) do
+        self.contracts[contract.id] = {
+            id = contract.id,
+            description = contract.description,
+            address = contract.address,
+            abi = contract.abi,
+            get = function(self)
+                return self.value
+            end,
+            setAddress = function(self, address)
+                self.address = address
+            end,
+            decode = function(self, txInput)
+                return decode_transaction_data(txInput, self.abi)
+            end
+        }
+    end
+
+    setmetatable(self, { __index = ContractManager })
+    return self
+end
+
+function ContractManager:getContract(id)
+    local contract = self.contracts[id]
+    if not contract then
+        error(string.format("Contract not found: %s", id))
+    end
+    return contract:get()
+end
+
+function ContractManager:setContractAddress(id, address)
+    local contract = self.contracts[id]
+    if not contract then
+        error(string.format("Contract not found: %s", id))
+    end
+    contract:setAddress(address)
+end
+
+function ContractManager:getAllContracts()
+    local result = {}
+    for name, contract in pairs(self.contracts) do
+        result[name] = {
+            value = contract:get(),
+        }
+    end
+    return result
+end
+
+
+  __loaded["contracts/contract_manager"] = ContractManager
+  return __loaded["contracts/contract_manager"]
+end
+-- End module: contracts/contract_manager.lua
+
+-- Begin module: dfsm.lua
+__modules["dfsm"] = function()
+  if __loaded["dfsm"] then return __loaded["dfsm"] end
 -- DFSM (Deterministic Finite State Machine) implementation
-local VariableManager = __modules["src/variables/variable_manager"]()
-local InputVerifier = __modules["src/verifiers/input_verifier"]()
+local VariableManager = __modules["variables/variable_manager"]()
+local InputVerifier = __modules["verifiers/input_verifier"]()
 local json = require("json")
-local VcValidator = __modules["src/vc-validator"]()
+local VcValidator = __modules["vc-validator"]()
+local ContractManager = __modules["contracts/contract_manager"]()
 local base64 = require(".base64")
 
 local ValidationUtils = InputVerifier.ValidationUtils
@@ -1060,13 +2315,33 @@ function DFSM:hasOutgoingTransitions(stateId)
     return false
 end
 
+-- Helper function to validate initialParams against initialValues
+function DFSM:validateInitialParams(stateId, initialParams, initialValues)
+    if not initialParams or type(initialParams) ~= "table" then
+        return true
+    end
+    
+    if not initialValues then
+        error("Initial state " .. stateId .. " requires parameters, but no initial values provided")
+    end
+    
+    -- Validate the variable values against variable definitions
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self.variables)
+    if not isValid then
+        error("Invalid parameter value for state " .. stateId .. ": " .. errorMsg)
+    end
+    
+    return true
+end
+
 -- Initialize a new DFSM instance from a JSON definition
-function DFSM.new(doc, expectVCWrapper)
+function DFSM.new(doc, expectVCWrapper, params)
     local self = {
         currentState = nil, -- Will store the entire state object
         inputs = {},
         transitions = {},
         variables = nil,
+        contracts = nil,
         received = {},
         complete = false,
         states = {}, -- Store state information (name, description)
@@ -1082,24 +2357,30 @@ function DFSM.new(doc, expectVCWrapper)
         agreement = json.decode(base64.decode(credentialSubject.agreement))
         initialValues = credentialSubject.params
     else
-        local credentialSubject = json.decode(doc)
-        agreement = credentialSubject.agreement
-        initialValues = credentialSubject.params
+        agreement = json.decode(doc)
+        initialValues = params
     end
 
     -- Initialize variables
     self.variables = VariableManager.new(agreement.variables)
+    self.contracts = ContractManager.new(agreement.contracts or {})
 
     -- Set initial values if provided
     if initialValues then
         for id, value in pairs(initialValues) do
             if self.variables:isVariable(id) then
-                self.variables:setVariable(id, value)
+                local success, err = pcall(function() self.variables:setVariable(id, value) end)
+                if not success then
+                    error(string.format("Error setting variable '%s' to '%s': %s", id, tostring(value), err))
+                end
             else
                 error(string.format("Attempted to set undeclared variable: %s", id))
             end
         end
     end
+
+    -- Set metatable early so methods can be called
+    setmetatable(self, { __index = DFSM })
 
     -- Validate and set initial state
     if not agreement.execution or not agreement.execution.states then
@@ -1118,7 +2399,8 @@ function DFSM.new(doc, expectVCWrapper)
             id = stateId, -- Include the ID in the state object for reference
             name = stateObj.name or stateId,
             description = stateObj.description or "",
-            isInitial = stateObj.isInitial or false
+            isInitial = stateObj.isInitial or false,
+            initialParams = stateObj.initialParams or {}
         }
         
         -- Track initial state
@@ -1127,6 +2409,9 @@ function DFSM.new(doc, expectVCWrapper)
                 error("Multiple initial states found: " .. initialStateId .. " and " .. stateId)
             end
             initialStateId = stateId
+            
+            -- Check that all required parameters are provided in initialValues
+            self:validateInitialParams(stateId, stateObj.initialParams, initialValues)
         end
     end
     
@@ -1163,7 +2448,6 @@ function DFSM.new(doc, expectVCWrapper)
         end
     end
 
-    setmetatable(self, { __index = DFSM })
     return self
 end
 
@@ -1275,7 +2559,7 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     -- For production, validateVC should be true to ensure proper signature validation
     
     -- Verify input type and schema
-    local isValid, result = InputVerifier.verify(inputDef, inputValue, self.variables, validateVC)
+    local isValid, result = InputVerifier.verify(inputDef, inputValue, self.variables, self.contracts, validateVC)
     if not isValid then
         return false, result
     end
@@ -1308,36 +2592,6 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     end
 
     return false, "No valid transition found"
-end
-
--- validate input values against schema
-function DFSM:validateInputValues(inputDef, values)
-    if not inputDef.data then
-        return true, nil
-    end
-
-    -- Handle object data structure
-    if type(inputDef.data) == "table" then
-        for fieldId, field in pairs(inputDef.data) do
-            -- If field is a variable reference (like in partyAData/partyBData)
-            if type(field) ~= "table" then
-                local isValid, errorMsg = self:validateField({id = fieldId}, field)
-                if not isValid then
-                    return false, errorMsg
-                end
-            else
-                -- If field is a field definition (like in accepted/rejected)
-                local isValid, errorMsg = self:validateField(field, values[fieldId])
-                if not isValid then
-                    return false, errorMsg
-                end
-            end
-        end
-    else
-        error("Input data must be an object")
-    end
-
-    return true, nil
 end
 
 -- Get the current state ID
@@ -1397,19 +2651,19 @@ end
 
 -- Export the DFSM module
 
-  __loaded["src/dfsm"] = {
+  __loaded["dfsm"] = {
     new = DFSM.new,
 }
-  return __loaded["src/dfsm"]
+  return __loaded["dfsm"]
 end
--- End module: src/dfsm.lua
+-- End module: dfsm.lua
 
 -- Custom require function
 local function __require(moduleName)
   return __modules[moduleName]()
 end
 
--- Main actor file: src/apoc-v2.lua
+-- Main actor file: apoc-v2.lua
 
 
 local json = require("json")
@@ -1417,7 +2671,7 @@ local Array = require(".crypto.util.array")
 local crypto = require(".crypto.init")
 local utils = require(".utils")
 
-local DFSM = __modules["src/dfsm"]()
+local DFSM = __modules["dfsm"]()
 
 
 -- BEGIN: actor's internal state

@@ -34,7 +34,7 @@ response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
         inputId = "partyAData",
-        inputValue = inputA
+        inputValue = json.decode(inputA)
     }),
     reply = function (response)
       -- printTable(response.Data)
@@ -50,7 +50,7 @@ response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
         inputId = "partyAData",
-        inputValue = inputA
+        inputValue = json.decode(inputA)
     }),
     reply = function (response)
       -- printTable(response.Data)
@@ -67,9 +67,9 @@ response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
         inputId = "invalidInput",
-        inputValue = [[{
-            "someValue": true
-        }]]
+        inputValue = {
+            someValue = true
+        }
     }),
     reply = function (response)
       -- printTable(response.Data)
@@ -85,7 +85,7 @@ response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
         inputId = "partyBData",
-        inputValue = inputB
+        inputValue = json.decode(inputB)
     }),
     reply = function (response)
       -- printTable(response.Data)
@@ -119,7 +119,7 @@ response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
         inputId = "rejected",
-        inputValue = inputAReject
+        inputValue = json.decode(inputAReject)
     }),
     reply = function (response)
       -- printTable(response.Data)
