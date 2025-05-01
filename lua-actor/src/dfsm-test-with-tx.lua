@@ -202,12 +202,10 @@ TestUtils.runTest(
     testCounter
 )
 
--- TODO: fix this test (it's returning the wrong current state)
-
 -- Test 7: Invalid input - should fail with error
 TestUtils.runTest(
     "Invalid input ID", 
-    dfsm, 
+    rejectionDfsm,
     "invalidInput", 
     [[{
         "someValue": true
