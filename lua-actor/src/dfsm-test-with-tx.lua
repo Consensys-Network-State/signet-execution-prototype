@@ -7,18 +7,12 @@ local DFSM = require("dfsm")
 -- Import test utilities
 local TestUtils = require("test-utils")
 
--- Load agreement document from JSON file
-local function loadAgreementDoc()
-    local file = io.open("./test-data/grant-with-tx/simple.grant.json", "r")
-    if not file then
-        error("Could not open agreement document file")
-    end
-    local content = file:read("*all")
-    file:close()
-    return content
-end
-
-local agreementDoc = loadAgreementDoc()
+local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/simple.grant.json")
+local oracleDataDoc = TestUtils.loadInputDoc("./mock-oracle-data.json")
+-- full info on a couple of canned transactions
+local txData = json.decode(oracleDataDoc)
+local fullTxData1 = json.encode(txData["0x9445f933860ef6d65fdaf419fcf8b0749f415c7cd0f82f8b420b10a776c5373e"])
+local fullTxData2 = json.encode(txData["0x1cdc44857dd967f99d4644151340b5a083f77e660c60121a7dc63b8b75047f5e"])
 
 local dfsm = DFSM.new(agreementDoc, false, json.decode([[
 {
@@ -116,9 +110,7 @@ TestUtils.runTest(
     "Funds sent", 
     dfsm, 
     "fundsSentTx", 
-    [[{
-        "txHash": "0x9445f933860ef6d65fdaf419fcf8b0749f415c7cd0f82f8b420b10a776c5373e"
-    }]],
+    fullTxData1,
     true,  -- expect success
     nil,
     "AWAITING_PAYMENT",
@@ -131,9 +123,7 @@ TestUtils.runTest(
     "Tokens sent", 
     dfsm, 
     "workTokenSentTx", 
-    [[{
-        "txHash": "0x1cdc44857dd967f99d4644151340b5a083f77e660c60121a7dc63b8b75047f5e"
-    }]],
+    fullTxData2,
     true,  -- expect success
     nil,
     "PAYMENT_CONFIRMED",
@@ -235,7 +225,7 @@ TestUtils.runTest(
         "someValue": true
     }]],
     false,  -- expect failure
-    "Unknown input",
+    "State machine is complete",
     "PAYMENT_CONFIRMED",  -- state should not change
     DFSMUtils,
     testCounter
