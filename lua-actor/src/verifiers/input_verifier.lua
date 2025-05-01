@@ -227,7 +227,8 @@ function EVMTransactionVerifier:new()
 end
 
 function EVMTransactionVerifier:verify(input, value, variables, contracts)
-    return verifyEVMTransactionInputVerifier(input, value, variables, contracts)
+  -- TODO: since we expect the Tx proof to be supplied as a VC, first validate this input as a VC
+  return verifyEVMTransactionInputVerifier(input, value, variables, contracts)
 end
 
 -- Factory function to get the appropriate verifier
