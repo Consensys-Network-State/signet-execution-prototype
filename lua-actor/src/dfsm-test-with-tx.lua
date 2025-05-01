@@ -8,16 +8,15 @@ local DFSM = require("dfsm")
 local TestUtils = require("test-utils")
 
 local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.json")
-local oracleDataDoc = TestUtils.loadInputDoc("./mock-oracle-data.json")
+local oracleDataDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/proof-data.json")
 -- full info on a couple of canned transactions
-local txData = json.decode(oracleDataDoc)
-local fullTxData = json.encode(txData["0x1cdc44857dd967f99d4644151340b5a083f77e660c60121a7dc63b8b75047f5e"])
+local fullTxData = oracleDataDoc
 
 local dfsm = DFSM.new(agreementDoc, false, json.decode([[
 {
     "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "grantRecipientAddress": "0xb800B70D15BC235C81D483D19E91e69a91328B98",
-    "grantAmount": 68395011620287000,
+    "grantAmount": 100,
     "tokenAllocatorAddress": "0xB47855e843c4F9D54408372DA4CA79D20542d168"
 }
 ]]))
@@ -122,7 +121,7 @@ local rejectionDfsm = DFSM.new(agreementDoc, false, json.decode([[
 {
     "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "grantRecipientAddress": "0xb800B70D15BC235C81D483D19E91e69a91328B98",
-    "grantAmount": 68395011620287000,
+    "grantAmount": 100,
     "tokenAllocatorAddress": "0xB47855e843c4F9D54408372DA4CA79D20542d168"
 }
 ]]))

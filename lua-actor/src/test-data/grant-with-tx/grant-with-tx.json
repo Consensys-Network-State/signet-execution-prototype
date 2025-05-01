@@ -168,10 +168,10 @@
         "description": "EIP712 signature from the token allocator attesting that work token has been transfered to the grantee",
         "txMetadata": {
           "transactionType": "contractCall",
-          "method": "mint",
+          "method": "transfer",
           "params": [
-            "0x1e8564a52fc67a68fee78fc6422f19c07cfae198",
-            1000000000000000000
+            "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
+            100
           ],
           "contractReference": "workToken"
         },

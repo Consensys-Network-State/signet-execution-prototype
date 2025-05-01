@@ -61,8 +61,6 @@ local function runTest(description, dfsm, inputId, inputValue, expectedSuccess, 
     print("TEST: " .. description)
     print("Processing input: " .. inputId)
     
-    local initialState = dfsm.currentState and dfsm.currentState.id or "nil"
-    
     -- Set validateVC to false for testing
     local success, result = dfsm:processInput(inputId, inputValue, false)
     

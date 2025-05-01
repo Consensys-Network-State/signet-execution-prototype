@@ -727,7 +727,7 @@ local function verifyEVMTransaction(input, value, variables, contracts)
         end
 
         for i, param in ipairs(decodedTx.parameters) do
-            if (param.value ~= processedRequiredInput.params[i]) then
+            if (string.lower(param.value) ~= string.lower(processedRequiredInput.params[i])) then
                 return false
             end
         end
