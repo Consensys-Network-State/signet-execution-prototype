@@ -13,7 +13,8 @@ local inputB = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.p
 local inputAAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-input-accept.wrapped.json")
 local inputATxProof = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-tx-proof.wrapped.json")
 
-local dfsm = DFSM.new(agreementDoc, true)
+local expectVc = true
+local dfsm = DFSM.new(agreementDoc, expectVc)
 
 print(DFSMUtils.formatFSMSummary(dfsm))
 print(DFSMUtils.renderDFSMState(dfsm))
@@ -31,7 +32,8 @@ TestUtils.runTest(
     nil,
     nil,   -- we don't specify expected state for wrapped version
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 2: Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
@@ -44,7 +46,8 @@ TestUtils.runTest(
     nil,
     nil,
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 3: Valid acceptance - should succeed and transition to ACCEPTED
@@ -57,7 +60,8 @@ TestUtils.runTest(
     nil,
     nil,
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 4: Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
@@ -70,7 +74,8 @@ TestUtils.runTest(
     nil,
     nil,
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 5: Rejection case - testing from an alternative starting point

@@ -12,7 +12,8 @@ local oracleDataDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/proof-da
 -- full info on a couple of canned transactions
 local fullTxData = oracleDataDoc
 
-local dfsm = DFSM.new(agreementDoc, false, json.decode([[
+local expectVc = false
+local dfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 {
     "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "grantRecipientAddress": "0xb800B70D15BC235C81D483D19E91e69a91328B98",
@@ -50,7 +51,8 @@ TestUtils.runTest(
     nil,
     "PENDING_PARTY_B_SIGNATURE",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 2: Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
@@ -75,7 +77,8 @@ TestUtils.runTest(
     nil,
     "PENDING_ACCEPTANCE",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 3: Valid acceptance - should succeed and transition to ACCEPTED
@@ -100,7 +103,8 @@ TestUtils.runTest(
     nil,
     "ACCEPTED_PENDING_PAYMENT",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 4: Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
@@ -113,11 +117,12 @@ TestUtils.runTest(
     nil,
     "PAYMENT_CONFIRMED",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 5: Rejection case - testing from an alternative starting point
-local rejectionDfsm = DFSM.new(agreementDoc, false, json.decode([[
+local rejectionDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 {
     "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "grantRecipientAddress": "0xb800B70D15BC235C81D483D19E91e69a91328B98",
@@ -149,7 +154,8 @@ TestUtils.runTest(
     nil,
     "PENDING_PARTY_B_SIGNATURE",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 TestUtils.runTest(
@@ -173,7 +179,8 @@ TestUtils.runTest(
     nil,
     "PENDING_ACCEPTANCE",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Now test rejection
@@ -198,7 +205,8 @@ TestUtils.runTest(
     nil,
     "REJECTED",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 7: Invalid input - should fail with error
@@ -213,7 +221,8 @@ TestUtils.runTest(
     "State machine is complete",
     "REJECTED", -- state should not change
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Print test summary
