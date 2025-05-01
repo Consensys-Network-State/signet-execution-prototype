@@ -74,158 +74,324 @@
   ],
   "execution": {
     "states": {
-      "PENDING_PARTY_A_SIGNATURE": {
-        "name": "Pending Signature From A",
-        "description": "This state awaits until Party A supplies Party B's address along with their own name.",
+      "SETUP": {
+        "name": "Setup",
+        "description": "Initial template setup state",
         "isInitial": true,
         "initialParams": {
-          "partyAEthAddress": "${variables.partyAEthAddress}",
-          "grantRecipientAddress": "${variables.grantRecipientAddress}",
-          "grantAmount": "${variables.grantAmount}",
-          "tokenAllocatorAddress": "${variables.tokenAllocatorAddress}"
+          "partyAEthAddress": "${variables.partyAEthAddress}"
         }
       },
-      "PENDING_PARTY_B_SIGNATURE": {
-        "name": "Pending Signature From B",
-        "description": "This state awaits until Party B confirms their identity by supplying their name."
+      "CUSTOMER_SIGNING": {
+        "name": "Customer Signing",
+        "description": "This state awaits customer to sign the agreement"
       },
-      "PENDING_ACCEPTANCE": {
-        "name": "Pending Final Acceptance",
-        "description": "This state awaits Party A's final acceptance of Party B's data."
+      "COUNTERSIGNING": {
+        "name": "Countersigning",
+        "description": "This state awaits provider to countersign the agreement"
       },
-      "ACCEPTED_PENDING_PAYMENT": {
-        "name": "Agreement Accepted",
-        "description": "The agreement has been accepted by both parties and is now in force."
+      "ACTIVE": {
+        "name": "Active",
+        "description": "Agreement is active and work is in progress"
+      },
+      "WORK_REVIEW": {
+        "name": "Work Review",
+        "description": "Work is ready for customer review"
+      },
+      "RESUBMIT": {
+        "name": "Resubmit",
+        "description": "Provider needs to resubmit work based on feedback"
+      },
+      "ACCEPTED_PAID": {
+        "name": "Accepted & Paid",
+        "description": "Work accepted and payment completed"
       },
       "REJECTED": {
-        "name": "Agreement Rejected",
-        "description": "The agreement has been rejected by Party A and will not proceed."
+        "name": "Rejected",
+        "description": "Agreement has been rejected by either party"
       },
-      "PAYMENT_CONFIRMED": {
-        "name": "Final successful payment state",
-        "description": "Agreement is now complete."
+      "TERMINATED": {
+        "name": "Terminated",
+        "description": "Agreement has been terminated"
       }
     },
     "inputs": {
-      "partyAData": {
+      "variablesProvider": {
         "type": "VerifiedCredentialEIP712",
         "schema": "verified-credential-eip712.schema.json",
-        "displayName": "Party A Signature",
-        "description": "EIP712 signature from Party A proposing the MOU terms",
+        "displayName": "Provider Variables",
+        "description": "Variables set by the provider",
         "data": {
-          "partyAName": "${variables.partyAName}",
-          "partyBEthAddress": "${variables.partyBEthAddress}"
+          "partyBEthAddress": "${variables.partyBEthAddress}",
+          "grantRecipientAddress": "${variables.grantRecipientAddress}",
+          "grantAmount": "${variables.grantAmount}",
+          "tokenAllocatorAddress": "${variables.tokenAllocatorAddress}"
         },
         "issuer": "${variables.partyAEthAddress.value}"
       },
-      "partyBData": {
+      "customerVariables": {
         "type": "VerifiedCredentialEIP712",
         "schema": "verified-credential-eip712.schema.json",
-        "displayName": "Party B Signature",
-        "description": "EIP712 signature from Party B accepting the MOU terms",
+        "displayName": "Customer Variables",
+        "description": "Variables set by the customer",
         "data": {
-          "partyBName": "${variables.partyBName}"
+          "partyAName": "${variables.partyAName}"
+        },
+        "issuer": "${variables.partyAEthAddress.value}"
+      },
+      "customerSignature": {
+        "type": "VerifiedCredentialEIP712",
+        "schema": "verified-credential-eip712.schema.json",
+        "displayName": "Customer Signature",
+        "description": "Signature from the customer",
+        "data": {
+          "customerAgreement": "SIGNED"
+        },
+        "issuer": "${variables.partyAEthAddress.value}"
+      },
+      "providerSignature": {
+        "type": "VerifiedCredentialEIP712",
+        "schema": "verified-credential-eip712.schema.json",
+        "displayName": "Provider Signature",
+        "description": "Signature from the provider",
+        "data": {
+          "partyBName": "${variables.partyBName}",
+          "providerAgreement": "SIGNED"
         },
         "issuer": "${variables.partyBEthAddress.value}"
       },
-      "accepted": {
+      "submissionVC": {
         "type": "VerifiedCredentialEIP712",
         "schema": "verified-credential-eip712.schema.json",
-        "displayName": "Party A Accepted Party B's Data",
-        "description": "EIP712 signature from Party A accepting Party B's data",
+        "displayName": "Work Submission",
+        "description": "Work submission from provider",
         "data": {
-          "partyAAcceptance": {
-            "type": "string",
-            "validation": {
-              "required": true,
-              "pattern": "^ACCEPTED$"
-            }
-          }
+          "workSubmission": "SUBMITTED",
+          "submissionDetails": "Details of the work performed"
+        },
+        "issuer": "${variables.partyBEthAddress.value}"
+      },
+      "feedbackVC": {
+        "type": "VerifiedCredentialEIP712",
+        "schema": "verified-credential-eip712.schema.json",
+        "displayName": "Feedback",
+        "description": "Feedback on submission from customer",
+        "data": {
+          "feedback": "REVISIONS_REQUESTED",
+          "feedbackDetails": "Details of requested changes"
         },
         "issuer": "${variables.partyAEthAddress.value}"
       },
-      "rejected": {
-        "type": "VerifiedCredentialEIP712",
-        "schema": "verified-credential-eip712.schema.json",
-        "displayName": "Party A Rejected Party B's Data",
-        "description": "EIP712 signature from Party A rejecting Party B's data",
-        "data": {
-          "partyARejection": {
-            "type": "string",
-            "validation": {
-              "required": true,
-              "pattern": "^REJECTED$"
-            }
-          }
-        },
-        "issuer": "${variables.partyAEthAddress.value}"
-      },
-      "workTokenSentTx": {
-        "id": "workTokenSentTx",
+      "paymentTx": {
         "type": "EVMTransaction",
         "schema": "verified-credential-eip712.schema.json",
-        "displayName": "Work Approved Signature",
-        "description": "EIP712 signature from the token allocator attesting that work token has been transfered to the grantee",
+        "displayName": "Payment Transaction",
+        "description": "Payment transaction for completed work",
         "txMetadata": {
           "transactionType": "contractCall",
           "method": "transfer",
           "params": [
-            "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
-            100
+            "${variables.grantRecipientAddress.value}",
+            "${variables.grantAmount.value}"
           ],
           "contractReference": "workToken"
         },
         "signer": "${variables.tokenAllocatorAddress.value}"
+      },
+      "customerRejects": {
+        "type": "VerifiedCredentialEIP712",
+        "schema": "verified-credential-eip712.schema.json",
+        "displayName": "Customer Rejection",
+        "description": "Customer rejects the agreement",
+        "data": {
+          "rejection": "REJECTED",
+          "rejectionReason": "Customer's reason for rejection"
+        },
+        "issuer": "${variables.partyAEthAddress.value}"
+      },
+      "providerRejects": {
+        "type": "VerifiedCredentialEIP712",
+        "schema": "verified-credential-eip712.schema.json",
+        "displayName": "Provider Rejection",
+        "description": "Provider rejects the agreement",
+        "data": {
+          "rejection": "REJECTED",
+          "rejectionReason": "Provider's reason for rejection"
+        },
+        "issuer": "${variables.partyBEthAddress.value}"
+      },
+      "partyATerminates": {
+        "type": "VerifiedCredentialEIP712",
+        "schema": "verified-credential-eip712.schema.json",
+        "displayName": "Party A Termination",
+        "description": "Party A terminates the agreement",
+        "data": {
+          "termination": "TERMINATED",
+          "terminationReason": "Party A's reason for termination"
+        },
+        "issuer": "${variables.partyAEthAddress.value}"
+      },
+      "partyBTerminates": {
+        "type": "VerifiedCredentialEIP712",
+        "schema": "verified-credential-eip712.schema.json",
+        "displayName": "Party B Termination",
+        "description": "Party B terminates the agreement",
+        "data": {
+          "termination": "TERMINATED",
+          "terminationReason": "Party B's reason for termination"
+        },
+        "issuer": "${variables.partyBEthAddress.value}"
       }
     },
     "transitions": [
       {
-        "from": "PENDING_PARTY_A_SIGNATURE",
-        "to": "PENDING_PARTY_B_SIGNATURE",
+        "from": "SETUP",
+        "to": "CUSTOMER_SIGNING",
         "conditions": [
           {
             "type": "isValid",
-            "input": "partyAData"
+            "input": "variablesProvider"
           }
         ]
       },
       {
-        "from": "PENDING_PARTY_B_SIGNATURE",
-        "to": "PENDING_ACCEPTANCE",
+        "from": "CUSTOMER_SIGNING",
+        "to": "COUNTERSIGNING",
         "conditions": [
           {
             "type": "isValid",
-            "input": "partyBData"
+            "input": "customerVariables"
+          },
+          {
+            "type": "isValid",
+            "input": "customerSignature"
           }
         ]
       },
       {
-        "from": "PENDING_ACCEPTANCE",
-        "to": "ACCEPTED_PENDING_PAYMENT",
+        "from": "COUNTERSIGNING",
+        "to": "ACTIVE",
         "conditions": [
           {
             "type": "isValid",
-            "input": "accepted"
+            "input": "providerSignature"
           }
         ]
       },
       {
-        "from": "PENDING_ACCEPTANCE",
+        "from": "ACTIVE",
+        "to": "WORK_REVIEW",
+        "conditions": [
+          {
+            "type": "isValid",
+            "input": "submissionVC"
+          }
+        ]
+      },
+      {
+        "from": "WORK_REVIEW",
+        "to": "RESUBMIT",
+        "conditions": [
+          {
+            "type": "isValid",
+            "input": "feedbackVC"
+          }
+        ]
+      },
+      {
+        "from": "RESUBMIT",
+        "to": "WORK_REVIEW",
+        "conditions": [
+          {
+            "type": "isValid",
+            "input": "submissionVC"
+          }
+        ]
+      },
+      {
+        "from": "WORK_REVIEW",
+        "to": "ACCEPTED_PAID",
+        "conditions": [
+          {
+            "type": "isValid",
+            "input": "paymentTx"
+          }
+        ]
+      },
+      {
+        "from": "CUSTOMER_SIGNING",
         "to": "REJECTED",
         "conditions": [
           {
             "type": "isValid",
-            "input": "rejected"
+            "input": "customerRejects"
           }
         ]
       },
       {
-        "from": "ACCEPTED_PENDING_PAYMENT",
-        "to": "PAYMENT_CONFIRMED",
+        "from": "COUNTERSIGNING",
+        "to": "REJECTED",
         "conditions": [
           {
             "type": "isValid",
-            "input": "workTokenSentTx"
+            "input": "providerRejects"
+          }
+        ]
+      },
+      {
+        "from": "ACTIVE",
+        "to": "TERMINATED",
+        "conditions": [
+          {
+            "type": "or",
+            "conditions": [
+              {
+                "type": "isValid",
+                "input": "partyATerminates"
+              },
+              {
+                "type": "isValid",
+                "input": "partyBTerminates"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "from": "WORK_REVIEW",
+        "to": "TERMINATED",
+        "conditions": [
+          {
+            "type": "or",
+            "conditions": [
+              {
+                "type": "isValid",
+                "input": "partyATerminates"
+              },
+              {
+                "type": "isValid",
+                "input": "partyBTerminates"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "from": "RESUBMIT",
+        "to": "TERMINATED",
+        "conditions": [
+          {
+            "type": "or",
+            "conditions": [
+              {
+                "type": "isValid",
+                "input": "partyATerminates"
+              },
+              {
+                "type": "isValid",
+                "input": "partyBTerminates"
+              }
+            ]
           }
         ]
       }
