@@ -31,8 +31,11 @@ export class AgreementService {
     }
     // After processing input, update the agreement record in Mongo.
     // There is no need to fetch the document, as it doesn't change after initialization.
-    await queryAndUpsertAgreementRecord(id, false);
-    return result;
+    const updatedState = await queryAndUpsertAgreementRecord(id, false);
+    return {
+      ...result,
+      updatedState,
+    };
   }
 
   async getState(id: string) {
