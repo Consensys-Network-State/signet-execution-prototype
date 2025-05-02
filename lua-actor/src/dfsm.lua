@@ -56,7 +56,8 @@ end
 function DFSM.new(doc, expectVCWrapper, params)
     local self = {
         currentState = nil, -- Will store the entire state object
-        inputs = {},
+        inputs = {},        -- Will be a stack of inputs
+        inputsMap = {},     -- Maps inputId to indexes in the inputs stack
         transitions = {},
         variables = nil,
         contracts = nil,
@@ -143,13 +144,19 @@ function DFSM.new(doc, expectVCWrapper, params)
     end
     self.currentState = self.states[initialStateId]
 
-    -- Process inputs (assuming object structure)
+    -- Process inputs (assuming object structure) and convert to stack
     if agreement.execution.inputs then
         if type(agreement.execution.inputs) ~= "table" then
             error("Inputs must be an object with input IDs as keys")
         end
+        -- Push inputs onto the stack and initialize inputsMap
         for id, input in pairs(agreement.execution.inputs) do
-            self.inputs[id] = input
+            input.id = id  -- Add ID to the input object for reference
+            table.insert(self.inputs, input)
+            if not self.inputsMap[id] then
+                self.inputsMap[id] = {}
+            end
+            table.insert(self.inputsMap[id], #self.inputs)
         end
     end
 
@@ -224,8 +231,8 @@ function DFSM:validate()
 
     -- Check that all inputs referenced in conditions exist
     local validInputs = {}
-    for inputId, _ in pairs(self.inputs) do
-        validInputs[inputId] = true
+    for _, input in ipairs(self.inputs) do
+        validInputs[input.id] = true
     end
 
     for _, transition in ipairs(self.transitions) do
@@ -246,12 +253,12 @@ function DFSM:validate()
     end
 
     -- Validate input schemas
-    for inputId, input in pairs(self.inputs) do
+    for _, input in ipairs(self.inputs) do
         if not input.type then
-            error(string.format("Input %s missing type", inputId))
+            error(string.format("Input %s missing type", input.id))
         end
         if not input.schema then
-            error(string.format("Input %s missing schema", inputId))
+            error(string.format("Input %s missing schema", input.id))
         end
     end
 end
@@ -268,7 +275,7 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     end
 
     -- Get input definition
-    local inputDef = self.inputs[inputId]
+    local inputDef = self:getInput(inputId)
     if not inputDef then
         return false, string.format("Unknown input: %s", inputId)
     end
@@ -357,9 +364,25 @@ function DFSM:getVariables()
     return self.variables:getAllVariables()
 end
 
--- Get input definition by ID
+-- Add an input to the stack
+function DFSM:addInput(inputId, inputDef)
+    inputDef.id = inputId -- Add ID to the input object for reference
+    table.insert(self.inputs, inputDef)
+    if not self.inputsMap[inputId] then
+        self.inputsMap[inputId] = {}
+    end
+    table.insert(self.inputsMap[inputId], #self.inputs)
+    return #self.inputs
+end
+-- Get input definition by ID (returns the latest input with the given ID from the stack)
 function DFSM:getInput(inputId)
-    return self.inputs[inputId]
+    if not self.inputsMap[inputId] or #self.inputsMap[inputId] == 0 then
+        return nil
+    end
+    
+    -- Get the latest index for this input ID
+    local latestIndex = self.inputsMap[inputId][#self.inputsMap[inputId]]
+    return self.inputs[latestIndex]
 end
 
 -- Get all inputs
