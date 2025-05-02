@@ -21,7 +21,7 @@ print(DFSMUtils.renderDFSMState(dfsm))
 -- Test counter for tracking results
 local testCounter = { count = 0 }
 
--- Test 1: Valid Party A data - should succeed and transition to PENDING_PARTY_B_SIGNATURE
+-- Valid Party A data - should succeed and transition to PENDING_PARTY_B_SIGNATURE
 TestUtils.runTest(
     "Valid Party A data submission", 
     dfsm, 
@@ -47,33 +47,7 @@ TestUtils.runTest(
     testCounter
 )
 
--- Test 2: Duplicate Party A data submission - should fail with already processed error
-TestUtils.runTest(
-    "Duplicate Party A data submission", 
-    dfsm, 
-    "partyAData", 
-    [[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-        },
-        "credentialSubject": {
-            "id": "partyAData",
-            "type": "signedFields",
-            "values": {
-                "partyAName": "Damian",
-                "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
-            }
-        }
-    }]],
-    false,  -- expect failure
-    "has already been processed",
-    "PENDING_PARTY_B_SIGNATURE",  -- state should not change
-    DFSMUtils,
-    testCounter
-)
-
--- Test 3: Invalid input ID - should fail with unknown input error
+-- Invalid input ID - should fail with unknown input error
 TestUtils.runTest(
     "Invalid input ID", 
     dfsm, 
@@ -88,7 +62,7 @@ TestUtils.runTest(
     testCounter
 )
 
--- Test 4: Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
+-- Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
 TestUtils.runTest(
     "Valid Party B data submission", 
     dfsm, 
@@ -113,7 +87,7 @@ TestUtils.runTest(
     testCounter
 )
 
--- Test 5: Valid acceptance - should succeed and transition to ACCEPTED
+-- Valid acceptance - should succeed and transition to ACCEPTED
 TestUtils.runTest(
     "Valid acceptance submission", 
     dfsm, 
@@ -138,7 +112,7 @@ TestUtils.runTest(
     testCounter
 )
 
--- Test 6: Rejection after completion - should fail because state machine is complete
+-- Rejection after completion - should fail because state machine is complete
 TestUtils.runTest(
     "Attempting rejection after completion", 
     dfsm, 

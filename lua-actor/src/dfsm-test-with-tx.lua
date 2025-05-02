@@ -28,7 +28,7 @@ print(DFSMUtils.renderDFSMState(dfsm))
 -- Test counter for tracking results
 local testCounter = { count = 0 }
 
--- Test 1: Valid Party A data - should succeed and transition to PENDING_PARTY_B_SIGNATURE
+-- Valid Party A data - should succeed and transition to PENDING_PARTY_B_SIGNATURE
 TestUtils.runTest(
     "Valid Party A data submission", 
     dfsm, 
@@ -55,7 +55,7 @@ TestUtils.runTest(
     expectVc
 )
 
--- Test 2: Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
+-- Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
 TestUtils.runTest(
     "Valid Party B data submission", 
     dfsm, 
@@ -81,7 +81,7 @@ TestUtils.runTest(
     expectVc
 )
 
--- Test 3: Valid acceptance - should succeed and transition to ACCEPTED
+-- Valid acceptance - should succeed and transition to ACCEPTED
 TestUtils.runTest(
     "Valid acceptance submission", 
     dfsm, 
@@ -107,7 +107,7 @@ TestUtils.runTest(
     expectVc
 )
 
--- Test 4: Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
+-- Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
 TestUtils.runTest(
     "Tokens sent", 
     dfsm, 
@@ -121,7 +121,7 @@ TestUtils.runTest(
     expectVc
 )
 
--- Test 5: Rejection case - testing from an alternative starting point
+-- Rejection case - testing from an alternative starting point
 local rejectionDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 {
     "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
@@ -209,7 +209,7 @@ TestUtils.runTest(
     expectVc
 )
 
--- Test 7: Invalid input - should fail with error
+-- Invalid input - should fail with error
 TestUtils.runTest(
     "Invalid input ID", 
     rejectionDfsm,
