@@ -54,7 +54,9 @@ function DFSMUtils.renderDFSMState(dfsm)
         "\nReceived Inputs:"
     }
     
-    for id, value in pairs(dfsm.received) do
+    -- Use the map representation for consistent display
+    local receivedMap = dfsm:getReceivedInputValuesMap()
+    for id, _ in pairs(receivedMap) do
         table.insert(state, string.format("  - %s", id))
     end
     
