@@ -7,18 +7,17 @@ local DFSM = require("dfsm")
 -- Import test utilities
 local TestUtils = require("test-utils")
 
-local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/simple.grant.json")
-local oracleDataDoc = TestUtils.loadInputDoc("./mock-oracle-data.json")
+local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.json")
+local oracleDataDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/proof-data.json")
 -- full info on a couple of canned transactions
-local txData = json.decode(oracleDataDoc)
-local fullTxData1 = json.encode(txData["0x9445f933860ef6d65fdaf419fcf8b0749f415c7cd0f82f8b420b10a776c5373e"])
-local fullTxData2 = json.encode(txData["0x1cdc44857dd967f99d4644151340b5a083f77e660c60121a7dc63b8b75047f5e"])
+local fullTxData = oracleDataDoc
 
-local dfsm = DFSM.new(agreementDoc, false, json.decode([[
+local expectVc = false
+local dfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 {
     "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "grantRecipientAddress": "0xb800B70D15BC235C81D483D19E91e69a91328B98",
-    "grantAmount": 68395011620287000,
+    "grantAmount": 100,
     "tokenAllocatorAddress": "0xB47855e843c4F9D54408372DA4CA79D20542d168"
 }
 ]]))
@@ -52,7 +51,8 @@ TestUtils.runTest(
     nil,
     "PENDING_PARTY_B_SIGNATURE",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 2: Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
@@ -77,7 +77,8 @@ TestUtils.runTest(
     nil,
     "PENDING_ACCEPTANCE",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 3: Valid acceptance - should succeed and transition to ACCEPTED
@@ -100,43 +101,32 @@ TestUtils.runTest(
     }]],
     true,  -- expect success
     nil,
-    "ACCEPTED",
+    "ACCEPTED_PENDING_PAYMENT",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
--- Test 4: Funds sent - should succeed and transition to AWAITING_PAYMENT
-TestUtils.runTest(
-    "Funds sent", 
-    dfsm, 
-    "fundsSentTx", 
-    fullTxData1,
-    true,  -- expect success
-    nil,
-    "AWAITING_PAYMENT",
-    DFSMUtils,
-    testCounter
-)
-
--- Test 5: Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
+-- Test 4: Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
 TestUtils.runTest(
     "Tokens sent", 
     dfsm, 
     "workTokenSentTx", 
-    fullTxData2,
+    fullTxData,
     true,  -- expect success
     nil,
     "PAYMENT_CONFIRMED",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
--- Test 6: Rejection case - testing from an alternative starting point
-local rejectionDfsm = DFSM.new(agreementDoc, false, json.decode([[
+-- Test 5: Rejection case - testing from an alternative starting point
+local rejectionDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 {
     "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "grantRecipientAddress": "0xb800B70D15BC235C81D483D19E91e69a91328B98",
-    "grantAmount": 68395011620287000,
+    "grantAmount": 100,
     "tokenAllocatorAddress": "0xB47855e843c4F9D54408372DA4CA79D20542d168"
 }
 ]]))
@@ -164,7 +154,8 @@ TestUtils.runTest(
     nil,
     "PENDING_PARTY_B_SIGNATURE",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 TestUtils.runTest(
@@ -188,7 +179,8 @@ TestUtils.runTest(
     nil,
     "PENDING_ACCEPTANCE",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Now test rejection
@@ -213,22 +205,24 @@ TestUtils.runTest(
     nil,
     "REJECTED",
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Test 7: Invalid input - should fail with error
 TestUtils.runTest(
     "Invalid input ID", 
-    dfsm, 
+    rejectionDfsm,
     "invalidInput", 
     [[{
         "someValue": true
     }]],
     false,  -- expect failure
     "State machine is complete",
-    "PAYMENT_CONFIRMED",  -- state should not change
+    "REJECTED", -- state should not change
     DFSMUtils,
-    testCounter
+    testCounter,
+    expectVc
 )
 
 -- Print test summary

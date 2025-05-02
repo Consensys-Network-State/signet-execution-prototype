@@ -1,20 +1,15 @@
 require("setup")
 
 local TestUtils = require("test-utils")
-local tablesEqual = TestUtils.tablesEqual
-local printTable = TestUtils.printTable
-local printResult = TestUtils.formatResult
-local DFSMUtils = require("utils.dfsm_utils")
 local json = require("json")
 
 local Handlers = require("apoc-v2-bundled")
 
-local agreementDoc = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.wrapped.json")
-local inputA = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.partyA-input.wrapped.json")
-local inputB = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.partyB-input.wrapped.json")
-local inputAAccept = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.partyA-input-accept.wrapped.json")
-local inputAReject = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.partyA-input-reject.wrapped.json")
-
+local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.wrapped.json")
+local inputA = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-input.wrapped.json")
+local inputB = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyB-input.wrapped.json")
+local inputAAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-input-accept.wrapped.json")
+local inputATxProof = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-tx-proof.wrapped.json")
 
 -- Evaluate a message
 local response = Handlers.evaluate({
@@ -102,7 +97,7 @@ response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
         inputId = "accepted",
-        inputValue = inputAAccept
+        inputValue = json.decode(inputAAccept)
     }),
     reply = function (response)
       -- printTable(response.Data)
@@ -118,14 +113,14 @@ response = Handlers.evaluate({
 response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
-        inputId = "rejected",
-        inputValue = json.decode(inputAReject)
+        inputId = "workTokenSentTx",
+        inputValue = json.decode(inputATxProof)
     }),
     reply = function (response)
       -- printTable(response.Data)
       local success = response.Data.success
-      print(TestUtils.formatResult(not success) .. " Accept signature duplicate processing")
-      assert(success == false)
+      print(TestUtils.formatResult(success) .. " Work token sent tx processing")
+      assert(success == true)
     end
     },
     { envKey = "envValue" }
@@ -139,7 +134,7 @@ response = Handlers.evaluate({
       local state = response.Data.State
       local isComplete = response.Data.IsComplete
       assert(isComplete == true)
-      assert(state.id == "ACCEPTED")
+      assert(state.id == "PAYMENT_CONFIRMED")
       print(TestUtils.formatResult(true) .. " Final state check")
     end
     },
