@@ -24,12 +24,9 @@ To debug the currently selected file, use the 'Debug Lua' config included in `.v
 
 ## Development process
 
-
-
 Philosophy:
 
 * Develop all Lua logic locally as much as possible
-
 * Organize our Lua code into modules when convenient
 
 - Compile new versions of the C-based secp256k1 library and our Lua wrapper library if necessary
@@ -42,17 +39,21 @@ Writing test cases:
 * Test scripts:
   * to begin, write or modify a script that doesn’t require wrappers, for faster iterations. See `dfsm-test.lua` vs.`dfsm-test-wrapped.lua`
 
-Once confident enough to try changes in AO:
+Once confident enough to try changes in AO (i.e. tests are passing /w wrapped inputs):
 
 - Use the bundle-lua.js script to bundle the lua code into a single file
   - Usage: `node bundle-lua.mjs <entry-file> [output-file]`
   - Example: `node bundle-lua.mjs src/apoc-v2.lua apoc-v2-bundled.lua`
 - Upload a new AO wasm bundle to AR if secp256k1 has changed
   - update the MODULE env var with the new wasm Tx ID
-- Try out the new actor version by launching a new actor via AOS? Test it with a few manual msgs?
-- Update `./src/permaweb/ao/actors/apoc.lua` with the new version
+- [Optional] Deployed AO actor testing:
+  - Try out the new actor version by launching a new actor via AOS
+  - Test it with a few manual msgs
+- Update deployed AO actor with the new version
+  - `cp apoc-v2-bundled.lua ../src/permaweb/ao/actors/apoc-v2-bundled.lua`
+  - Manually edit `../src/permaweb/ao/actors/apoc-v2-bundled.lua` and remove the indicated lines at the top of the file.
 - Update alpha env, env-to-end testing
-
+  - Run requests against API to test
 
 ## Legacy libs
 
