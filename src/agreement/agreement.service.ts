@@ -40,7 +40,13 @@ export class AgreementService {
   }
 
   async getAgreement(id: string) {
-    return getAgreementDocumentById(id); 
+    const agreement = await findAgreementById(id);
+    // TODO: do we want to lazy-fetch the agreement info from AO if we don't find the record in our DB?
+    // return getAgreementDocumentById(id); 
+    if (!agreement) {
+      throw new NotFoundException('Agreement not found in our records');
+    }
+    return agreement;
   }
 
   async findByContributor(address: string) {
