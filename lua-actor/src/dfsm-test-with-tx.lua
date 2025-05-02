@@ -230,6 +230,3 @@ print("\n---------------------------------------------")
 print("✅ ALL TESTS PASSED: " .. testCounter.count .. " tests completed successfully!")
 print("No tests failed (execution would have stopped at first failure)")
 print("---------------------------------------------")
-
--- TestUtils.printTable(dfsm:getInputs())
-TestUtils.printTable(dfsm:getReceivedInputs())
