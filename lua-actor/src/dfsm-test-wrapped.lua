@@ -39,19 +39,6 @@ TestUtils.runTest(
     testCounter
 )
 
--- Test 2: Duplicate Party A data submission - should fail with already processed error
-TestUtils.runTest(
-    "Duplicate Party A data submission", 
-    dfsm, 
-    "partyAData", 
-    inputA,
-    false,  -- expect failure
-    "has already been processed",
-    nil,   -- state should not change
-    DFSMUtils,
-    testCounter
-)
-
 -- Test 3: Invalid input ID - should fail with unknown input error
 TestUtils.runTest(
     "Invalid input ID", 

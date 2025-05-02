@@ -38,17 +38,17 @@ function DFSM:validateInitialParams(stateId, initialParams, initialValues)
     if not initialParams or type(initialParams) ~= "table" then
         return true
     end
-    
+
     if not initialValues then
         error("Initial state " .. stateId .. " requires parameters, but no initial values provided")
     end
-    
+
     -- Validate the variable values against variable definitions
     local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self.variables)
     if not isValid then
         error("Invalid parameter value for state " .. stateId .. ": " .. errorMsg)
     end
-    
+
     return true
 end
 
@@ -60,7 +60,7 @@ function DFSM.new(doc, expectVCWrapper, params)
         transitions = {},
         variables = nil,
         contracts = nil,
-        received = {},
+        receivedInputValues = {},
         complete = false,
         states = {}, -- Store state information (name, description)
     }
@@ -104,12 +104,12 @@ function DFSM.new(doc, expectVCWrapper, params)
     if not agreement.execution or not agreement.execution.states then
         error("Agreement document must have states defined")
     end
-    
+
     -- Process states - only support object format
     if type(agreement.execution.states) ~= "table" then
         error("States must be defined as an object")
     end
-    
+
     -- It's an object format with state objects
     local initialStateId = nil
     for stateId, stateObj in pairs(agreement.execution.states) do
@@ -120,19 +120,19 @@ function DFSM.new(doc, expectVCWrapper, params)
             isInitial = stateObj.isInitial or false,
             initialParams = stateObj.initialParams or {}
         }
-        
+
         -- Track initial state
         if stateObj.isInitial then
             if initialStateId then
                 error("Multiple initial states found: " .. initialStateId .. " and " .. stateId)
             end
             initialStateId = stateId
-            
+
             -- Check that all required parameters are provided in initialValues
             self:validateInitialParams(stateId, stateObj.initialParams, initialValues)
         end
     end
-    
+
     if not next(self.states) then
         error("Agreement document must have at least one state")
     end
@@ -179,7 +179,8 @@ function DFSM:processVCWrapper(vc, expectedIssuer, validateVC)
 
         if expectedIssuer then
             if not ValidationUtils.ethAddressEqual(ownerAddress, expectedIssuer) then
-                local errorMsg = string.format("Issuer mismatch: expected ${variables.partyAEthAddress.value}, got %s", ownerAddress)
+                local errorMsg = string.format("Issuer mismatch: expected ${variables.partyAEthAddress.value}, got %s",
+                    ownerAddress)
                 error(errorMsg)
             end
         end
@@ -207,7 +208,7 @@ function DFSM:validate()
             initialStateId = stateId
         end
     end
-    
+
     if not initialStateId then
         error("No initial state (isInitial=true) found in state definitions")
     end
@@ -262,13 +263,8 @@ function DFSM:processInput(inputId, inputValue, validateVC)
         return false, "State machine is complete"
     end
 
-    -- Check if input has already been processed
-    if self.received[inputId] then
-        return false, string.format("Input %s has already been processed", inputId)
-    end
-
     -- Get input definition
-    local inputDef = self.inputs[inputId]
+    local inputDef = self:getInput(inputId)
     if not inputDef then
         return false, string.format("Unknown input: %s", inputId)
     end
@@ -282,22 +278,22 @@ function DFSM:processInput(inputId, inputValue, validateVC)
         return false, result
     end
 
-    -- Update variables with the verified values
-    if type(result) == "table" then
-        for id, value in pairs(result) do
-            if self.variables:isVariable(id) then
-                self.variables:setVariable(id, value)
-            end
-        end
-    end
-
     -- Process transitions from current state
     for _, transition in ipairs(self.transitions) do
         if transition.from == self.currentState.id then
             -- Note, because we previously validated the input, we can just check if the inputId is in the transition.conditions.inputs
             if self:areTransitionConditionsMet(transition, inputId) then
-                -- Store the input and update state
-                self.received[inputId] = inputValue
+                -- Update variables with the verified values only if transition occurs
+                if type(result) == "table" then
+                    for id, value in pairs(result) do
+                        if self.variables:isVariable(id) then
+                            self.variables:setVariable(id, value)
+                        end
+                    end
+                end
+                
+                -- Store the input on the stack and update state
+                table.insert(self.receivedInputValues, {id = inputId, value = inputValue})
                 self.currentState = self.states[transition.to]
                 
                 -- Check if we've reached a terminal state
@@ -337,9 +333,37 @@ function DFSM:isComplete()
     return self.complete
 end
 
--- Get all received inputs
+-- Get all received inputs as a stack
 function DFSM:getReceivedInputs()
-    return self.received
+    return self.receivedInputValues
+end
+
+-- Get the most recent input value for a specific input ID
+function DFSM:getLatestInputValue(inputId)
+    -- Search from the top of the stack (most recent) down
+    for i = #self.receivedInputValues, 1, -1 do
+        local input = self.receivedInputValues[i]
+        if input.id == inputId then
+            return input.value
+        end
+    end
+    return nil -- No input found with that ID
+end
+
+-- Check if a specific input has been received
+function DFSM:hasReceivedInput(inputId)
+    return self:getLatestInputValue(inputId) ~= nil
+end
+
+-- Get all received input values as a map of inputId to its most recent value
+function DFSM:getReceivedInputValuesMap()
+    local result = {}
+    for i = 1, #self.receivedInputValues do
+        local input = self.receivedInputValues[i]
+        -- This will naturally keep overwriting with the latest value for each ID
+        result[input.id] = input.value
+    end
+    return result
 end
 
 -- Get a variable value
@@ -371,5 +395,3 @@ end
 return {
     new = DFSM.new,
 }
-
-

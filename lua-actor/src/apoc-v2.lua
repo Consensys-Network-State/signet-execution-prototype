@@ -121,6 +121,7 @@ Handlers.add(
       IsComplete = StateMachine:isComplete(),
       Variables = StateMachine:getVariables(),
       Inputs = StateMachine:getInputs(),
+      ReceivedInputs = StateMachine:getReceivedInputs(),
     }
     -- print(state)
     msg.reply({ Data = state })
