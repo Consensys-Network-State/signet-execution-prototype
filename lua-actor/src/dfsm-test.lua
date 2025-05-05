@@ -25,14 +25,13 @@ local testCounter = { count = 0 }
 TestUtils.runTest(
     "Valid Party A data submission", 
     dfsm, 
-    "partyAData", 
     [[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "id": "partyAData",
+            "inputId": "partyAData",
             "type": "signedFields",
             "values": {
                 "partyAName": "Damian",
@@ -51,8 +50,10 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Invalid input ID", 
     dfsm, 
-    "invalidInput", 
     [[{
+        "credentialSubject": {
+            "inputId": "invalidInput"
+        },
         "someValue": true
     }]],
     false,  -- expect failure
@@ -66,14 +67,13 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Valid Party B data submission", 
     dfsm, 
-    "partyBData", 
     [[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
         },
         "credentialSubject": {
-            "id": "partyBData",
+            "inputId": "partyBData",
             "type": "signedFields",
             "values": {
                 "partyBName": "Leif"
@@ -91,14 +91,13 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Valid acceptance submission", 
     dfsm, 
-    "accepted", 
     [[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "id": "accepted",
+            "inputId": "accepted",
             "type": "signedFields",
             "values": {
                 "partyAAcceptance": "ACCEPTED"
@@ -116,14 +115,13 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Attempting rejection after completion", 
     dfsm, 
-    "rejected", 
     [[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "id": "rejected",
+            "inputId": "rejected",
             "type": "signedFields",
             "values": {
                 "partyARejection": "REJECTED"

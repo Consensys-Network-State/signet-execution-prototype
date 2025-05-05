@@ -258,10 +258,25 @@ function DFSM:validate()
 end
 
 -- Process an input and attempt to transition states
-function DFSM:processInput(inputId, inputValue, validateVC)
+function DFSM:processInput(inputValue, validateVC)
     if self.complete then
         return false, "State machine is complete"
     end
+
+    -- Parse the VC if it's a string
+    local vcJson
+    if type(inputValue) == "string" then
+        vcJson = json.decode(inputValue)
+    else
+        vcJson = inputValue
+    end
+
+    -- Extract inputId from the VC
+    local credentialSubject = vcJson.credentialSubject
+    if not credentialSubject or not credentialSubject.inputId then
+        return false, "Input VC missing credentialSubject.inputId"
+    end
+    local inputId = credentialSubject.inputId
 
     -- Get input definition
     local inputDef = self:getInput(inputId)
