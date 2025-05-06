@@ -6,8 +6,10 @@ local json = require("json")
 local DFSM = require("dfsm")
 -- Import test utilities
 local TestUtils = require("test-utils")
+local crypto = require(".crypto.init")
 
 local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.json")
+local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 local oracleDataDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/proof-data.json")
 -- full info on a couple of canned transactions
 local fullTxData = oracleDataDoc
@@ -32,21 +34,21 @@ local testCounter = { count = 0 }
 TestUtils.runTest(
     "Valid Party A data submission", 
     dfsm, 
-    "partyAData", 
-    [[{
+    string.format([[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "id": "partyAData",
+            "inputId": "partyAData",
             "type": "signedFields",
+            "documentHash": "%s",
             "values": {
                 "partyAName": "Damian",
                 "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
             }
         }
-    }]],
+    }]], agreementHash),
     true,  -- expect success
     nil,
     "PENDING_PARTY_B_SIGNATURE",
@@ -59,20 +61,20 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Valid Party B data submission", 
     dfsm, 
-    "partyBData", 
-    [[{
+    string.format([[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
         },
         "credentialSubject": {
-            "id": "partyBData",
+            "inputId": "partyBData",
             "type": "signedFields",
+            "documentHash": "%s",
             "values": {
                 "partyBName": "Leif"
             }
         }
-    }]],
+    }]], agreementHash),
     true,  -- expect success
     nil,
     "PENDING_ACCEPTANCE",
@@ -85,20 +87,20 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Valid acceptance submission", 
     dfsm, 
-    "accepted", 
-    [[{
+    string.format([[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "id": "accepted",
+            "inputId": "accepted",
             "type": "signedFields",
+            "documentHash": "%s",
             "values": {
                 "partyAAcceptance": "ACCEPTED"
             }
         }
-    }]],
+    }]], agreementHash),
     true,  -- expect success
     nil,
     "ACCEPTED_PENDING_PAYMENT",
@@ -111,7 +113,6 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Tokens sent", 
     dfsm, 
-    "workTokenSentTx", 
     fullTxData,
     true,  -- expect success
     nil,
@@ -135,21 +136,21 @@ local rejectionDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 TestUtils.runTest(
     "Valid Party A data submission (for rejection test)", 
     rejectionDfsm, 
-    "partyAData", 
-    [[{
+    string.format([[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "id": "partyAData",
+            "inputId": "partyAData",
             "type": "signedFields",
+            "documentHash": "%s",
             "values": {
                 "partyAName": "Damian",
                 "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
             }
         }
-    }]],
+    }]], agreementHash),
     true,  -- expect success
     nil,
     "PENDING_PARTY_B_SIGNATURE",
@@ -161,20 +162,20 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Valid Party B data submission (for rejection test)", 
     rejectionDfsm, 
-    "partyBData", 
-    [[{
+    string.format([[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
         },
         "credentialSubject": {
-            "id": "partyBData",
+            "inputId": "partyBData",
             "type": "signedFields",
+            "documentHash": "%s",
             "values": {
                 "partyBName": "Leif"
             }
         }
-    }]],
+    }]], agreementHash),
     true,  -- expect success
     nil,
     "PENDING_ACCEPTANCE",
@@ -187,20 +188,20 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Party A rejects the agreement", 
     rejectionDfsm, 
-    "rejected", 
-    [[{
+    string.format([[{
         "type": "VerifiedCredentialEIP712",
         "issuer": {
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "id": "rejected",
+            "inputId": "rejected",
             "type": "signedFields",
+            "documentHash": "%s",
             "values": {
                 "partyARejection": "REJECTED"
             }
         }
-    }]],
+    }]], agreementHash),
     true,  -- expect success
     nil,
     "REJECTED",
@@ -213,8 +214,10 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Invalid input ID", 
     rejectionDfsm,
-    "invalidInput", 
     [[{
+        "credentialSubject": {
+            "inputId": "invalidInput"
+        },
         "someValue": true
     }]],
     false,  -- expect failure

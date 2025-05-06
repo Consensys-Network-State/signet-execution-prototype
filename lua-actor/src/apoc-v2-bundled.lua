@@ -1899,7 +1899,8 @@ function EIP712Verifier:new()
     return self
 end
 
-function EIP712Verifier:verify(input, value, variables, contracts, validate)
+function EIP712Verifier:verify(input, value, dfsm, validate)
+    local variables, documentHash = dfsm.variables, dfsm.documentHash
     local vcJson, credentialSubject, issuerAddress
     
     -- Default to not validating if not explicitly set
@@ -1947,6 +1948,15 @@ function EIP712Verifier:verify(input, value, variables, contracts, validate)
         return false, "Missing values in credentialSubject"
     end
 
+    -- check that the input VC is targetting the right agreement
+    local function normalizeHex(hex)
+        if type(hex) ~= "string" then return hex end
+        return hex:lower():gsub("^0x", "")
+    end
+    if normalizeHex(vcJson.credentialSubject.documentHash) ~= normalizeHex(documentHash) then
+        return false, "Input VC is targeting the wrong agreement"
+    end
+
     -- Validate variable values against variable definitions
     local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, variables)
     if not isValid then
@@ -1982,13 +1992,13 @@ function EVMTransactionVerifier:new()
     return self
 end
 
-function EVMTransactionVerifier:verify(input, value, variables, contracts, expectVc)
+function EVMTransactionVerifier:verify(input, value, dfsm, expectVc)
   -- TODO: since we expect the Tx proof to be supplied as a VC, first validate this input as a VC
   local tableVale = value
   if type(value) == "string" then
     tableVale = json.decode(value);
   end
-  return verifyEVMTransactionInputVerifier(input, tableVale, variables, contracts, expectVc)
+  return verifyEVMTransactionInputVerifier(input, tableVale, dfsm.variables, dfsm.contracts, expectVc)
 end
 
 -- Factory function to get the appropriate verifier
@@ -2011,7 +2021,7 @@ local function getVerifier(inputType)
 end
 
 -- Main verification function
-local function verify(input, value, variables, contracts, validate)
+local function verify(input, value, dfsm, validate)
     if not input then
         return false, "Input definition is nil"
     end
@@ -2021,7 +2031,7 @@ local function verify(input, value, variables, contracts, validate)
         return false, error
     end
 
-    return verifier:verify(input, value, variables, contracts, validate)
+    return verifier:verify(input, value, dfsm, validate)
 end
 
 
@@ -2293,6 +2303,7 @@ local json = require("json")
 local VcValidator = __modules["vc-validator"]()
 local ContractManager = __modules["contracts/contract_manager"]()
 local base64 = require(".base64")
+local crypto = require(".crypto.init")
 
 local ValidationUtils = InputVerifier.ValidationUtils
 
@@ -2326,17 +2337,17 @@ function DFSM:validateInitialParams(stateId, initialParams, initialValues)
     if not initialParams or type(initialParams) ~= "table" then
         return true
     end
-    
+
     if not initialValues then
         error("Initial state " .. stateId .. " requires parameters, but no initial values provided")
     end
-    
+
     -- Validate the variable values against variable definitions
     local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self.variables)
     if not isValid then
         error("Invalid parameter value for state " .. stateId .. ": " .. errorMsg)
     end
-    
+
     return true
 end
 
@@ -2348,9 +2359,10 @@ function DFSM.new(doc, expectVCWrapper, params)
         transitions = {},
         variables = nil,
         contracts = nil,
-        received = {},
+        receivedInputValues = {},
         complete = false,
         states = {}, -- Store state information (name, description)
+        documentHash = nil,
     }
 
     -- Allow skipping VC wrapper processing if not needed for testing
@@ -2370,6 +2382,7 @@ function DFSM.new(doc, expectVCWrapper, params)
     -- Initialize variables
     self.variables = VariableManager.new(agreement.variables)
     self.contracts = ContractManager.new(agreement.contracts or {})
+    self.documentHash = crypto.digest.keccak256(doc).asHex()
 
     -- Set initial values if provided
     if initialValues then
@@ -2392,12 +2405,12 @@ function DFSM.new(doc, expectVCWrapper, params)
     if not agreement.execution or not agreement.execution.states then
         error("Agreement document must have states defined")
     end
-    
+
     -- Process states - only support object format
     if type(agreement.execution.states) ~= "table" then
         error("States must be defined as an object")
     end
-    
+
     -- It's an object format with state objects
     local initialStateId = nil
     for stateId, stateObj in pairs(agreement.execution.states) do
@@ -2408,19 +2421,19 @@ function DFSM.new(doc, expectVCWrapper, params)
             isInitial = stateObj.isInitial or false,
             initialParams = stateObj.initialParams or {}
         }
-        
+
         -- Track initial state
         if stateObj.isInitial then
             if initialStateId then
                 error("Multiple initial states found: " .. initialStateId .. " and " .. stateId)
             end
             initialStateId = stateId
-            
+
             -- Check that all required parameters are provided in initialValues
             self:validateInitialParams(stateId, stateObj.initialParams, initialValues)
         end
     end
-    
+
     if not next(self.states) then
         error("Agreement document must have at least one state")
     end
@@ -2467,7 +2480,8 @@ function DFSM:processVCWrapper(vc, expectedIssuer, validateVC)
 
         if expectedIssuer then
             if not ValidationUtils.ethAddressEqual(ownerAddress, expectedIssuer) then
-                local errorMsg = string.format("Issuer mismatch: expected ${variables.partyAEthAddress.value}, got %s", ownerAddress)
+                local errorMsg = string.format("Issuer mismatch: expected ${variables.partyAEthAddress.value}, got %s",
+                    ownerAddress)
                 error(errorMsg)
             end
         end
@@ -2495,7 +2509,7 @@ function DFSM:validate()
             initialStateId = stateId
         end
     end
-    
+
     if not initialStateId then
         error("No initial state (isInitial=true) found in state definitions")
     end
@@ -2545,18 +2559,28 @@ function DFSM:validate()
 end
 
 -- Process an input and attempt to transition states
-function DFSM:processInput(inputId, inputValue, validateVC)
+function DFSM:processInput(inputValue, validateVC)
     if self.complete then
         return false, "State machine is complete"
     end
 
-    -- Check if input has already been processed
-    if self.received[inputId] then
-        return false, string.format("Input %s has already been processed", inputId)
+    -- Parse the VC if it's a string
+    local vcJson
+    if type(inputValue) == "string" then
+        vcJson = json.decode(inputValue)
+    else
+        vcJson = inputValue
     end
 
+    -- Extract inputId from the VC
+    local credentialSubject = vcJson.credentialSubject
+    if not credentialSubject or not credentialSubject.inputId then
+        return false, "Input VC missing credentialSubject.inputId"
+    end
+    local inputId = credentialSubject.inputId
+
     -- Get input definition
-    local inputDef = self.inputs[inputId]
+    local inputDef = self:getInput(inputId)
     if not inputDef then
         return false, string.format("Unknown input: %s", inputId)
     end
@@ -2565,18 +2589,9 @@ function DFSM:processInput(inputId, inputValue, validateVC)
     -- For production, validateVC should be true to ensure proper signature validation
     
     -- Verify input type and schema
-    local isValid, result = InputVerifier.verify(inputDef, inputValue, self.variables, self.contracts, validateVC)
+    local isValid, result = InputVerifier.verify(inputDef, inputValue, self, validateVC)
     if not isValid then
         return false, result
-    end
-
-    -- Update variables with the verified values
-    if type(result) == "table" then
-        for id, value in pairs(result) do
-            if self.variables:isVariable(id) then
-                self.variables:setVariable(id, value)
-            end
-        end
     end
 
     -- Process transitions from current state
@@ -2584,8 +2599,17 @@ function DFSM:processInput(inputId, inputValue, validateVC)
         if transition.from == self.currentState.id then
             -- Note, because we previously validated the input, we can just check if the inputId is in the transition.conditions.inputs
             if self:areTransitionConditionsMet(transition, inputId) then
-                -- Store the input and update state
-                self.received[inputId] = inputValue
+                -- Update variables with the verified values only if transition occurs
+                if type(result) == "table" then
+                    for id, value in pairs(result) do
+                        if self.variables:isVariable(id) then
+                            self.variables:setVariable(id, value)
+                        end
+                    end
+                end
+                
+                -- Store the input on the stack and update state
+                table.insert(self.receivedInputValues, {id = inputId, value = inputValue})
                 self.currentState = self.states[transition.to]
                 
                 -- Check if we've reached a terminal state
@@ -2625,9 +2649,37 @@ function DFSM:isComplete()
     return self.complete
 end
 
--- Get all received inputs
+-- Get all received inputs as a stack
 function DFSM:getReceivedInputs()
-    return self.received
+    return self.receivedInputValues
+end
+
+-- Get the most recent input value for a specific input ID
+function DFSM:getLatestInputValue(inputId)
+    -- Search from the top of the stack (most recent) down
+    for i = #self.receivedInputValues, 1, -1 do
+        local input = self.receivedInputValues[i]
+        if input.id == inputId then
+            return input.value
+        end
+    end
+    return nil -- No input found with that ID
+end
+
+-- Check if a specific input has been received
+function DFSM:hasReceivedInput(inputId)
+    return self:getLatestInputValue(inputId) ~= nil
+end
+
+-- Get all received input values as a map of inputId to its most recent value
+function DFSM:getReceivedInputValuesMap()
+    local result = {}
+    for i = 1, #self.receivedInputValues do
+        local input = self.receivedInputValues[i]
+        -- This will naturally keep overwriting with the latest value for each ID
+        result[input.id] = input.value
+    end
+    return result
 end
 
 -- Get a variable value
@@ -2747,7 +2799,6 @@ Handlers.add(
   function (msg)
     local Data = json.decode(msg.Data)
 
-    local inputId = Data.inputId
     local inputValue = Data.inputValue
     
     if not StateMachine then
@@ -2755,7 +2806,7 @@ Handlers.add(
       return
     end
     
-    local isValid, errorMsg = StateMachine:processInput(inputId, inputValue, true)
+    local isValid, errorMsg = StateMachine:processInput(inputValue, true)
     
     if not isValid then
       reply_error(msg, errorMsg or 'Failed to process input')
@@ -2793,6 +2844,7 @@ Handlers.add(
       IsComplete = StateMachine:isComplete(),
       Variables = StateMachine:getVariables(),
       Inputs = StateMachine:getInputs(),
+      ReceivedInputs = StateMachine:getReceivedInputs(),
     }
     -- print(state)
     msg.reply({ Data = state })

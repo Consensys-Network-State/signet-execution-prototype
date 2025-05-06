@@ -30,7 +30,6 @@ local testCounter = { count = 0 }
 TestUtils.runTest(
     "Valid Party A data submission", 
     dfsm, 
-    "partyAData", 
     inputA,
     true,  -- expect success
     nil,
@@ -43,9 +42,11 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Invalid input ID", 
     dfsm, 
-    "invalidInput", 
     [[{
-        "someValue": true
+        "credentialSubject": {
+          "inputId": "invalidInput",
+          "someValue": true
+        }
     }]],
     false,  -- expect failure
     "Unknown input",
@@ -57,8 +58,7 @@ TestUtils.runTest(
 -- Test 4: Valid Party B data - should succeed
 TestUtils.runTest(
     "Valid Party B data submission", 
-    dfsm, 
-    "partyBData", 
+    dfsm,
     inputB,
     true,  -- expect success
     nil,
@@ -70,8 +70,7 @@ TestUtils.runTest(
 -- Test 5: Valid acceptance - should succeed
 TestUtils.runTest(
     "Valid acceptance submission", 
-    dfsm, 
-    "accepted", 
+    dfsm,
     inputAAccept,
     true,  -- expect success
     nil,
@@ -84,7 +83,6 @@ TestUtils.runTest(
 TestUtils.runTest(
     "Attempting rejection after acceptance", 
     dfsm, 
-    "rejected", 
     inputAReject,
     false,  -- expect failure
     "State machine is complete",

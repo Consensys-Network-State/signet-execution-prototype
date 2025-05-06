@@ -28,7 +28,6 @@ local response = Handlers.evaluate({
 response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
-        inputId = "partyAData",
         inputValue = json.decode(inputA)
     }),
     reply = function (response)
@@ -44,7 +43,6 @@ response = Handlers.evaluate({
 response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
-        inputId = "partyAData",
         inputValue = json.decode(inputA)
     }),
     reply = function (response)
@@ -61,7 +59,6 @@ response = Handlers.evaluate({
 response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
-        inputId = "invalidInput",
         inputValue = {
             someValue = true
         }
@@ -79,7 +76,6 @@ response = Handlers.evaluate({
 response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
-        inputId = "partyBData",
         inputValue = json.decode(inputB)
     }),
     reply = function (response)
@@ -96,7 +92,6 @@ response = Handlers.evaluate({
 response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
-        inputId = "accepted",
         inputValue = json.decode(inputAAccept)
     }),
     reply = function (response)
@@ -113,7 +108,6 @@ response = Handlers.evaluate({
 response = Handlers.evaluate({
     Tags = { Action = 'ProcessInput' },
     Data = json.encode({
-        inputId = "workTokenSentTx",
         inputValue = json.decode(inputATxProof)
     }),
     reply = function (response)

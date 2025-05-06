@@ -56,18 +56,18 @@ local function logTest(message, testCounter)
 end
 
 -- Helper function to run a test case for DFSM
-local function runTest(description, dfsm, inputId, inputValue, expectedSuccess, expectedErrorContains, expectedState, DFSMUtils, testCounter, validateVC)
+local function runTest(description, dfsm, inputValue, expectedSuccess, expectedErrorContains, expectedState, DFSMUtils, testCounter, validateVC)
     print("\n---------------------------------------------")
     print("TEST: " .. description)
-    print("Processing input: " .. inputId)
+    print("Processing input: " .. inputValue)
     
     -- Set validateVC to false for testing
-    local success, result = dfsm:processInput(inputId, inputValue, validateVC)
+    local success, result = dfsm:processInput(inputValue, validateVC)
     
     -- Use built-in assert for success/failure expectation
     assert(success == expectedSuccess, 
         "Expected " .. (expectedSuccess and "success" or "failure") .. 
-        " for " .. inputId .. ", got: " .. tostring(success))
+        " for " .. inputValue .. ", got: " .. tostring(success))
     logTest("State machine " .. (expectedSuccess and "successfully processed" or "correctly rejected") .. " input", testCounter)
     
     -- If we expect an error, check that the error message contains expected text

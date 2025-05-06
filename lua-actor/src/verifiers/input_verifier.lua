@@ -143,7 +143,8 @@ function EIP712Verifier:new()
     return self
 end
 
-function EIP712Verifier:verify(input, value, variables, contracts, validate)
+function EIP712Verifier:verify(input, value, dfsm, validate)
+    local variables, documentHash = dfsm.variables, dfsm.documentHash
     local vcJson, credentialSubject, issuerAddress
     
     -- Default to not validating if not explicitly set
@@ -191,6 +192,15 @@ function EIP712Verifier:verify(input, value, variables, contracts, validate)
         return false, "Missing values in credentialSubject"
     end
 
+    -- check that the input VC is targetting the right agreement
+    local function normalizeHex(hex)
+        if type(hex) ~= "string" then return hex end
+        return hex:lower():gsub("^0x", "")
+    end
+    if normalizeHex(vcJson.credentialSubject.documentHash) ~= normalizeHex(documentHash) then
+        return false, "Input VC is targeting the wrong agreement"
+    end
+
     -- Validate variable values against variable definitions
     local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, variables)
     if not isValid then
@@ -226,13 +236,13 @@ function EVMTransactionVerifier:new()
     return self
 end
 
-function EVMTransactionVerifier:verify(input, value, variables, contracts, expectVc)
+function EVMTransactionVerifier:verify(input, value, dfsm, expectVc)
   -- TODO: since we expect the Tx proof to be supplied as a VC, first validate this input as a VC
   local tableVale = value
   if type(value) == "string" then
     tableVale = json.decode(value);
   end
-  return verifyEVMTransactionInputVerifier(input, tableVale, variables, contracts, expectVc)
+  return verifyEVMTransactionInputVerifier(input, tableVale, dfsm.variables, dfsm.contracts, expectVc)
 end
 
 -- Factory function to get the appropriate verifier
@@ -255,7 +265,7 @@ local function getVerifier(inputType)
 end
 
 -- Main verification function
-local function verify(input, value, variables, contracts, validate)
+local function verify(input, value, dfsm, validate)
     if not input then
         return false, "Input definition is nil"
     end
@@ -265,7 +275,7 @@ local function verify(input, value, variables, contracts, validate)
         return false, error
     end
 
-    return verifier:verify(input, value, variables, contracts, validate)
+    return verifier:verify(input, value, dfsm, validate)
 end
 
 return {
