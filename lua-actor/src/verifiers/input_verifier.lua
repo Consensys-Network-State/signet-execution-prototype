@@ -193,7 +193,11 @@ function EIP712Verifier:verify(input, value, dfsm, validate)
     end
 
     -- check that the input VC is targetting the right agreement
-    if vcJson.credentialSubject.documentHash ~= documentHash then
+    local function normalizeHex(hex)
+        if type(hex) ~= "string" then return hex end
+        return hex:lower():gsub("^0x", "")
+    end
+    if normalizeHex(vcJson.credentialSubject.documentHash) ~= normalizeHex(documentHash) then
         return false, "Input VC is targeting the wrong agreement"
     end
 

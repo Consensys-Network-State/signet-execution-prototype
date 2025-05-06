@@ -25,8 +25,7 @@ local testCounter = { count = 0 }
 -- Test 1: Valid Party A data - should succeed and transition to PENDING_PARTY_B_SIGNATURE
 TestUtils.runTest(
     "Valid Party A data submission", 
-    dfsm, 
-    "partyAData", 
+    dfsm,
     inputA,
     true,  -- expect success
     nil,
@@ -39,8 +38,7 @@ TestUtils.runTest(
 -- Test 2: Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
 TestUtils.runTest(
     "Valid Party B data submission",
-    dfsm, 
-    "partyBData",
+    dfsm,
     inputB,
     true,  -- expect success
     nil,
@@ -53,8 +51,7 @@ TestUtils.runTest(
 -- Test 3: Valid acceptance - should succeed and transition to ACCEPTED
 TestUtils.runTest(
     "Valid acceptance submission", 
-    dfsm, 
-    "accepted", 
+    dfsm,
     inputAAccept,
     true,  -- expect success
     nil,
@@ -67,8 +64,7 @@ TestUtils.runTest(
 -- Test 4: Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
 TestUtils.runTest(
     "Tokens sent", 
-    dfsm, 
-    "workTokenSentTx", 
+    dfsm,
     inputATxProof,
     true,  -- expect success
     nil,

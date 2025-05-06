@@ -75,7 +75,6 @@ Handlers.add(
   function (msg)
     local Data = json.decode(msg.Data)
 
-    local inputId = Data.inputId
     local inputValue = Data.inputValue
     
     if not StateMachine then
@@ -83,7 +82,7 @@ Handlers.add(
       return
     end
     
-    local isValid, errorMsg = StateMachine:processInput(inputId, inputValue, true)
+    local isValid, errorMsg = StateMachine:processInput(inputValue, true)
     
     if not isValid then
       reply_error(msg, errorMsg or 'Failed to process input')
