@@ -9,22 +9,22 @@
       "partyAName": "Damian",
       "partyBEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
     },
-    "documentHash": "0x2ea88338d547d608b7eade170e782a16682e86dabb24d3b9fe53ecde05e704ea"
+    "documentHash": "0xe21caf806c20d6f00ef5d31a11c0a65a0c17f26e0b00935e4453e36800de8369"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-06T21:54:03.745Z",
+  "issuanceDate": "2025-05-07T13:49:01.034Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
-    "created": "2025-05-06T21:54:03.745Z",
+    "created": "2025-05-07T13:49:01.034Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0x952561ffda2e6e47567c5a77536ed1aaf1bb1f8409df69a0d58b6c0efd9b488f274f72357e7905e74f31087525bf10dd4a914bb19f90bfbff1a193350743b8ef1c",
+    "proofValue": "0x426b4f89cc2e03987398d90ea6c54404ff0dd9bce8c19f9de802beddd2d2e8c51e9f73d0babb26105fc56bc9c90d3163d3461bc03f33c822c4d7054f16505d5e1c",
     "eip712": {
       "domain": {
         "chainId": 1,
