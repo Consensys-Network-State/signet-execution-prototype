@@ -128,7 +128,7 @@ response = Handlers.evaluate({
       local state = response.Data.State
       local isComplete = response.Data.IsComplete
       assert(isComplete == true)
-      assert(state.id == "PAYMENT_CONFIRMED")
+      assert(state.id == "WORK_ACCEPTED_AND_PAID")
       print(TestUtils.formatResult(true) .. " Final state check")
     end
     },
