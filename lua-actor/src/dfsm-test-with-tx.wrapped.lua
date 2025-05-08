@@ -6,12 +6,19 @@ local json = require("json")
 local DFSM = require("dfsm")
 -- Import test utilities
 local TestUtils = require("test-utils")
+local crypto = require(".crypto.init")
 
 local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.wrapped.json")
 local inputA = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-input.wrapped.json")
 local inputB = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyB-input.wrapped.json")
 local inputAAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-input-accept.wrapped.json")
 local inputATxProof = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-tx-proof.wrapped.json")
+
+-- Extract the agreement hash from the wrapped agreement document
+local decodedAgreement = json.decode(agreementDoc)
+local agreementBase64 = decodedAgreement.credentialSubject.agreement
+-- Convert to string for hashing if needed
+local agreementHash = crypto.digest.keccak256(agreementBase64).asHex()
 
 local expectVc = true
 local dfsm = DFSM.new(agreementDoc, expectVc)
@@ -22,53 +29,53 @@ print(DFSMUtils.renderDFSMState(dfsm))
 -- Test counter for tracking results
 local testCounter = { count = 0 }
 
--- Test 1: Valid Party A data - should succeed and transition to PENDING_PARTY_B_SIGNATURE
+-- Test 1: Valid Party A data - should succeed and transition to AWAITING_RECIPIENT_SIGNATURE
 TestUtils.runTest(
     "Valid Party A data submission", 
     dfsm,
     inputA,
     true,  -- expect success
     nil,
-    nil,   -- we don't specify expected state for wrapped version
+    "AWAITING_RECIPIENT_SIGNATURE", -- specify expected state for clarity
     DFSMUtils,
     testCounter,
     expectVc
 )
 
--- Test 2: Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
+-- Test 2: Valid Party B data - should succeed and transition to AWAITING_GRANTOR_SIGNATURE
 TestUtils.runTest(
     "Valid Party B data submission",
     dfsm,
     inputB,
     true,  -- expect success
     nil,
-    nil,
+    "AWAITING_GRANTOR_SIGNATURE",
     DFSMUtils,
     testCounter,
     expectVc
 )
 
--- Test 3: Valid acceptance - should succeed and transition to ACCEPTED
+-- Test 3: Valid acceptance - should succeed and transition to AWAITING_WORK_SUBMISSION
 TestUtils.runTest(
     "Valid acceptance submission", 
     dfsm,
     inputAAccept,
     true,  -- expect success
     nil,
-    nil,
+    "AWAITING_WORK_SUBMISSION",
     DFSMUtils,
     testCounter,
     expectVc
 )
 
--- Test 4: Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
+-- Test 4: Tokens sent - should succeed and transition to WORK_ACCEPTED_AND_PAID
 TestUtils.runTest(
     "Tokens sent", 
     dfsm,
     inputATxProof,
     true,  -- expect success
     nil,
-    nil,
+    "WORK_ACCEPTED_AND_PAID",
     DFSMUtils,
     testCounter,
     expectVc

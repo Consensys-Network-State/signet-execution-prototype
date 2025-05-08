@@ -1,30 +1,33 @@
 {
   "issuer": {
-    "id": "did:pkh:eip155:1:0xB49e45Affd4963374e72f850B6Cae84939e58F78"
+    "id": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278"
   },
   "credentialSubject": {
-    "inputId": "partyAData",
+    "inputId": "grantorData",
     "type": "signedFields",
     "values": {
-      "partyAName": "Damian",
-      "partyBEthAddress": "0x19f88d164C7F8Cd07a311BD3eb8BC3829bc7dC76"
+      "grantorName": "Damian",
+      "scope": "Development of Web3 tooling",
+      "termDuration": "6 months",
+      "effectiveDate": "2024-03-20T12:00:00Z",
+      "partyBEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
     },
-    "documentHash": "0x1eed7c603cba0c34f94736671bf6e67b532ed580d10b4c3c23dcbc8ebade64a1"
+    "documentHash": "0xc13642d961869828c55cfac37e68978cfc9470a03ee25ebcbe7cc1ac896ffd21"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-06T16:19:54.578Z",
+  "issuanceDate": "2025-05-07T23:57:26.969Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
-    "verificationMethod": "did:pkh:eip155:1:0xB49e45Affd4963374e72f850B6Cae84939e58F78#blockchainAccountId",
-    "created": "2025-05-06T16:19:54.578Z",
+    "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
+    "created": "2025-05-07T23:57:26.969Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0x269f0d59cf5e389be283d6ab9fd7b6ed3204c5732f2aa2539adea3811bc431735d1cc526b59303c735af85f607f0a4753029e8ec04b533f0ae2a701eb018eb511c",
+    "proofValue": "0x415ecb13d45705f181e2bc785ec6e18d4af98b666ef7805dcfb5866bd0c25f264fed29ba6cf1e38d418fca3ffd90a835ddf65001655976b1b0f4e5e0bf7568ca1c",
     "eip712": {
       "domain": {
         "chainId": 1,
@@ -66,11 +69,23 @@
         ],
         "Values": [
           {
-            "name": "partyAName",
+            "name": "effectiveDate",
+            "type": "string"
+          },
+          {
+            "name": "grantorName",
             "type": "string"
           },
           {
             "name": "partyBEthAddress",
+            "type": "string"
+          },
+          {
+            "name": "scope",
+            "type": "string"
+          },
+          {
+            "name": "termDuration",
             "type": "string"
           }
         ],

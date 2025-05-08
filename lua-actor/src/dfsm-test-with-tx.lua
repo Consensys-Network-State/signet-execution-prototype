@@ -17,10 +17,8 @@ local fullTxData = oracleDataDoc
 local expectVc = false
 local dfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 {
-    "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-    "grantRecipientAddress": "0xb800B70D15BC235C81D483D19E91e69a91328B98",
-    "grantAmount": 100,
-    "tokenAllocatorAddress": "0xB47855e843c4F9D54408372DA4CA79D20542d168"
+    "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
 }
 ]]))
 
@@ -30,93 +28,90 @@ print(DFSMUtils.renderDFSMState(dfsm))
 -- Test counter for tracking results
 local testCounter = { count = 0 }
 
--- Valid Party A data - should succeed and transition to PENDING_PARTY_B_SIGNATURE
+-- Valid Grantor data - should succeed and transition to AWAITING_RECIPIENT_SIGNATURE
 TestUtils.runTest(
-    "Valid Party A data submission", 
+    "Valid Grantor data submission", 
     dfsm, 
     string.format([[{
         "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-        },
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "partyAData",
+            "inputId": "grantorData",
             "type": "signedFields",
             "documentHash": "%s",
             "values": {
-                "partyAName": "Damian",
-                "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+                "grantorName": "Damian",
+                "scope": "Development of Web3 tooling",
+                "termDuration": "6 months",
+                "effectiveDate": "2024-03-20T12:00:00Z"
             }
         }
     }]], agreementHash),
     true,  -- expect success
     nil,
-    "PENDING_PARTY_B_SIGNATURE",
+    "AWAITING_RECIPIENT_SIGNATURE",
     DFSMUtils,
     testCounter,
     expectVc
 )
 
--- Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
+-- Valid Recipient data - should succeed and transition to AWAITING_GRANTOR_SIGNATURE
 TestUtils.runTest(
-    "Valid Party B data submission", 
+    "Valid Recipient data submission", 
     dfsm, 
     string.format([[{
         "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
-        },
+        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
         "credentialSubject": {
-            "inputId": "partyBData",
+            "inputId": "recipientSigning",
             "type": "signedFields",
             "documentHash": "%s",
             "values": {
-                "partyBName": "Leif"
+                "recipientName": "Leif",
+                "recipientSignature": "0xsignature"
             }
         }
     }]], agreementHash),
     true,  -- expect success
     nil,
-    "PENDING_ACCEPTANCE",
+    "AWAITING_GRANTOR_SIGNATURE",
     DFSMUtils,
     testCounter,
     expectVc
 )
 
--- Valid acceptance - should succeed and transition to ACCEPTED
+-- Valid Grantor signature - should succeed and transition to AWAITING_WORK_SUBMISSION
 TestUtils.runTest(
-    "Valid acceptance submission", 
+    "Valid Grantor signature submission", 
     dfsm, 
     string.format([[{
         "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-        },
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "accepted",
+            "inputId": "grantorSigning",
             "type": "signedFields",
             "documentHash": "%s",
             "values": {
-                "partyAAcceptance": "ACCEPTED"
+                "grantorSignature": "0xgrantorsignature"
             }
         }
     }]], agreementHash),
     true,  -- expect success
     nil,
-    "ACCEPTED_PENDING_PAYMENT",
+    "AWAITING_WORK_SUBMISSION",
     DFSMUtils,
     testCounter,
     expectVc
 )
 
--- Tokens sent - should succeed and transition to PAYMENT_CONFIRMED
+-- Tokens sent - should succeed and transition to WORK_ACCEPTED_AND_PAID
 TestUtils.runTest(
     "Tokens sent", 
     dfsm, 
     fullTxData,
     true,  -- expect success
     nil,
-    "PAYMENT_CONFIRMED",
+    "WORK_ACCEPTED_AND_PAID",
     DFSMUtils,
     testCounter,
     expectVc
@@ -125,60 +120,57 @@ TestUtils.runTest(
 -- Rejection case - testing from an alternative starting point
 local rejectionDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 {
-    "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-    "grantRecipientAddress": "0xb800B70D15BC235C81D483D19E91e69a91328B98",
-    "grantAmount": 100,
-    "tokenAllocatorAddress": "0xB47855e843c4F9D54408372DA4CA79D20542d168"
+    "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "recipientEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
 }
 ]]))
 
--- Run tests to bring to PENDING_ACCEPTANCE state
+-- Run tests to bring to AWAITING_GRANTOR_SIGNATURE state
 TestUtils.runTest(
-    "Valid Party A data submission (for rejection test)", 
+    "Valid Grantor data submission (for rejection test)", 
     rejectionDfsm, 
     string.format([[{
         "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-        },
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "partyAData",
+            "inputId": "grantorData",
             "type": "signedFields",
             "documentHash": "%s",
             "values": {
-                "partyAName": "Damian",
-                "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+                "grantorName": "Damian",
+                "scope": "Development of Web3 tooling",
+                "termDuration": "6 months",
+                "effectiveDate": "2024-03-20T12:00:00Z"
             }
         }
     }]], agreementHash),
     true,  -- expect success
     nil,
-    "PENDING_PARTY_B_SIGNATURE",
+    "AWAITING_RECIPIENT_SIGNATURE",
     DFSMUtils,
     testCounter,
     expectVc
 )
 
 TestUtils.runTest(
-    "Valid Party B data submission (for rejection test)", 
+    "Valid Recipient data submission (for rejection test)", 
     rejectionDfsm, 
     string.format([[{
         "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
-        },
+        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
         "credentialSubject": {
-            "inputId": "partyBData",
+            "inputId": "recipientSigning",
             "type": "signedFields",
             "documentHash": "%s",
             "values": {
-                "partyBName": "Leif"
+                "recipientName": "Leif",
+                "recipientSignature": "0xsignature"
             }
         }
     }]], agreementHash),
     true,  -- expect success
     nil,
-    "PENDING_ACCEPTANCE",
+    "AWAITING_GRANTOR_SIGNATURE",
     DFSMUtils,
     testCounter,
     expectVc
@@ -186,19 +178,17 @@ TestUtils.runTest(
 
 -- Now test rejection
 TestUtils.runTest(
-    "Party A rejects the agreement", 
+    "Grantor rejects the agreement", 
     rejectionDfsm, 
     string.format([[{
         "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-        },
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "rejected",
+            "inputId": "grantorRejection",
             "type": "signedFields",
             "documentHash": "%s",
             "values": {
-                "partyARejection": "REJECTED"
+                "grantorRejectionReason": "Terms do not meet our requirements"
             }
         }
     }]], agreementHash),

@@ -1,29 +1,29 @@
 {
   "issuer": {
-    "id": "did:pkh:eip155:1:0xB49e45Affd4963374e72f850B6Cae84939e58F78"
+    "id": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278"
   },
   "credentialSubject": {
-    "inputId": "rejected",
+    "inputId": "grantorRejection",
     "type": "signedFields",
     "values": {
-      "partyARejection": "REJECTED"
+      "grantorRejectionReason": "Terms do not meet our requirements"
     },
-    "documentHash": "0x1eed7c603cba0c34f94736671bf6e67b532ed580d10b4c3c23dcbc8ebade64a1"
+    "documentHash": "0xc13642d961869828c55cfac37e68978cfc9470a03ee25ebcbe7cc1ac896ffd21"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-06T16:19:54.605Z",
+  "issuanceDate": "2025-05-07T23:57:26.994Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
-    "verificationMethod": "did:pkh:eip155:1:0xB49e45Affd4963374e72f850B6Cae84939e58F78#blockchainAccountId",
-    "created": "2025-05-06T16:19:54.605Z",
+    "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
+    "created": "2025-05-07T23:57:26.994Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0x655c1d876eb6ef46183003124131939b44cc740b2af5dd6a1e66746afc3311645b84294ef8c694ad8a2f017d970283811fa761f7cc3ba05a633d2c9e7e2702ea1c",
+    "proofValue": "0x2ae20cac898acfe425456837f02e4d91037e950aa99a7fb6625a14209f38814b0faabf4cafe075bc07e6ca3dd145dcd998324bfc72719473e1b88ea53b12c9db1c",
     "eip712": {
       "domain": {
         "chainId": 1,
@@ -65,7 +65,7 @@
         ],
         "Values": [
           {
-            "name": "partyARejection",
+            "name": "grantorRejectionReason",
             "type": "string"
           }
         ],
