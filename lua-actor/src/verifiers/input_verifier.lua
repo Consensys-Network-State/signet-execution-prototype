@@ -143,88 +143,82 @@ function EIP712Verifier:new()
     return self
 end
 
-function EIP712Verifier:verify(input, value, dfsm, validate)
+-- Shared VC validation logic for both EIP712 and EVMTransaction
+local function validateInputVC(input, value, dfsm, validateSignature, validateValues)
+    -- Default to not validating if not explicitly set
+    validateSignature = validateSignature == true
+    -- default to validate the values field in the credentialSubject
+    if validateValues == nil then validateValues = true end
     local variables, documentHash = dfsm.variables, dfsm.documentHash
     local vcJson, credentialSubject, issuerAddress
-    
-    -- Default to not validating if not explicitly set
-    validate = validate == true
-    
+    validateSignature = validateSignature == true
     if type(value) == "string" then
-        if validate then
+        if validateSignature then
             -- Use cryptographic validation in production
             local success, parsedVcJson, recoveredIssuerAddress = VcValidator.validate(value)
             if not success then
-                return false, "Invalid VC"
+                return false, nil, "Invalid VC"
             end
             vcJson = parsedVcJson
             issuerAddress = recoveredIssuerAddress
         else
-            -- Parse the JSON without cryptographic validation (for tests)
             vcJson = json.decode(value)
         end
     else
-        -- Already parsed object
         vcJson = value
     end
-    
     credentialSubject = vcJson.credentialSubject
-    
-    -- If we didn't do cryptographic validation, extract issuer address from the format
-    if not validate and vcJson.issuer and vcJson.issuer.id then
+    if not validateSignature and vcJson.issuer and vcJson.issuer.id then
         local id = vcJson.issuer.id
         local parts = {}
         for part in string.gmatch(id or "", "[^:]+") do
             table.insert(parts, part)
         end
-        
         if #parts >= 5 and parts[1] == "did" and parts[2] == "pkh" then
             issuerAddress = parts[5]
         end
     end
-    
-    -- Validate credential subject structure
     if not credentialSubject then
-        return false, "Missing credentialSubject in input"
+        return false, nil, "Missing credentialSubject in input"
     end
-
-    if not credentialSubject.values then
-        return false, "Missing values in credentialSubject"
+    if validateValues and not credentialSubject.values then
+        return false, nil, "Missing values in credentialSubject"
     end
-
-    -- check that the input VC is targetting the right agreement
     local function normalizeHex(hex)
         if type(hex) ~= "string" then return hex end
         return hex:lower():gsub("^0x", "")
     end
     if normalizeHex(vcJson.credentialSubject.documentHash) ~= normalizeHex(documentHash) then
-        return false, "Input VC is targeting the wrong agreement"
+        return false, nil, "Input VC is targeting the wrong agreement"
     end
-
-    -- Validate variable values against variable definitions
-    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, variables)
-    if not isValid then
-        return false, errorMsg
+    if validateValues then
+        local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, variables)
+        if not isValid then
+            return false, nil, errorMsg
+        end
     end
-
-    -- Validate issuer if specified
     if input.issuer and issuerAddress then
         local expectedIssuer = input.issuer
         if variables then
-            -- Try to resolve if it's a variable reference
             local resolvedIssuer = variables:tryResolveExactStringAsVariableObject(expectedIssuer)
             if resolvedIssuer then
                 expectedIssuer = resolvedIssuer
             end
         end
-        
         if expectedIssuer and not ValidationUtils.ethAddressEqual(expectedIssuer, issuerAddress) then
             local errorMsg = string.format("Issuer mismatch: expected ${%s.value}, got %s", input.issuer, issuerAddress)
-            return false, errorMsg
+            return false, nil, errorMsg
         end
     end
+    return true, vcJson, nil
+end
 
-    return true, credentialSubject.values
+function EIP712Verifier:verify(input, value, dfsm, validateSignature)
+    local isValid, vcJson, errorMsg = validateInputVC(input, value, dfsm, validateSignature, true)
+    if not isValid then
+        return false, errorMsg
+    end
+    return true, vcJson.credentialSubject.values
 end
 
 -- EVM Transaction Verifier implementation
@@ -237,12 +231,12 @@ function EVMTransactionVerifier:new()
 end
 
 function EVMTransactionVerifier:verify(input, value, dfsm, expectVc)
-  -- TODO: since we expect the Tx proof to be supplied as a VC, first validate this input as a VC
-  local tableVale = value
-  if type(value) == "string" then
-    tableVale = json.decode(value);
-  end
-  return verifyEVMTransactionInputVerifier(input, tableVale, dfsm.variables, dfsm.contracts, expectVc)
+    local isValid, vcJson, errorMsg = validateInputVC(input, value, dfsm, expectVc, false)
+    if not isValid then
+        return false, errorMsg
+    end
+    -- Now credentialSubject contains the decoded VC, run EVM proof validation
+    return verifyEVMTransactionInputVerifier(input, vcJson, dfsm.variables, dfsm.contracts, expectVc)
 end
 
 -- Factory function to get the appropriate verifier
