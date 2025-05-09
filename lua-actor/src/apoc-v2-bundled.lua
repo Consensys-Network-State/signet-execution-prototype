@@ -1900,20 +1900,20 @@ function EIP712Verifier:new()
 end
 
 -- Shared VC validation logic for both EIP712 and EVMTransaction
-local function validateInputVC(input, value, dfsm, validate, validateValues)
+local function validateInputVC(input, value, dfsm, validateSignature, validateValues)
     -- Default to not validating if not explicitly set
-    validate = validate == true
-    -- default
+    validateSignature = validateSignature == true
+    -- default to validate the values field in the credentialSubject
     if validateValues == nil then validateValues = true end
     local variables, documentHash = dfsm.variables, dfsm.documentHash
     local vcJson, credentialSubject, issuerAddress
-    validate = validate == true
+    validateSignature = validateSignature == true
     if type(value) == "string" then
-        if validate then
+        if validateSignature then
             -- Use cryptographic validation in production
             local success, parsedVcJson, recoveredIssuerAddress = VcValidator.validate(value)
             if not success then
-                return false, nil, nil, "Invalid VC"
+                return false, nil, "Invalid VC"
             end
             vcJson = parsedVcJson
             issuerAddress = recoveredIssuerAddress
@@ -1924,7 +1924,7 @@ local function validateInputVC(input, value, dfsm, validate, validateValues)
         vcJson = value
     end
     credentialSubject = vcJson.credentialSubject
-    if not validate and vcJson.issuer and vcJson.issuer.id then
+    if not validateSignature and vcJson.issuer and vcJson.issuer.id then
         local id = vcJson.issuer.id
         local parts = {}
         for part in string.gmatch(id or "", "[^:]+") do
@@ -1935,22 +1935,22 @@ local function validateInputVC(input, value, dfsm, validate, validateValues)
         end
     end
     if not credentialSubject then
-        return false, nil, nil, "Missing credentialSubject in input"
+        return false, nil, "Missing credentialSubject in input"
     end
     if validateValues and not credentialSubject.values then
-        return false, nil, nil, "Missing values in credentialSubject"
+        return false, nil, "Missing values in credentialSubject"
     end
     local function normalizeHex(hex)
         if type(hex) ~= "string" then return hex end
         return hex:lower():gsub("^0x", "")
     end
     if normalizeHex(vcJson.credentialSubject.documentHash) ~= normalizeHex(documentHash) then
-        return false, nil, nil, "Input VC is targeting the wrong agreement"
+        return false, nil, "Input VC is targeting the wrong agreement"
     end
     if validateValues then
         local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, variables)
         if not isValid then
-            return false, nil, nil, errorMsg
+            return false, nil, errorMsg
         end
     end
     if input.issuer and issuerAddress then
@@ -1963,14 +1963,14 @@ local function validateInputVC(input, value, dfsm, validate, validateValues)
         end
         if expectedIssuer and not ValidationUtils.ethAddressEqual(expectedIssuer, issuerAddress) then
             local errorMsg = string.format("Issuer mismatch: expected ${%s.value}, got %s", input.issuer, issuerAddress)
-            return false, nil, nil, errorMsg
+            return false, nil, errorMsg
         end
     end
-    return true, vcJson, issuerAddress, nil
+    return true, vcJson, nil
 end
 
-function EIP712Verifier:verify(input, value, dfsm, validate)
-    local isValid, vcJson, _, errorMsg = validateInputVC(input, value, dfsm, validate, true)
+function EIP712Verifier:verify(input, value, dfsm, validateSignature)
+    local isValid, vcJson, errorMsg = validateInputVC(input, value, dfsm, validateSignature, true)
     if not isValid then
         return false, errorMsg
     end
@@ -1987,7 +1987,7 @@ function EVMTransactionVerifier:new()
 end
 
 function EVMTransactionVerifier:verify(input, value, dfsm, expectVc)
-    local isValid, vcJson, _, errorMsg = validateInputVC(input, value, dfsm, expectVc, false)
+    local isValid, vcJson, errorMsg = validateInputVC(input, value, dfsm, expectVc, false)
     if not isValid then
         return false, errorMsg
     end
