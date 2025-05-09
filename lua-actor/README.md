@@ -34,10 +34,15 @@ Philosophy:
 
 Writing test cases:
 
-* Test data:
+* To run all test suites (from within `./lua-actor/src`):
+```
+LUA_INIT=@setup.lua lua run-tests.lua
+```
+* Adding new test data:
   * recreate an existing `test-data` directory, or edit an existing one
-* Test scripts:
-  * to begin, write or modify a script that doesn’t require wrappers, for faster iterations. See `dfsm-test.lua` vs.`dfsm-test-wrapped.lua`
+* Adding new test suites:
+  * to begin, write or modify a script that doesn’t require wrappers, for faster iterations. See `dfsm.test.lua` vs.`dfsm-wrapped.test.lua`
+  * make sure to name the files `*.test.lua` in order for them to be picked up by our test runner script
 
 Once confident enough to try changes in AO (i.e. tests are passing /w wrapped inputs):
 
