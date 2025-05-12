@@ -34,6 +34,16 @@ function DFSM:hasOutgoingTransitions(stateId)
     return false
 end
 
+-- Helper function to check if a state has incoming transitions
+function DFSM:hasIncomingTransitions(stateId)
+    for _, t in ipairs(self.transitions) do
+        if t.to == stateId then
+            return true
+        end
+    end
+    return false
+end
+
 -- Helper function to validate initialParams against initialValues
 function DFSM:validateInitialParams(stateId, initialParams, initialValues)
     if not initialParams or type(initialParams) ~= "table" then
@@ -114,37 +124,18 @@ function DFSM.new(doc, expectVCWrapper, params)
     end
 
     -- It's an object format with state objects
-    local initialStateId = nil
     for stateId, stateObj in pairs(agreement.execution.states) do
         self.states[stateId] = {
             id = stateId, -- Include the ID in the state object for reference
             name = stateObj.name or stateId,
             description = stateObj.description or "",
-            isInitial = stateObj.isInitial or false,
             initialParams = stateObj.initialParams or {}
         }
-
-        -- Track initial state
-        if stateObj.isInitial then
-            if initialStateId then
-                error("Multiple initial states found: " .. initialStateId .. " and " .. stateId)
-            end
-            initialStateId = stateId
-
-            -- Check that all required parameters are provided in initialValues
-            self:validateInitialParams(stateId, stateObj.initialParams, initialValues)
-        end
     end
 
     if not next(self.states) then
         error("Agreement document must have at least one state")
     end
-
-    -- Set initial state
-    if not initialStateId then
-        error("No initial state (isInitial=true) found in state definitions")
-    end
-    self.currentState = self.states[initialStateId]
 
     -- Process inputs (assuming object structure)
     if agreement.execution.inputs then
@@ -168,6 +159,26 @@ function DFSM.new(doc, expectVCWrapper, params)
             table.insert(self.transitions, transition)
         end
     end
+
+    -- Find initial state by looking for states with no incoming transitions
+    local initialStateId = nil
+    for stateId, _ in pairs(self.states) do
+        if not self:hasIncomingTransitions(stateId) then
+            if initialStateId then
+                error("Multiple potential initial states found (states with no incoming transitions): " .. initialStateId .. " and " .. stateId)
+            end
+            initialStateId = stateId
+        end
+    end
+
+    -- Set initial state
+    if not initialStateId then
+        error("No initial state found (no state without incoming transitions)")
+    end
+    self.currentState = self.states[initialStateId]
+
+    -- Check that all required parameters are provided in initialValues for the initial state
+    self:validateInitialParams(initialStateId, self.states[initialStateId].initialParams, initialValues)
 
     return self
 end
@@ -201,19 +212,19 @@ function DFSM:validate()
         error("DFSM must have at least one state")
     end
 
-    -- Find initial state
+    -- Find initial state by looking for states with no incoming transitions
     local initialStateId = nil
-    for stateId, stateInfo in pairs(self.states) do
-        if stateInfo.isInitial then
+    for stateId, _ in pairs(self.states) do
+        if not self:hasIncomingTransitions(stateId) then
             if initialStateId then
-                error(string.format("Multiple initial states found: %s and %s", initialStateId, stateId))
+                error(string.format("Multiple potential initial states found (states with no incoming transitions): %s and %s", initialStateId, stateId))
             end
             initialStateId = stateId
         end
     end
 
     if not initialStateId then
-        error("No initial state (isInitial=true) found in state definitions")
+        error("No initial state found (no state without incoming transitions)")
     end
 
     -- Check that all states referenced in transitions exist
