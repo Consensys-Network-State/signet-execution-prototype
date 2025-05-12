@@ -63,6 +63,25 @@ function DFSM:validateInitialParams(stateId, initialParams, initialValues)
     return true
 end
 
+-- Helper function to validate initialization data
+function DFSM:validateInitialization(initialization, initialValues)
+    if not initialization then
+        return true
+    end
+
+    if not initialValues then
+        error("Initialization data provided but no initial values provided")
+    end
+
+    -- Validate the variable values against variable definitions
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialization.data, initialValues, self.variables)
+    if not isValid then
+        error("Invalid initialization value: " .. errorMsg)
+    end
+
+    return true
+end
+
 -- Initialize a new DFSM instance from a JSON definition
 function DFSM.new(doc, expectVCWrapper, params)
     local self = {
@@ -95,20 +114,6 @@ function DFSM.new(doc, expectVCWrapper, params)
     self.variables = VariableManager.new(agreement.variables)
     self.contracts = ContractManager.new(agreement.contracts or {})
     self.documentHash = crypto.digest.keccak256(doc).asHex()
-
-    -- Set initial values if provided
-    if initialValues then
-        for id, value in pairs(initialValues) do
-            if self.variables:isVariable(id) then
-                local success, err = pcall(function() self.variables:setVariable(id, value) end)
-                if not success then
-                    error(string.format("Error setting variable '%s' to '%s': %s", id, tostring(value), err))
-                end
-            else
-                error(string.format("Attempted to set undeclared variable: %s", id))
-            end
-        end
-    end
 
     -- Set metatable early so methods can be called
     setmetatable(self, { __index = DFSM })
@@ -177,8 +182,23 @@ function DFSM.new(doc, expectVCWrapper, params)
     end
     self.currentState = self.states[initialStateId]
 
-    -- Check that all required parameters are provided in initialValues for the initial state
-    self:validateInitialParams(initialStateId, self.states[initialStateId].initialParams, initialValues)
+    -- Validate and process initialization data if provided
+    if agreement.execution.initialize then
+        self:validateInitialization(agreement.execution.initialize, initialValues)
+        -- Set initial values if provided
+        if initialValues then
+            for id, value in pairs(initialValues) do
+                if self.variables:isVariable(id) then
+                    local success, err = pcall(function() self.variables:setVariable(id, value) end)
+                    if not success then
+                        error(string.format("Error setting variable '%s' to '%s': %s", id, tostring(value), err))
+                    end
+                else
+                    error(string.format("Attempted to set undeclared variable: %s", id))
+                end
+            end
+        end
+    end
 
     return self
 end
@@ -225,6 +245,13 @@ function DFSM:validate()
 
     if not initialStateId then
         error("No initial state found (no state without incoming transitions)")
+    end
+
+    -- Validate initialization data if provided
+    if self.agreement.execution.initialize then
+        if not self.agreement.execution.initialize.data then
+            error("Initialization section must contain a 'data' field")
+        end
     end
 
     -- Check that all states referenced in transitions exist
