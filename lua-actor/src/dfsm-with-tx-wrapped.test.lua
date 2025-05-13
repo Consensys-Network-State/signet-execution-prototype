@@ -52,7 +52,8 @@ TestUtils.runTest(
     "AWAITING_GRANTOR_SIGNATURE",
     DFSMUtils,
     testCounter,
-    expectVc
+    expectVc,
+    true  -- debug mode
 )
 
 -- Test 3: Valid acceptance - should succeed and transition to AWAITING_WORK_SUBMISSION
