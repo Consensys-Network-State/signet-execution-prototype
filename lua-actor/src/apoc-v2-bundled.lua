@@ -660,6 +660,7 @@ function VariableManager.new(variables)
             name = var.name,
             description = var.description,
             validation = var.validation,
+            txMetadata = var.txMetadata,
             get = function(self)
                 return self.value
             end,
@@ -945,6 +946,38 @@ local function replaceVariableReferences(obj, variablesTable)
     return result
 end
 
+-- Helper function to replace contract references with their actual table values
+local function replaceContractReferences(obj, contractsTable)
+    if type(obj) ~= "table" then
+        if type(obj) == "string" then
+            -- Only replace if the entire string matches the pattern
+            local contractName = obj:match("^%${contracts%.([%w_]+)}$")
+            if contractName then
+                local contract = contractsTable[contractName]
+                if contract then
+                    return contract
+                end
+                return "${contracts." .. contractName .. "}" -- Keep original if contract not found
+            end
+        end
+        return obj
+    end
+    -- Handle arrays
+    if #obj > 0 then
+        local result = {}
+        for i, v in ipairs(obj) do
+            result[i] = replaceContractReferences(v, contractsTable)
+        end
+        return result
+    end
+    -- Handle objects
+    local result = {}
+    for k, v in pairs(obj) do
+        result[k] = replaceContractReferences(v, contractsTable)
+    end
+    return result
+end
+
 -- Helper function to print a table in a readable format
 local function printTable(t, indent, visited)
     indent = indent or 0
@@ -993,6 +1026,7 @@ end
   __loaded["src/utils/table_utils"] = {
     deepCompare = deepCompare,
     replaceVariableReferences = replaceVariableReferences,
+    replaceContractReferences = replaceContractReferences,
     printTable = printTable
 }
   return __loaded["src/utils/table_utils"]
@@ -1008,6 +1042,7 @@ local json = require("json")
 local base64 = require(".base64")
 -- local MockOracle = __modules["src/mock-oracle"]()  -- Import the MockOracle module
 local replaceVariableReferences = __modules["src/utils/table_utils"]().replaceVariableReferences
+local replaceContractReferences = __modules["src/utils/table_utils"]().replaceContractReferences
 
 -- Helper functions
 -- EIP-712 specific functions
@@ -1691,11 +1726,9 @@ local function verifyProof(txHash, txIndex, txRoot, txProof, txValue, receiptRoo
 end
 
 -- Export the verifier function
-local function verifyEVMTransaction(input, value, variables, contracts, expectVc)
-    if expectVc then
-        local base64Proof = value.credentialSubject.txProof;
-        value = json.decode(base64.decode(base64Proof))
-    end
+local function verifyEVMTransaction(input, value, variables, contracts)
+    local base64Proof = value.proof;
+    value = json.decode(base64.decode(base64Proof))
     -- Mock the Oracle call
     -- local oracle = MockOracle.new()
     -- if not oracle:exists(value.txHash) then
@@ -1717,6 +1750,7 @@ local function verifyEVMTransaction(input, value, variables, contracts, expectVc
     end
 
     local processedRequiredInput = replaceVariableReferences(input.txMetadata, variables.variables)
+    processedRequiredInput = replaceContractReferences(processedRequiredInput, contracts.contracts)
     if processedRequiredInput.transactionType == "nativeTransfer" then
         if string.lower(value.TxRaw.from) ~= string.lower(processedRequiredInput.from) 
             or string.lower(value.TxRaw.to) ~= string.lower(processedRequiredInput.to) 
@@ -1726,17 +1760,26 @@ local function verifyEVMTransaction(input, value, variables, contracts, expectVc
         end
         return true, {}
     elseif processedRequiredInput.transactionType == "contractCall" then
-        local contract = contracts.contracts[processedRequiredInput.contractReference]
+        local contract = processedRequiredInput.contractReference
         local decodedTx = contract:decode(value.TxRaw.input)
         if (decodedTx.function_name ~= processedRequiredInput.method) then
             return false
         end
 
-        for i, param in ipairs(decodedTx.parameters) do
-            if (string.lower(param.value) ~= string.lower(processedRequiredInput.params[i])) then
+        for _, param in ipairs(decodedTx.parameters) do
+            if (string.lower(param.value) ~= string.lower(processedRequiredInput.params[param.name])) then
                 return false
             end
         end
+
+        if processedRequiredInput.signer ~= nil then
+            local signer = processedRequiredInput.signer
+            local signerAddress = value.TxRaw.from
+            if string.lower(signerAddress) ~= string.lower(signer) then
+                return false
+            end
+        end
+
         return true
     else
     end
@@ -1800,7 +1843,7 @@ ValidationUtils.ethAddressEqual = function (address1, address2)
 end
 
 -- Variable validation function
-ValidationUtils.validateVariable = function(varDef, value)
+ValidationUtils.validateVariable = function(varDef, value, dfsm)
     if varDef == nil then
         return false, "Variable definition is missing"
     end
@@ -1822,6 +1865,14 @@ ValidationUtils.validateVariable = function(varDef, value)
         print("Address validation passed")
     elseif varDef.type == "number" and type(value) ~= "number" then
         return false, string.format("Variable %s must be a number", varDef.name or varDef.id)
+    elseif varDef.type == "txHash" then
+        if not value.proof then
+            return false, string.format("Variable %s must include a proof", varDef.name or varDef.id)
+        end
+
+        if not verifyEVMTransactionInputVerifier(varDef, value, dfsm.variables, dfsm.contracts) then
+            return false, string.format("Proof provided for variable %s is invalid", varDef.name or varDef.id)
+        end
     end
 
     -- Use shared validation for common validations, if validation is defined
@@ -1854,7 +1905,7 @@ ValidationUtils.processVariableDefinitions = function(varDefs, variables)
 end
 
 -- Validate values against processed variable definitions
-ValidationUtils.validateVariableValues = function(varDefs, values)
+ValidationUtils.validateVariableValues = function(varDefs, values, dfsm)
     for varId, varDef in pairs(varDefs) do
         local varValue = values[varId]
         
@@ -1864,7 +1915,7 @@ ValidationUtils.validateVariableValues = function(varDefs, values)
         end
         
         -- Validate the variable using shared validation
-        local isValid, errorMsg = ValidationUtils.validateVariable(varDef, varValue)
+        local isValid, errorMsg = ValidationUtils.validateVariable(varDef, varValue, dfsm)
         if not isValid then
             return false, errorMsg
         end
@@ -1873,12 +1924,12 @@ ValidationUtils.validateVariableValues = function(varDefs, values)
 end
 
 -- Process variable definitions and validate values in one step
-ValidationUtils.processAndValidateVariables = function(varDefs, values, variables)
+ValidationUtils.processAndValidateVariables = function(varDefs, values, dfsm)
     -- Step 1: Process variable definitions
-    local processedDefs = ValidationUtils.processVariableDefinitions(varDefs, variables)
+    local processedDefs = ValidationUtils.processVariableDefinitions(varDefs, dfsm.variables)
     
     -- Step 2: Validate values against variable definitions
-    return ValidationUtils.validateVariableValues(processedDefs, values)
+    return ValidationUtils.validateVariableValues(processedDefs, values, dfsm)
 end
 
 -- Base Verifier class
@@ -1948,7 +1999,7 @@ local function validateInputVC(input, value, dfsm, validateSignature, validateVa
         return false, nil, "Input VC is targeting the wrong agreement"
     end
     if validateValues then
-        local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, variables)
+        local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, dfsm)
         if not isValid then
             return false, nil, errorMsg
         end
@@ -1977,24 +2028,6 @@ function EIP712Verifier:verify(input, value, dfsm, validateSignature)
     return true, vcJson.credentialSubject.values
 end
 
--- EVM Transaction Verifier implementation
-local EVMTransactionVerifier = BaseVerifier:new()
-EVMTransactionVerifier.__index = EVMTransactionVerifier
-
-function EVMTransactionVerifier:new()
-    local self = setmetatable({}, EVMTransactionVerifier)
-    return self
-end
-
-function EVMTransactionVerifier:verify(input, value, dfsm, expectVc)
-    local isValid, vcJson, errorMsg = validateInputVC(input, value, dfsm, expectVc, false)
-    if not isValid then
-        return false, errorMsg
-    end
-    -- Now credentialSubject contains the decoded VC, run EVM proof validation
-    return verifyEVMTransactionInputVerifier(input, vcJson, dfsm.variables, dfsm.contracts, expectVc)
-end
-
 -- Factory function to get the appropriate verifier
 local function getVerifier(inputType)
     if not inputType then
@@ -2003,7 +2036,6 @@ local function getVerifier(inputType)
 
     local verifiers = {
         VerifiedCredentialEIP712 = EIP712Verifier:new(),
-        EVMTransaction = EVMTransactionVerifier:new()
     }
 
     local verifier = verifiers[inputType]
@@ -2233,9 +2265,9 @@ function ContractManager.new(contracts)
         contracts = {}
     }
 
-    for _, contract in ipairs(contracts) do
-        self.contracts[contract.id] = {
-            id = contract.id,
+    for id, contract in pairs(contracts) do
+        self.contracts[id] = {
+            id = id,
             description = contract.description,
             address = contract.address,
             abi = contract.abi,
@@ -2347,7 +2379,7 @@ function DFSM:validateInitialParams(stateId, initialParams, initialValues)
     end
 
     -- Validate the variable values against variable definitions
-    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self.variables)
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self)
     if not isValid then
         error("Invalid parameter value for state " .. stateId .. ": " .. errorMsg)
     end
@@ -2366,7 +2398,7 @@ function DFSM:validateInitialization(initialization, initialValues)
     end
 
     -- Validate the variable values against variable definitions
-    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialization.data, initialValues, self.variables)
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialization.data, initialValues, self)
     if not isValid then
         error("Invalid initialization value: " .. errorMsg)
     end
