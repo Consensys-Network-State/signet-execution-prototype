@@ -118,17 +118,21 @@ function DFSM.new(doc, expectVCWrapper, params)
     -- Set metatable early so methods can be called
     setmetatable(self, { __index = DFSM })
 
-    -- Validate and set initial state
+    -- Validate agreement structure before processing
     if not agreement.execution or not agreement.execution.states then
         error("Agreement document must have states defined")
     end
-
-    -- Process states - only support object format
     if type(agreement.execution.states) ~= "table" then
         error("States must be defined as an object")
     end
+    if agreement.execution.initialize and not agreement.execution.initialize.data then
+        error("Initialization section must contain a 'data' field")
+    end
+    if agreement.execution.inputs and type(agreement.execution.inputs) ~= "table" then
+        error("Inputs must be an object with input IDs as keys")
+    end
 
-    -- It's an object format with state objects
+    -- Process states - only support object format
     for stateId, stateObj in pairs(agreement.execution.states) do
         self.states[stateId] = {
             id = stateId, -- Include the ID in the state object for reference
@@ -138,15 +142,8 @@ function DFSM.new(doc, expectVCWrapper, params)
         }
     end
 
-    if not next(self.states) then
-        error("Agreement document must have at least one state")
-    end
-
     -- Process inputs (assuming object structure)
     if agreement.execution.inputs then
-        if type(agreement.execution.inputs) ~= "table" then
-            error("Inputs must be an object with input IDs as keys")
-        end
         for id, input in pairs(agreement.execution.inputs) do
             self.inputs[id] = input
         end
@@ -155,31 +152,12 @@ function DFSM.new(doc, expectVCWrapper, params)
     -- Process transitions
     if agreement.execution.transitions then
         for _, transition in ipairs(agreement.execution.transitions) do
-            if not self.states[transition.from] then
-                error(string.format("Invalid 'from' state in transition: %s", transition.from))
-            end
-            if not self.states[transition.to] then
-                error(string.format("Invalid 'to' state in transition: %s", transition.to))
-            end
             table.insert(self.transitions, transition)
         end
     end
 
-    -- Find initial state by looking for states with no incoming transitions
-    local initialStateId = nil
-    for stateId, _ in pairs(self.states) do
-        if not self:hasIncomingTransitions(stateId) then
-            if initialStateId then
-                error("Multiple potential initial states found (states with no incoming transitions): " .. initialStateId .. " and " .. stateId)
-            end
-            initialStateId = stateId
-        end
-    end
-
-    -- Set initial state
-    if not initialStateId then
-        error("No initial state found (no state without incoming transitions)")
-    end
+    -- Validate the state machine and get initial state
+    local initialStateId = self:validate()
     self.currentState = self.states[initialStateId]
 
     -- Validate and process initialization data if provided
@@ -229,7 +207,7 @@ end
 function DFSM:validate()
     -- Check that we have at least one state
     if not next(self.states) then
-        error("DFSM must have at least one state")
+        error("Agreement document must have states defined")
     end
 
     -- Find initial state by looking for states with no incoming transitions
@@ -245,13 +223,6 @@ function DFSM:validate()
 
     if not initialStateId then
         error("No initial state found (no state without incoming transitions)")
-    end
-
-    -- Validate initialization data if provided
-    if self.agreement.execution.initialize then
-        if not self.agreement.execution.initialize.data then
-            error("Initialization section must contain a 'data' field")
-        end
     end
 
     -- Check that all states referenced in transitions exist
@@ -296,6 +267,8 @@ function DFSM:validate()
             error(string.format("Input %s missing schema", inputId))
         end
     end
+
+    return initialStateId
 end
 
 -- Process an input and attempt to transition states
