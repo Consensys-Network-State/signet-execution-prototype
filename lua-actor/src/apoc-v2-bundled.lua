@@ -1962,7 +1962,11 @@ local function validateInputVC(input, value, dfsm, validateSignature, validateVa
             end
         end
         if expectedIssuer and not ValidationUtils.ethAddressEqual(expectedIssuer, issuerAddress) then
-            local errorMsg = string.format("Issuer mismatch: expected ${%s.value}, got %s", input.issuer, issuerAddress)
+            -- Extract variable name from the reference string (e.g. "variables.recipientEthAddress.value" -> "recipientEthAddress")
+            local varName = input.issuer:match("variables%.([^%.]+)")
+            -- Get the actual value for the error message
+            local actualExpectedValue = variables and (varName and variables:getVariable(varName) or expectedIssuer) or expectedIssuer
+            local errorMsg = string.format("Issuer mismatch: expected %s, got %s", actualExpectedValue, issuerAddress)
             return false, nil, errorMsg
         end
     end
@@ -2410,17 +2414,21 @@ function DFSM.new(doc, expectVCWrapper, params)
     -- Set metatable early so methods can be called
     setmetatable(self, { __index = DFSM })
 
-    -- Validate and set initial state
+    -- Validate agreement structure before processing
     if not agreement.execution or not agreement.execution.states then
         error("Agreement document must have states defined")
     end
-
-    -- Process states - only support object format
     if type(agreement.execution.states) ~= "table" then
         error("States must be defined as an object")
     end
+    if agreement.execution.initialize and not agreement.execution.initialize.data then
+        error("Initialization section must contain a 'data' field")
+    end
+    if agreement.execution.inputs and type(agreement.execution.inputs) ~= "table" then
+        error("Inputs must be an object with input IDs as keys")
+    end
 
-    -- It's an object format with state objects
+    -- Process states - only support object format
     for stateId, stateObj in pairs(agreement.execution.states) do
         self.states[stateId] = {
             id = stateId, -- Include the ID in the state object for reference
@@ -2430,15 +2438,8 @@ function DFSM.new(doc, expectVCWrapper, params)
         }
     end
 
-    if not next(self.states) then
-        error("Agreement document must have at least one state")
-    end
-
     -- Process inputs (assuming object structure)
     if agreement.execution.inputs then
-        if type(agreement.execution.inputs) ~= "table" then
-            error("Inputs must be an object with input IDs as keys")
-        end
         for id, input in pairs(agreement.execution.inputs) do
             self.inputs[id] = input
         end
@@ -2447,31 +2448,12 @@ function DFSM.new(doc, expectVCWrapper, params)
     -- Process transitions
     if agreement.execution.transitions then
         for _, transition in ipairs(agreement.execution.transitions) do
-            if not self.states[transition.from] then
-                error(string.format("Invalid 'from' state in transition: %s", transition.from))
-            end
-            if not self.states[transition.to] then
-                error(string.format("Invalid 'to' state in transition: %s", transition.to))
-            end
             table.insert(self.transitions, transition)
         end
     end
 
-    -- Find initial state by looking for states with no incoming transitions
-    local initialStateId = nil
-    for stateId, _ in pairs(self.states) do
-        if not self:hasIncomingTransitions(stateId) then
-            if initialStateId then
-                error("Multiple potential initial states found (states with no incoming transitions): " .. initialStateId .. " and " .. stateId)
-            end
-            initialStateId = stateId
-        end
-    end
-
-    -- Set initial state
-    if not initialStateId then
-        error("No initial state found (no state without incoming transitions)")
-    end
+    -- Validate the state machine and get initial state
+    local initialStateId = self:validate()
     self.currentState = self.states[initialStateId]
 
     -- Validate and process initialization data if provided
@@ -2482,6 +2464,9 @@ function DFSM.new(doc, expectVCWrapper, params)
             for id, value in pairs(initialValues) do
                 if self.variables:isVariable(id) then
                     local success, err = pcall(function() self.variables:setVariable(id, value) end)
+
+                    print(self.variables:getVariable(id));
+
                     if not success then
                         error(string.format("Error setting variable '%s' to '%s': %s", id, tostring(value), err))
                     end
@@ -2521,7 +2506,7 @@ end
 function DFSM:validate()
     -- Check that we have at least one state
     if not next(self.states) then
-        error("DFSM must have at least one state")
+        error("Agreement document must have states defined")
     end
 
     -- Find initial state by looking for states with no incoming transitions
@@ -2537,13 +2522,6 @@ function DFSM:validate()
 
     if not initialStateId then
         error("No initial state found (no state without incoming transitions)")
-    end
-
-    -- Validate initialization data if provided
-    if self.agreement.execution.initialize then
-        if not self.agreement.execution.initialize.data then
-            error("Initialization section must contain a 'data' field")
-        end
     end
 
     -- Check that all states referenced in transitions exist
@@ -2588,6 +2566,8 @@ function DFSM:validate()
             error(string.format("Input %s missing schema", inputId))
         end
     end
+
+    return initialStateId
 end
 
 -- Process an input and attempt to transition states
@@ -2753,7 +2733,7 @@ local function __require(moduleName)
   return __modules[moduleName]()
 end
 
--- Main actor file: src/apoc-v2.lua
+-- Main actor file: ./src/apoc-v2.lua
 
 
 local json = require("json")

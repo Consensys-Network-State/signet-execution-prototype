@@ -6,10 +6,10 @@ local json = require("json")
 local Handlers = require("apoc-v2-bundled")
 
 local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.wrapped.json")
-local inputA = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-input.wrapped.json")
-local inputB = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyB-input.wrapped.json")
-local inputAAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-input-accept.wrapped.json")
-local inputATxProof = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-tx-proof.wrapped.json")
+local inputA = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-input.wrapped.json")
+local inputB = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.recipient-input.wrapped.json")
+local inputAAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-accept.wrapped.json")
+local inputATxProof = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-tx-proof.wrapped.json")
 
 -- Evaluate a message
 local response = Handlers.evaluate({

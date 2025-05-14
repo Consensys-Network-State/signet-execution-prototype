@@ -168,6 +168,9 @@ function DFSM.new(doc, expectVCWrapper, params)
             for id, value in pairs(initialValues) do
                 if self.variables:isVariable(id) then
                     local success, err = pcall(function() self.variables:setVariable(id, value) end)
+
+                    print(self.variables:getVariable(id));
+
                     if not success then
                         error(string.format("Error setting variable '%s' to '%s': %s", id, tostring(value), err))
                     end

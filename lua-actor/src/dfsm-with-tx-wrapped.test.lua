@@ -9,16 +9,16 @@ local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 
 -- Load all test input files
-local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.wrapped.json")
-local grantorInput = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.grantor-input.wrapped.json")
-local recipientInput = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.recipient-input.wrapped.json")
-local grantorAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.grantor-accept.wrapped.json")
-local grantorReject = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.grantor-reject.wrapped.json")
-local workSubmission = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.work-submission.wrapped.json")
-local workAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.work-accept.wrapped.json")
-local workReject = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.work-reject.wrapped.json")
-local agreementReject = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.agreement-reject.wrapped.json")
-local txProof = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-agreement.grantor-tx-proof.wrapped.json")
+local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.wrapped.json")
+local grantorInput = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-input.wrapped.json")
+local recipientInput = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.recipient-input.wrapped.json")
+local grantorAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-accept.wrapped.json")
+local grantorReject = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-reject.wrapped.json")
+local workSubmission = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.work-submission.wrapped.json")
+local workAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.work-accept.wrapped.json")
+local workReject = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.work-reject.wrapped.json")
+local agreementReject = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.agreement-reject.wrapped.json")
+local txProof = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-tx-proof.wrapped.json")
 
 -- Extract the agreement hash from the wrapped agreement document
 local decodedAgreement = json.decode(agreementDoc)
@@ -124,6 +124,19 @@ TestUtils.runTest(
     true,
     nil,
     "AWAITING_RECIPIENT_SIGNATURE",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+-- Add recipient signature step before rejection
+TestUtils.runTest(
+    "Recipient signature (for rejection test)",
+    rejectDfsm,
+    recipientInput,
+    true,
+    nil,
+    "AWAITING_GRANTOR_SIGNATURE",
     DFSMUtils,
     testCounter,
     expectVc
