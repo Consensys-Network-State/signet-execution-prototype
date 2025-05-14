@@ -101,12 +101,7 @@
     "states": {
       "AWAITING_TEMPLATE_VARIABLES": {
         "name": "Awaiting Template Variables",
-        "description": "Grantor needs to fill out the template variables.",
-        "isInitial": true,
-        "initialParams": {
-          "grantorEthAddress": "${variables.grantorEthAddress}",
-          "recipientEthAddress": "${variables.recipientEthAddress}"
-        }
+        "description": "Grantor needs to fill out the template variables."
       },
       "AWAITING_RECIPIENT_SIGNATURE": {
         "name": "Pending Recipient Signature",
@@ -135,6 +130,14 @@
       "REJECTED": {
         "name": "Agreement Rejected",
         "description": "The agreement has been rejected by Grantor and will not proceed."
+      }
+    },
+    "initialize": {
+      "name": "Initialize Grant",
+      "description": "Initialize the grant with grantor and recipient addresses",
+      "data": {
+        "grantorEthAddress": "${variables.grantorEthAddress}",
+        "recipientEthAddress": "${variables.recipientEthAddress}"
       }
     },
     "inputs": {

@@ -206,7 +206,11 @@ local function validateInputVC(input, value, dfsm, validateSignature, validateVa
             end
         end
         if expectedIssuer and not ValidationUtils.ethAddressEqual(expectedIssuer, issuerAddress) then
-            local errorMsg = string.format("Issuer mismatch: expected ${%s.value}, got %s", input.issuer, issuerAddress)
+            -- Extract variable name from the reference string (e.g. "variables.recipientEthAddress.value" -> "recipientEthAddress")
+            local varName = input.issuer:match("variables%.([^%.]+)")
+            -- Get the actual value for the error message
+            local actualExpectedValue = variables and (varName and variables:getVariable(varName) or expectedIssuer) or expectedIssuer
+            local errorMsg = string.format("Issuer mismatch: expected %s, got %s", actualExpectedValue, issuerAddress)
             return false, nil, errorMsg
         end
     end
