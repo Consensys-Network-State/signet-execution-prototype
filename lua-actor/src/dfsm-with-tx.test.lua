@@ -62,7 +62,7 @@ TestUtils.runTest(
     dfsm, 
     string.format([[{
         "type": "VerifiedCredentialEIP712",
-        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
+        "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
         "credentialSubject": {
             "inputId": "recipientSigning",
             "type": "signedFields",
