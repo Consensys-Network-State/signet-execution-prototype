@@ -1,8 +1,4 @@
 {
-    "credentialSubject" : {
-      "inputId": "workTokenSentTx",
-      "documentHash": "0xfab6cb589ad50d6d1f8d3584763283d2c6c9a4ca4b605416ec84bbf365db3b62"
-    },
     "TxHash": "0x15cdc2d5157685faaca3da6928fe412608747e76a7daee0800d5c79c2b76a0cd",
     "TxRoot": "0x337659034171d73f09b2f9b070554c217248c913b807ff70809433541868d5f9",
     "TxIndex": "1",
