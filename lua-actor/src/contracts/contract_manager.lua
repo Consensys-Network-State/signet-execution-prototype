@@ -191,9 +191,9 @@ function ContractManager.new(contracts)
         contracts = {}
     }
 
-    for _, contract in ipairs(contracts) do
-        self.contracts[contract.id] = {
-            id = contract.id,
+    for id, contract in pairs(contracts) do
+        self.contracts[id] = {
+            id = id,
             description = contract.description,
             address = contract.address,
             abi = contract.abi,

@@ -4,6 +4,7 @@ local json = require("json")
 local base64 = require(".base64")
 -- local MockOracle = require("mock-oracle")  -- Import the MockOracle module
 local replaceVariableReferences = require("utils/table_utils").replaceVariableReferences
+local replaceContractReferences = require("utils/table_utils").replaceContractReferences
 
 -- Helper functions
 -- EIP-712 specific functions
@@ -687,11 +688,9 @@ local function verifyProof(txHash, txIndex, txRoot, txProof, txValue, receiptRoo
 end
 
 -- Export the verifier function
-local function verifyEVMTransaction(input, value, variables, contracts, expectVc)
-    if expectVc then
-        local base64Proof = value.credentialSubject.txProof;
-        value = json.decode(base64.decode(base64Proof))
-    end
+local function verifyEVMTransaction(input, value, variables, contracts)
+    local base64Proof = value.proof;
+    value = json.decode(base64.decode(base64Proof))
     -- Mock the Oracle call
     -- local oracle = MockOracle.new()
     -- if not oracle:exists(value.txHash) then
@@ -713,6 +712,7 @@ local function verifyEVMTransaction(input, value, variables, contracts, expectVc
     end
 
     local processedRequiredInput = replaceVariableReferences(input.txMetadata, variables.variables)
+    processedRequiredInput = replaceContractReferences(processedRequiredInput, contracts.contracts)
     if processedRequiredInput.transactionType == "nativeTransfer" then
         if string.lower(value.TxRaw.from) ~= string.lower(processedRequiredInput.from) 
             or string.lower(value.TxRaw.to) ~= string.lower(processedRequiredInput.to) 
@@ -722,17 +722,26 @@ local function verifyEVMTransaction(input, value, variables, contracts, expectVc
         end
         return true, {}
     elseif processedRequiredInput.transactionType == "contractCall" then
-        local contract = contracts.contracts[processedRequiredInput.contractReference]
+        local contract = processedRequiredInput.contractReference
         local decodedTx = contract:decode(value.TxRaw.input)
         if (decodedTx.function_name ~= processedRequiredInput.method) then
             return false
         end
 
-        for i, param in ipairs(decodedTx.parameters) do
-            if (string.lower(param.value) ~= string.lower(processedRequiredInput.params[i])) then
+        for _, param in ipairs(decodedTx.parameters) do
+            if (string.lower(param.value) ~= string.lower(processedRequiredInput.params[param.name])) then
                 return false
             end
         end
+
+        if processedRequiredInput.signer ~= nil then
+            local signer = processedRequiredInput.signer
+            local signerAddress = value.TxRaw.from
+            if string.lower(signerAddress) ~= string.lower(signer) then
+                return false
+            end
+        end
+
         return true
     else
     end

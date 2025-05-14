@@ -7,6 +7,7 @@ local DFSM = require("dfsm")
 -- Import test utilities
 local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
+local base64 = require(".base64")
 
 local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.json")
 local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
@@ -105,11 +106,40 @@ TestUtils.runTest(
     expectVc
 )
 
+print(string.format([[{
+    "type": "VerifiedCredentialEIP712",
+    "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "credentialSubject": {
+        "inputId": "workTokenSentTx",
+        "documentHash": "%s",
+        "values": {
+            "workTokenSentTx": {
+                "proof": "%s"
+            }
+        }
+    }
+}]], agreementHash, fullTxData))
+
 -- Tokens sent - should succeed and transition to WORK_ACCEPTED_AND_PAID
+local fullTxDataB64 = base64.encode(fullTxData)
+
 TestUtils.runTest(
     "Tokens sent", 
     dfsm, 
-    fullTxData,
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+        "credentialSubject": {
+            "inputId": "workTokenSentTx",
+            "documentHash": "%s",
+            "values": {
+                "workTokenSentTx": {
+                    "value": "0x15cdc2d5157685faaca3da6928fe412608747e76a7daee0800d5c79c2b76a0cd",
+                    "proof": "%s"
+                }
+            }
+        }
+    }]], agreementHash, fullTxDataB64),
     true,  -- expect success
     nil,
     "WORK_ACCEPTED_AND_PAID",
