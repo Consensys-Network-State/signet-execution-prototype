@@ -1726,7 +1726,7 @@ local function verifyProof(txHash, txIndex, txRoot, txProof, txValue, receiptRoo
 end
 
 -- Export the verifier function
-local function verifyEVMTransaction(input, value, variables, contracts)
+local function verifyEVMTransaction(input, value, dfsm)
     local base64Proof = value.proof;
     local txHash = value.value;
     value = json.decode(base64.decode(base64Proof))
@@ -1740,6 +1740,9 @@ local function verifyEVMTransaction(input, value, variables, contracts)
     if not isValid then
         return false
     end
+
+    local variables = dfsm.variables
+    local contracts = dfsm.contracts
 
     local processedRequiredInput = replaceVariableReferences(input.txMetadata, variables.variables)
     processedRequiredInput = replaceContractReferences(processedRequiredInput, contracts.contracts)
@@ -1862,7 +1865,7 @@ ValidationUtils.validateVariable = function(varDef, value, dfsm)
             return false, string.format("Variable %s must include a proof", varDef.name or varDef.id)
         end
 
-        if not verifyEVMTransactionInputVerifier(varDef, value, dfsm.variables, dfsm.contracts) then
+        if not verifyEVMTransactionInputVerifier(varDef, value, dfsm) then
             return false, string.format("Proof provided for variable %s is invalid", varDef.name or varDef.id)
         end
     end
