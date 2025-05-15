@@ -654,6 +654,7 @@ function VariableManager.new(variables)
             name = var.name,
             description = var.description,
             validation = var.validation,
+            txMetadata = var.txMetadata,
             get = function(self)
                 return self.value
             end,
@@ -939,6 +940,38 @@ local function replaceVariableReferences(obj, variablesTable)
     return result
 end
 
+-- Helper function to replace contract references with their actual table values
+local function replaceContractReferences(obj, contractsTable)
+    if type(obj) ~= "table" then
+        if type(obj) == "string" then
+            -- Only replace if the entire string matches the pattern
+            local contractName = obj:match("^%${contracts%.([%w_]+)}$")
+            if contractName then
+                local contract = contractsTable[contractName]
+                if contract then
+                    return contract
+                end
+                return "${contracts." .. contractName .. "}" -- Keep original if contract not found
+            end
+        end
+        return obj
+    end
+    -- Handle arrays
+    if #obj > 0 then
+        local result = {}
+        for i, v in ipairs(obj) do
+            result[i] = replaceContractReferences(v, contractsTable)
+        end
+        return result
+    end
+    -- Handle objects
+    local result = {}
+    for k, v in pairs(obj) do
+        result[k] = replaceContractReferences(v, contractsTable)
+    end
+    return result
+end
+
 -- Helper function to print a table in a readable format
 local function printTable(t, indent, visited)
     indent = indent or 0
@@ -987,6 +1020,7 @@ end
   __loaded["utils/table_utils"] = {
     deepCompare = deepCompare,
     replaceVariableReferences = replaceVariableReferences,
+    replaceContractReferences = replaceContractReferences,
     printTable = printTable
 }
   return __loaded["utils/table_utils"]
@@ -1002,6 +1036,7 @@ local json = require("json")
 local base64 = require(".base64")
 -- local MockOracle = __modules["mock-oracle"]()  -- Import the MockOracle module
 local replaceVariableReferences = __modules["utils/table_utils"]().replaceVariableReferences
+local replaceContractReferences = __modules["utils/table_utils"]().replaceContractReferences
 
 -- Helper functions
 -- EIP-712 specific functions
@@ -1685,32 +1720,26 @@ local function verifyProof(txHash, txIndex, txRoot, txProof, txValue, receiptRoo
 end
 
 -- Export the verifier function
-local function verifyEVMTransaction(input, value, variables, contracts, expectVc)
-    if expectVc then
-        local base64Proof = value.credentialSubject.txProof;
-        value = json.decode(base64.decode(base64Proof))
+local function verifyEVMTransaction(input, value, dfsm)
+    local base64Proof = value.proof;
+    local txHash = value.value;
+    value = json.decode(base64.decode(base64Proof))
+
+    if (value.TxHash ~= txHash) then
+        return false
     end
-    -- Mock the Oracle call
-    -- local oracle = MockOracle.new()
-    -- if not oracle:exists(value.txHash) then
-    --     return false, {}
-    -- end
-    
-    -- Retrieve the transaction data from the oracle
-    -- local oracleResponse = oracle:retrieve(value.txHash)
-
-    -- if not oracleResponse then
-
-    --     return false, {}
-    -- end
 
     local isValid = verifyProof(value.TxHash, value.TxIndex, value.TxRoot, value.TxProof, value.TxEncodedValue, value.ReceiptRoot, value.ReceiptProof, value.ReceiptEncodedValue)
 
     if not isValid then
-        return false, {}
+        return false
     end
 
+    local variables = dfsm.variables
+    local contracts = dfsm.contracts
+
     local processedRequiredInput = replaceVariableReferences(input.txMetadata, variables.variables)
+    processedRequiredInput = replaceContractReferences(processedRequiredInput, contracts.contracts)
     if processedRequiredInput.transactionType == "nativeTransfer" then
         if string.lower(value.TxRaw.from) ~= string.lower(processedRequiredInput.from) 
             or string.lower(value.TxRaw.to) ~= string.lower(processedRequiredInput.to) 
@@ -1718,24 +1747,33 @@ local function verifyEVMTransaction(input, value, variables, contracts, expectVc
             or value.TxRaw.chainId ~= processedRequiredInput.chainId then
             return false
         end
-        return true, {}
+        return true
     elseif processedRequiredInput.transactionType == "contractCall" then
-        local contract = contracts.contracts[processedRequiredInput.contractReference]
+        local contract = processedRequiredInput.contractReference
         local decodedTx = contract:decode(value.TxRaw.input)
         if (decodedTx.function_name ~= processedRequiredInput.method) then
             return false
         end
 
-        for i, param in ipairs(decodedTx.parameters) do
-            if (string.lower(param.value) ~= string.lower(processedRequiredInput.params[i])) then
+        for _, param in ipairs(decodedTx.parameters) do
+            if (string.lower(param.value) ~= string.lower(processedRequiredInput.params[param.name])) then
                 return false
             end
         end
+
+        if processedRequiredInput.signer ~= nil then
+            local signer = processedRequiredInput.signer
+            local signerAddress = value.TxRaw.from
+            if string.lower(signerAddress) ~= string.lower(signer) then
+                return false
+            end
+        end
+
         return true
     else
     end
 
-    return true, {}
+    return true
 end
 
 -- Return the verifier function
@@ -1794,7 +1832,7 @@ ValidationUtils.ethAddressEqual = function (address1, address2)
 end
 
 -- Variable validation function
-ValidationUtils.validateVariable = function(varDef, value)
+ValidationUtils.validateVariable = function(varDef, value, dfsm)
     if varDef == nil then
         return false, "Variable definition is missing"
     end
@@ -1816,6 +1854,14 @@ ValidationUtils.validateVariable = function(varDef, value)
         print("Address validation passed")
     elseif varDef.type == "number" and type(value) ~= "number" then
         return false, string.format("Variable %s must be a number", varDef.name or varDef.id)
+    elseif varDef.type == "txHash" then
+        if not value.proof then
+            return false, string.format("Variable %s must include a proof", varDef.name or varDef.id)
+        end
+
+        if not verifyEVMTransactionInputVerifier(varDef, value, dfsm) then
+            return false, string.format("Proof provided for variable %s is invalid", varDef.name or varDef.id)
+        end
     end
 
     -- Use shared validation for common validations, if validation is defined
@@ -1848,7 +1894,7 @@ ValidationUtils.processVariableDefinitions = function(varDefs, variables)
 end
 
 -- Validate values against processed variable definitions
-ValidationUtils.validateVariableValues = function(varDefs, values)
+ValidationUtils.validateVariableValues = function(varDefs, values, dfsm)
     for varId, varDef in pairs(varDefs) do
         local varValue = values[varId]
         
@@ -1858,7 +1904,7 @@ ValidationUtils.validateVariableValues = function(varDefs, values)
         end
         
         -- Validate the variable using shared validation
-        local isValid, errorMsg = ValidationUtils.validateVariable(varDef, varValue)
+        local isValid, errorMsg = ValidationUtils.validateVariable(varDef, varValue, dfsm)
         if not isValid then
             return false, errorMsg
         end
@@ -1867,12 +1913,12 @@ ValidationUtils.validateVariableValues = function(varDefs, values)
 end
 
 -- Process variable definitions and validate values in one step
-ValidationUtils.processAndValidateVariables = function(varDefs, values, variables)
+ValidationUtils.processAndValidateVariables = function(varDefs, values, dfsm)
     -- Step 1: Process variable definitions
-    local processedDefs = ValidationUtils.processVariableDefinitions(varDefs, variables)
+    local processedDefs = ValidationUtils.processVariableDefinitions(varDefs, dfsm.variables)
     
     -- Step 2: Validate values against variable definitions
-    return ValidationUtils.validateVariableValues(processedDefs, values)
+    return ValidationUtils.validateVariableValues(processedDefs, values, dfsm)
 end
 
 -- Base Verifier class
@@ -1942,7 +1988,7 @@ local function validateInputVC(input, value, dfsm, validateSignature, validateVa
         return false, nil, "Input VC is targeting the wrong agreement"
     end
     if validateValues then
-        local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, variables)
+        local isValid, errorMsg = ValidationUtils.processAndValidateVariables(input.data, credentialSubject.values, dfsm)
         if not isValid then
             return false, nil, errorMsg
         end
@@ -1956,7 +2002,11 @@ local function validateInputVC(input, value, dfsm, validateSignature, validateVa
             end
         end
         if expectedIssuer and not ValidationUtils.ethAddressEqual(expectedIssuer, issuerAddress) then
-            local errorMsg = string.format("Issuer mismatch: expected ${%s.value}, got %s", input.issuer, issuerAddress)
+            -- Extract variable name from the reference string (e.g. "variables.recipientEthAddress.value" -> "recipientEthAddress")
+            local varName = input.issuer:match("variables%.([^%.]+)")
+            -- Get the actual value for the error message
+            local actualExpectedValue = variables and (varName and variables:getVariable(varName) or expectedIssuer) or expectedIssuer
+            local errorMsg = string.format("Issuer mismatch: expected %s, got %s", actualExpectedValue, issuerAddress)
             return false, nil, errorMsg
         end
     end
@@ -1971,24 +2021,6 @@ function EIP712Verifier:verify(input, value, dfsm, validateSignature)
     return true, vcJson.credentialSubject.values
 end
 
--- EVM Transaction Verifier implementation
-local EVMTransactionVerifier = BaseVerifier:new()
-EVMTransactionVerifier.__index = EVMTransactionVerifier
-
-function EVMTransactionVerifier:new()
-    local self = setmetatable({}, EVMTransactionVerifier)
-    return self
-end
-
-function EVMTransactionVerifier:verify(input, value, dfsm, expectVc)
-    local isValid, vcJson, errorMsg = validateInputVC(input, value, dfsm, expectVc, false)
-    if not isValid then
-        return false, errorMsg
-    end
-    -- Now credentialSubject contains the decoded VC, run EVM proof validation
-    return verifyEVMTransactionInputVerifier(input, vcJson, dfsm.variables, dfsm.contracts, expectVc)
-end
-
 -- Factory function to get the appropriate verifier
 local function getVerifier(inputType)
     if not inputType then
@@ -1997,7 +2029,6 @@ local function getVerifier(inputType)
 
     local verifiers = {
         VerifiedCredentialEIP712 = EIP712Verifier:new(),
-        EVMTransaction = EVMTransactionVerifier:new()
     }
 
     local verifier = verifiers[inputType]
@@ -2227,9 +2258,9 @@ function ContractManager.new(contracts)
         contracts = {}
     }
 
-    for _, contract in ipairs(contracts) do
-        self.contracts[contract.id] = {
-            id = contract.id,
+    for id, contract in pairs(contracts) do
+        self.contracts[id] = {
+            id = id,
             description = contract.description,
             address = contract.address,
             abi = contract.abi,
@@ -2320,6 +2351,16 @@ function DFSM:hasOutgoingTransitions(stateId)
     return false
 end
 
+-- Helper function to check if a state has incoming transitions
+function DFSM:hasIncomingTransitions(stateId)
+    for _, t in ipairs(self.transitions) do
+        if t.to == stateId then
+            return true
+        end
+    end
+    return false
+end
+
 -- Helper function to validate initialParams against initialValues
 function DFSM:validateInitialParams(stateId, initialParams, initialValues)
     if not initialParams or type(initialParams) ~= "table" then
@@ -2331,9 +2372,28 @@ function DFSM:validateInitialParams(stateId, initialParams, initialValues)
     end
 
     -- Validate the variable values against variable definitions
-    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self.variables)
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self)
     if not isValid then
         error("Invalid parameter value for state " .. stateId .. ": " .. errorMsg)
+    end
+
+    return true
+end
+
+-- Helper function to validate initialization data
+function DFSM:validateInitialization(initialization, initialValues)
+    if not initialization then
+        return true
+    end
+
+    if not initialValues then
+        error("Initialization data provided but no initial values provided")
+    end
+
+    -- Validate the variable values against variable definitions
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialization.data, initialValues, self)
+    if not isValid then
+        error("Invalid initialization value: " .. errorMsg)
     end
 
     return true
@@ -2372,71 +2432,35 @@ function DFSM.new(doc, expectVCWrapper, params)
     self.contracts = ContractManager.new(agreement.contracts or {})
     self.documentHash = crypto.digest.keccak256(doc).asHex()
 
-    -- Set initial values if provided
-    if initialValues then
-        for id, value in pairs(initialValues) do
-            if self.variables:isVariable(id) then
-                local success, err = pcall(function() self.variables:setVariable(id, value) end)
-                if not success then
-                    error(string.format("Error setting variable '%s' to '%s': %s", id, tostring(value), err))
-                end
-            else
-                error(string.format("Attempted to set undeclared variable: %s", id))
-            end
-        end
-    end
-
     -- Set metatable early so methods can be called
     setmetatable(self, { __index = DFSM })
 
-    -- Validate and set initial state
+    -- Validate agreement structure before processing
     if not agreement.execution or not agreement.execution.states then
         error("Agreement document must have states defined")
     end
-
-    -- Process states - only support object format
     if type(agreement.execution.states) ~= "table" then
         error("States must be defined as an object")
     end
+    if agreement.execution.initialize and not agreement.execution.initialize.data then
+        error("Initialization section must contain a 'data' field")
+    end
+    if agreement.execution.inputs and type(agreement.execution.inputs) ~= "table" then
+        error("Inputs must be an object with input IDs as keys")
+    end
 
-    -- It's an object format with state objects
-    local initialStateId = nil
+    -- Process states - only support object format
     for stateId, stateObj in pairs(agreement.execution.states) do
         self.states[stateId] = {
             id = stateId, -- Include the ID in the state object for reference
             name = stateObj.name or stateId,
             description = stateObj.description or "",
-            isInitial = stateObj.isInitial or false,
             initialParams = stateObj.initialParams or {}
         }
-
-        -- Track initial state
-        if stateObj.isInitial then
-            if initialStateId then
-                error("Multiple initial states found: " .. initialStateId .. " and " .. stateId)
-            end
-            initialStateId = stateId
-
-            -- Check that all required parameters are provided in initialValues
-            self:validateInitialParams(stateId, stateObj.initialParams, initialValues)
-        end
     end
-
-    if not next(self.states) then
-        error("Agreement document must have at least one state")
-    end
-
-    -- Set initial state
-    if not initialStateId then
-        error("No initial state (isInitial=true) found in state definitions")
-    end
-    self.currentState = self.states[initialStateId]
 
     -- Process inputs (assuming object structure)
     if agreement.execution.inputs then
-        if type(agreement.execution.inputs) ~= "table" then
-            error("Inputs must be an object with input IDs as keys")
-        end
         for id, input in pairs(agreement.execution.inputs) do
             self.inputs[id] = input
         end
@@ -2445,13 +2469,32 @@ function DFSM.new(doc, expectVCWrapper, params)
     -- Process transitions
     if agreement.execution.transitions then
         for _, transition in ipairs(agreement.execution.transitions) do
-            if not self.states[transition.from] then
-                error(string.format("Invalid 'from' state in transition: %s", transition.from))
-            end
-            if not self.states[transition.to] then
-                error(string.format("Invalid 'to' state in transition: %s", transition.to))
-            end
             table.insert(self.transitions, transition)
+        end
+    end
+
+    -- Validate the state machine and get initial state
+    local initialStateId = self:validate()
+    self.currentState = self.states[initialStateId]
+
+    -- Validate and process initialization data if provided
+    if agreement.execution.initialize then
+        self:validateInitialization(agreement.execution.initialize, initialValues)
+        -- Set initial values if provided
+        if initialValues then
+            for id, value in pairs(initialValues) do
+                if self.variables:isVariable(id) then
+                    local success, err = pcall(function() self.variables:setVariable(id, value) end)
+
+                    print(self.variables:getVariable(id));
+
+                    if not success then
+                        error(string.format("Error setting variable '%s' to '%s': %s", id, tostring(value), err))
+                    end
+                else
+                    error(string.format("Attempted to set undeclared variable: %s", id))
+                end
+            end
         end
     end
 
@@ -2484,22 +2527,22 @@ end
 function DFSM:validate()
     -- Check that we have at least one state
     if not next(self.states) then
-        error("DFSM must have at least one state")
+        error("Agreement document must have states defined")
     end
 
-    -- Find initial state
+    -- Find initial state by looking for states with no incoming transitions
     local initialStateId = nil
-    for stateId, stateInfo in pairs(self.states) do
-        if stateInfo.isInitial then
+    for stateId, _ in pairs(self.states) do
+        if not self:hasIncomingTransitions(stateId) then
             if initialStateId then
-                error(string.format("Multiple initial states found: %s and %s", initialStateId, stateId))
+                error(string.format("Multiple potential initial states found (states with no incoming transitions): %s and %s", initialStateId, stateId))
             end
             initialStateId = stateId
         end
     end
 
     if not initialStateId then
-        error("No initial state (isInitial=true) found in state definitions")
+        error("No initial state found (no state without incoming transitions)")
     end
 
     -- Check that all states referenced in transitions exist
@@ -2544,6 +2587,8 @@ function DFSM:validate()
             error(string.format("Input %s missing schema", inputId))
         end
     end
+
+    return initialStateId
 end
 
 -- Process an input and attempt to transition states
