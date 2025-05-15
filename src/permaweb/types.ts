@@ -194,6 +194,7 @@ export interface AgreementState {
 export interface AgreementRecord {
     id: string;
     document: any; // AgreementVC or similar
+    documentHash: string;
     state: AgreementState;
     contributors: string[];
     createdAt: Date;

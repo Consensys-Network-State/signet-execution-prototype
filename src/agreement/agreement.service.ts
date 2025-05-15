@@ -61,6 +61,7 @@ export class AgreementService {
 async function queryAndUpsertAgreementRecord(processId: string, fetchDocument: boolean = true): Promise<AgreementRecord> {
   // Query with async-retry
   let agreementDoc = undefined;
+  let agreementDocHash = undefined;
   if (fetchDocument) {
     const document = await asyncRetry(
       async (bail, attempt) => {
@@ -74,11 +75,14 @@ async function queryAndUpsertAgreementRecord(processId: string, fetchDocument: b
       { retries: 5, minTimeout: 200, factor: 2 }
     );
 
+    agreementDocHash = document.DocumentHash;
     const agreementVC = JSON.parse(document.Document);
     agreementDoc = JSON.parse(atob(agreementVC.credentialSubject.agreement));
   } else {
     // grab the document from our records
-    agreementDoc = (await findAgreementById(processId))?.document;
+    const agreementRecord = await findAgreementById(processId);
+    agreementDoc = agreementRecord?.document;
+    agreementDocHash = agreementRecord?.documentHash;
   }
   const state = await asyncRetry(
     async (bail, attempt) => {
@@ -97,6 +101,7 @@ async function queryAndUpsertAgreementRecord(processId: string, fetchDocument: b
   const record: AgreementRecord = {
     id: processId,
     document: agreementDoc,
+    documentHash: agreementDocHash,
     state,
     contributors,
     createdAt: now,

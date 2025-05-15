@@ -1,5 +1,36 @@
 -- Utility functions for testing Lua AO Actors
 
+-- Extract relevant input details for error messages
+local function getInputSummary(inputValue)
+    if type(inputValue) == "string" then
+        -- Try to parse as JSON
+        local ok, parsed = pcall(function() return json.decode(inputValue) end)
+        if ok and parsed.credentialSubject then
+            return {
+                inputId = parsed.credentialSubject.inputId,
+                type = parsed.type and parsed.type[1],
+                issuer = parsed.issuer and parsed.issuer.id
+            }
+        end
+    end
+    -- Return minimal info if we can't parse or it's not a VC
+    return { raw = type(inputValue) == "string" and inputValue:sub(1, 50) .. "..." or tostring(inputValue) }
+end
+
+-- Format error message with relevant context
+local function formatError(description, inputSummary, expected, actual)
+    local parts = {
+        "\n❌ TEST FAILED: " .. description,
+        "Input: " .. (inputSummary.inputId or inputSummary.raw),
+        "Expected: " .. expected,
+        "Actual: " .. actual
+    }
+    if inputSummary.issuer then
+        table.insert(parts, 2, "Issuer: " .. inputSummary.issuer)
+    end
+    return table.concat(parts, "\n  ")
+end
+
 -- Print a table recursively with nice formatting
 local function printTable(t, indent)
   indent = indent or ""
@@ -56,35 +87,69 @@ local function logTest(message, testCounter)
 end
 
 -- Helper function to run a test case for DFSM
-local function runTest(description, dfsm, inputValue, expectedSuccess, expectedErrorContains, expectedState, DFSMUtils, testCounter, validateVC)
+local function runTest(description, dfsm, inputValue, expectedSuccess, expectedErrorContains, expectedState, DFSMUtils, testCounter, validateVC, debug)
+    debug = debug or false
+    
     print("\n---------------------------------------------")
     print("TEST: " .. description)
-    print("Processing input: " .. inputValue)
     
-    -- Set validateVC to false for testing
+    -- Get input summary for error messages
+    local inputSummary = getInputSummary(inputValue)
+    
+    -- Only print full input in debug mode
+    if debug then
+        print("Processing input: " .. tostring(inputValue))
+    else
+        print("Input: " .. (inputSummary.inputId or inputSummary.raw))
+    end
+    
+    -- Process input
     local success, result = dfsm:processInput(inputValue, validateVC)
     
-    -- Use built-in assert for success/failure expectation
-    assert(success == expectedSuccess, 
-        "Expected " .. (expectedSuccess and "success" or "failure") .. 
-        " for " .. inputValue .. ", got: " .. tostring(success))
+    -- Check success/failure
+    if success ~= expectedSuccess then
+        error(formatError(
+            description,
+            inputSummary,
+            expectedSuccess and "success" or "failure",
+            success and "success" or "failure: " .. tostring(result)
+        ))
+    end
     logTest("State machine " .. (expectedSuccess and "successfully processed" or "correctly rejected") .. " input", testCounter)
     
-    -- If we expect an error, check that the error message contains expected text
+    -- Check error message if expected
     if not expectedSuccess and expectedErrorContains then
-        assert(result:find(expectedErrorContains, 1, true) ~= nil, 
-            "Error message should contain '" .. expectedErrorContains .. "', got: " .. result)
+        if not result:find(expectedErrorContains, 1, true) then
+            error(formatError(
+                description,
+                inputSummary,
+                "error containing: " .. expectedErrorContains,
+                "error: " .. tostring(result)
+            ))
+        end
         logTest("Error message contains expected text: " .. expectedErrorContains, testCounter)
     end
     
-    -- Check expected state transition if provided
+    -- Check state transition
     if expectedState then
-        assert(dfsm.currentState and dfsm.currentState.id == expectedState, 
-            "Expected state " .. expectedState .. ", got " .. (dfsm.currentState and dfsm.currentState.id or "nil"))
+        local currentState = dfsm.currentState and dfsm.currentState.id or "nil"
+        if currentState ~= expectedState then
+            error(formatError(
+                description,
+                inputSummary,
+                "state: " .. expectedState,
+                "state: " .. currentState
+            ))
+        end
         logTest("State machine transitioned to expected state: " .. expectedState, testCounter)
     end
     
-    print(DFSMUtils.renderDFSMState(dfsm))
+    -- Only print full state in debug mode
+    if debug then
+        print(DFSMUtils.renderDFSMState(dfsm))
+    else
+        print("Current State: " .. (dfsm.currentState and dfsm.currentState.id or "nil"))
+    end
 end
 
 local function loadInputDoc(path)

@@ -1,9 +1,15 @@
 ```mermaid
 stateDiagram-v2
-    [*] --> PENDING_PARTY_A_SIGNATURE: Initial State
-    PENDING_PARTY_A_SIGNATURE --> PENDING_PARTY_B_SIGNATURE: partyAData (isValid)
-    PENDING_PARTY_B_SIGNATURE --> PENDING_ACCEPTANCE: partyBData (isValid)
-    PENDING_ACCEPTANCE --> ACCEPTED_PENDING_PAYMENT: accepted (isValid)
-    PENDING_ACCEPTANCE --> REJECTED: rejected (isValid)
-    ACCEPTED_PENDING_PAYMENT --> PAYMENT_CONFIRMED: workTokenSentTx (isValid)
+    [*] --> AWAITING_TEMPLATE_VARIABLES: Initial State
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: grantorData (isValid)
+    AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: recipientSigning (isValid)
+    AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: grantorSigning (isValid)
+    AWAITING_GRANTOR_SIGNATURE --> REJECTED: grantorRejection (isValid)
+    AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: workSubmission (isValid)
+    
+    WORK_IN_REVIEW --> AWAITING_PAYMENT: workAccepted (isValid)
+    WORK_IN_REVIEW --> AWAITING_WORK_SUBMISSION: workResubmissionRequested (isValid)
+    WORK_IN_REVIEW --> REJECTED: workRejected (isValid)
+    
+    AWAITING_PAYMENT --> WORK_ACCEPTED_AND_PAID: workTokenSentTx (isValid)
 ```
