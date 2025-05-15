@@ -71,7 +71,7 @@ ValidationUtils.validateVariable = function(varDef, value, dfsm)
             return false, string.format("Variable %s must include a proof", varDef.name or varDef.id)
         end
 
-        if not verifyEVMTransactionInputVerifier(varDef, value, dfsm.variables, dfsm.contracts) then
+        if not verifyEVMTransactionInputVerifier(varDef, value, dfsm) then
             return false, string.format("Proof provided for variable %s is invalid", varDef.name or varDef.id)
         end
     end
