@@ -11,6 +11,16 @@ Install lua rocks dependencies:
 
 ## Running tests
 
+To run a test suite for an end-to-end of an agreement with VC inputs:
+
+`LUA_INIT=@setup.lua lua dfsm-test-wrapped.lua`
+
+Note that an [augmented Veramo library](https://github.com/Consensys-Network-State/signet-veramo) is used to generate verifiable credentials.
+
+To run a test suite for an end-to-end of an agreement without the VC requirements:
+
+`LUA_INIT=@setup.lua lua dfsm-test-wrapped.lua`
+
 To run a test suite making use of a C-based secp256k1 lib from within `lua-actor/src`:
 
 `LUA_INIT=@setup.lua lua apoc-test.lua`
