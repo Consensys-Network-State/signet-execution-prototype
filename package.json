@@ -25,6 +25,10 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@ethereumjs/common": "^4.4.0",
+    "@ethereumjs/rlp": "^5.0.2",
+    "@ethereumjs/trie": "^6.2.1",
+    "@ethereumjs/tx": "^5.4.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^3.3.0",
     "@nestjs/core": "^10.0.0",
@@ -52,6 +56,7 @@
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.22",
     "web-did-resolver": "^2.0.30",
+    "web3": "^4.16.0",
     "yarn": "^1.22.22"
   },
   "devDependencies": {
