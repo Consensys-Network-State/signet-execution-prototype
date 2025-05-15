@@ -7,6 +7,7 @@ local DFSM = require("dfsm")
 -- Import test utilities
 local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
+local base64 = require(".base64")
 
 local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.json")
 local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
@@ -62,7 +63,7 @@ TestUtils.runTest(
     dfsm, 
     string.format([[{
         "type": "VerifiedCredentialEIP712",
-        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
+        "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
         "credentialSubject": {
             "inputId": "recipientSigning",
             "type": "signedFields",
@@ -105,7 +106,6 @@ TestUtils.runTest(
     expectVc
 )
 
--- Work Submission - should succeed and transition to WORK_IN_REVIEW
 TestUtils.runTest(
     "Work Submission", 
     dfsm, 
@@ -260,16 +260,27 @@ TestUtils.runTest(
     expectVc
 )
 
--- Payment sent - should succeed and transition to WORK_ACCEPTED_AND_PAID
-local txData = json.decode(oracleDataDoc)
--- Update the document hash to match current test
-txData.credentialSubject.documentHash = agreementHash
+-- Tokens sent - should succeed and transition to WORK_ACCEPTED_AND_PAID
+local fullTxDataB64 = base64.encode(fullTxData)
 
 TestUtils.runTest(
     "Payment sent", 
     acceptDfsm, 
-    json.encode(txData),
-    true,
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+        "credentialSubject": {
+            "inputId": "workTokenSentTx",
+            "documentHash": "%s",
+            "values": {
+                "workTokenSentTx": {
+                    "value": "0x15cdc2d5157685faaca3da6928fe412608747e76a7daee0800d5c79c2b76a0cd",
+                    "proof": "%s"
+                }
+            }
+        }
+    }]], agreementHash, fullTxDataB64),
+    true,  -- expect success
     nil,
     "WORK_ACCEPTED_AND_PAID",
     DFSMUtils,

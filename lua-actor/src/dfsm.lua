@@ -55,7 +55,7 @@ function DFSM:validateInitialParams(stateId, initialParams, initialValues)
     end
 
     -- Validate the variable values against variable definitions
-    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self.variables)
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self)
     if not isValid then
         error("Invalid parameter value for state " .. stateId .. ": " .. errorMsg)
     end
@@ -74,7 +74,7 @@ function DFSM:validateInitialization(initialization, initialValues)
     end
 
     -- Validate the variable values against variable definitions
-    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialization.data, initialValues, self.variables)
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialization.data, initialValues, self)
     if not isValid then
         error("Invalid initialization value: " .. errorMsg)
     end
@@ -168,6 +168,9 @@ function DFSM.new(doc, expectVCWrapper, params)
             for id, value in pairs(initialValues) do
                 if self.variables:isVariable(id) then
                     local success, err = pcall(function() self.variables:setVariable(id, value) end)
+
+                    print(self.variables:getVariable(id));
+
                     if not success then
                         error(string.format("Error setting variable '%s' to '%s': %s", id, tostring(value), err))
                     end

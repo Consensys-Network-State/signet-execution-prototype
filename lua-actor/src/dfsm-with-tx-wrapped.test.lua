@@ -8,19 +8,25 @@ local DFSM = require("dfsm")
 local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 
+-- Load all test input files
 local agreementDoc = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.wrapped.json")
-local inputA = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-input.wrapped.json")
-local inputB = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyB-input.wrapped.json")
-local inputAAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-input-accept.wrapped.json")
-local inputATxProof = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.partyA-tx-proof.wrapped.json")
+local grantorInput = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-input.wrapped.json")
+local recipientInput = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.recipient-input.wrapped.json")
+local grantorAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-accept.wrapped.json")
+local grantorReject = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-reject.wrapped.json")
+local workSubmission = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.work-submission.wrapped.json")
+local workAccept = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.work-accept.wrapped.json")
+local workReject = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.work-reject.wrapped.json")
+local agreementReject = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.agreement-reject.wrapped.json")
+local txProof = TestUtils.loadInputDoc("./test-data/grant-with-tx/grant-with-tx.grantor-tx-proof.wrapped.json")
 
 -- Extract the agreement hash from the wrapped agreement document
 local decodedAgreement = json.decode(agreementDoc)
 local agreementBase64 = decodedAgreement.credentialSubject.agreement
--- Convert to string for hashing if needed
 local agreementHash = crypto.digest.keccak256(agreementBase64).asHex()
 
 local expectVc = true
+-- Initialize DFSM with variables from the wrapped agreement
 local dfsm = DFSM.new(agreementDoc, expectVc)
 
 print(DFSMUtils.formatFSMSummary(dfsm))
@@ -29,38 +35,37 @@ print(DFSMUtils.renderDFSMState(dfsm))
 -- Test counter for tracking results
 local testCounter = { count = 0 }
 
--- Test 1: Valid Party A data - should succeed and transition to AWAITING_RECIPIENT_SIGNATURE
+-- Test 1: Valid Grantor data - should succeed and transition to AWAITING_RECIPIENT_SIGNATURE
 TestUtils.runTest(
-    "Valid Party A data submission", 
+    "Valid Grantor data submission", 
     dfsm,
-    inputA,
+    grantorInput,
     true,  -- expect success
     nil,
-    "AWAITING_RECIPIENT_SIGNATURE", -- specify expected state for clarity
+    "AWAITING_RECIPIENT_SIGNATURE",
     DFSMUtils,
     testCounter,
     expectVc
 )
 
--- Test 2: Valid Party B data - should succeed and transition to AWAITING_GRANTOR_SIGNATURE
+-- Test 2: Valid Recipient data - should succeed and transition to AWAITING_GRANTOR_SIGNATURE
 TestUtils.runTest(
-    "Valid Party B data submission",
+    "Valid Recipient data submission",
     dfsm,
-    inputB,
+    recipientInput,
     true,  -- expect success
     nil,
     "AWAITING_GRANTOR_SIGNATURE",
     DFSMUtils,
     testCounter,
-    expectVc,
-    true  -- debug mode
+    expectVc
 )
 
--- Test 3: Valid acceptance - should succeed and transition to AWAITING_WORK_SUBMISSION
+-- Test 3: Valid Grantor acceptance - should succeed and transition to AWAITING_WORK_SUBMISSION
 TestUtils.runTest(
-    "Valid acceptance submission", 
+    "Valid Grantor acceptance submission", 
     dfsm,
-    inputAAccept,
+    grantorAccept,
     true,  -- expect success
     nil,
     "AWAITING_WORK_SUBMISSION",
@@ -69,11 +74,37 @@ TestUtils.runTest(
     expectVc
 )
 
--- Test 4: Tokens sent - should succeed and transition to WORK_ACCEPTED_AND_PAID
+-- Test 4: Work Submission - should succeed and transition to WORK_IN_REVIEW
 TestUtils.runTest(
-    "Tokens sent", 
+    "Work Submission",
     dfsm,
-    inputATxProof,
+    workSubmission,
+    true,  -- expect success
+    nil,
+    "WORK_IN_REVIEW",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+-- Test 5: Work Acceptance - should succeed and transition to AWAITING_PAYMENT
+TestUtils.runTest(
+    "Work Acceptance",
+    dfsm,
+    workAccept,
+    true,  -- expect success
+    nil,
+    "AWAITING_PAYMENT",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+-- Test 6: Payment Proof - should succeed and transition to WORK_ACCEPTED_AND_PAID
+TestUtils.runTest(
+    "Payment Proof",
+    dfsm,
+    txProof,
     true,  -- expect success
     nil,
     "WORK_ACCEPTED_AND_PAID",
@@ -82,105 +113,168 @@ TestUtils.runTest(
     expectVc
 )
 
--- Test 5: Rejection case - testing from an alternative starting point
--- local rejectionDfsm = DFSM.new(agreementDoc, false, json.decode([[
--- {
---     "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
---     "grantRecipientAddress": "0xb800B70D15BC235C81D483D19E91e69a91328B98",
---     "grantAmount": 100,
---     "tokenAllocatorAddress": "0xB47855e843c4F9D54408372DA4CA79D20542d168"
--- }
--- ]]))
+-- Create new instance for rejection flow
+local rejectDfsm = DFSM.new(agreementDoc, expectVc)
 
--- -- Run tests to bring to PENDING_ACCEPTANCE state
--- TestUtils.runTest(
---     "Valid Party A data submission (for rejection test)", 
---     rejectionDfsm, 
---     "partyAData", 
---     [[{
---         "type": "VerifiedCredentialEIP712",
---         "issuer": {
---             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
---         },
---         "credentialSubject": {
---             "id": "partyAData",
---             "type": "signedFields",
---             "values": {
---                 "partyAName": "Damian",
---                 "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
---             }
---         }
---     }]],
---     true,  -- expect success
---     nil,
---     "PENDING_PARTY_B_SIGNATURE",
---     DFSMUtils,
---     testCounter
--- )
+-- Test 7: Agreement Rejection Flow
+TestUtils.runTest(
+    "Initial Grantor data (for rejection test)",
+    rejectDfsm,
+    grantorInput,
+    true,
+    nil,
+    "AWAITING_RECIPIENT_SIGNATURE",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
 
--- TestUtils.runTest(
---     "Valid Party B data submission (for rejection test)", 
---     rejectionDfsm, 
---     "partyBData", 
---     [[{
---         "type": "VerifiedCredentialEIP712",
---         "issuer": {
---             "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
---         },
---         "credentialSubject": {
---             "id": "partyBData",
---             "type": "signedFields",
---             "values": {
---                 "partyBName": "Leif"
---             }
---         }
---     }]],
---     true,  -- expect success
---     nil,
---     "PENDING_ACCEPTANCE",
---     DFSMUtils,
---     testCounter
--- )
+-- Add recipient signature step before rejection
+TestUtils.runTest(
+    "Recipient signature (for rejection test)",
+    rejectDfsm,
+    recipientInput,
+    true,
+    nil,
+    "AWAITING_GRANTOR_SIGNATURE",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
 
--- -- Now test rejection
--- TestUtils.runTest(
---     "Party A rejects the agreement", 
---     rejectionDfsm, 
---     "rejected", 
---     [[{
---         "type": "VerifiedCredentialEIP712",
---         "issuer": {
---             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
---         },
---         "credentialSubject": {
---             "id": "rejected",
---             "type": "signedFields",
---             "values": {
---                 "partyARejection": "REJECTED"
---             }
---         }
---     }]],
---     true,  -- expect success
---     nil,
---     "REJECTED",
---     DFSMUtils,
---     testCounter
--- )
+TestUtils.runTest(
+    "Agreement Rejection",
+    rejectDfsm,
+    agreementReject,
+    true,
+    nil,
+    "REJECTED",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
 
--- -- Test 7: Invalid input - should fail with error
--- TestUtils.runTest(
---     "Invalid input ID", 
---     rejectionDfsm,
---     "invalidInput", 
---     [[{
---         "someValue": true
---     }]],
---     false,  -- expect failure
---     "State machine is complete",
---     "REJECTED", -- state should not change
---     DFSMUtils,
---     testCounter
--- )
+-- Create new instance for work rejection flow
+local workRejectDfsm = DFSM.new(agreementDoc, expectVc)
+
+-- Test 8: Work Rejection Flow
+TestUtils.runTest(
+    "Initial Grantor data (for work rejection test)",
+    workRejectDfsm,
+    grantorInput,
+    true,
+    nil,
+    "AWAITING_RECIPIENT_SIGNATURE",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+TestUtils.runTest(
+    "Recipient data (for work rejection test)",
+    workRejectDfsm,
+    recipientInput,
+    true,
+    nil,
+    "AWAITING_GRANTOR_SIGNATURE",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+TestUtils.runTest(
+    "Grantor acceptance (for work rejection test)",
+    workRejectDfsm,
+    grantorAccept,
+    true,
+    nil,
+    "AWAITING_WORK_SUBMISSION",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+TestUtils.runTest(
+    "Work submission (for work rejection test)",
+    workRejectDfsm,
+    workSubmission,
+    true,
+    nil,
+    "WORK_IN_REVIEW",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+TestUtils.runTest(
+    "Work Rejection",
+    workRejectDfsm,
+    workReject,
+    true,
+    nil,
+    "REJECTED",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+-- Create new instance for grantor rejection flow
+local grantorRejectDfsm = DFSM.new(agreementDoc, expectVc)
+
+-- Test 9: Grantor Rejection Flow
+TestUtils.runTest(
+    "Initial Grantor data (for grantor rejection test)",
+    grantorRejectDfsm,
+    grantorInput,
+    true,
+    nil,
+    "AWAITING_RECIPIENT_SIGNATURE",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+TestUtils.runTest(
+    "Recipient data (for grantor rejection test)",
+    grantorRejectDfsm,
+    recipientInput,
+    true,
+    nil,
+    "AWAITING_GRANTOR_SIGNATURE",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+TestUtils.runTest(
+    "Grantor Rejection",
+    grantorRejectDfsm,
+    grantorReject,
+    true,
+    nil,
+    "REJECTED",
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
+
+-- Test 10: Invalid input - should fail with error
+TestUtils.runTest(
+    "Invalid input ID", 
+    grantorRejectDfsm,
+    [[{
+        "credentialSubject": {
+            "inputId": "invalidInput"
+        },
+        "someValue": true
+    }]],
+    false,  -- expect failure
+    "State machine is complete",
+    "REJECTED", -- state should not change
+    DFSMUtils,
+    testCounter,
+    expectVc
+)
 
 -- Print test summary
 print("\n---------------------------------------------")
