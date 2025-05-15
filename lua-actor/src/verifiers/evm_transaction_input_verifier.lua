@@ -690,25 +690,17 @@ end
 -- Export the verifier function
 local function verifyEVMTransaction(input, value, variables, contracts)
     local base64Proof = value.proof;
+    local txHash = value.value;
     value = json.decode(base64.decode(base64Proof))
-    -- Mock the Oracle call
-    -- local oracle = MockOracle.new()
-    -- if not oracle:exists(value.txHash) then
-    --     return false, {}
-    -- end
-    
-    -- Retrieve the transaction data from the oracle
-    -- local oracleResponse = oracle:retrieve(value.txHash)
 
-    -- if not oracleResponse then
-
-    --     return false, {}
-    -- end
+    if (value.TxHash ~= txHash) then
+        return false
+    end
 
     local isValid = verifyProof(value.TxHash, value.TxIndex, value.TxRoot, value.TxProof, value.TxEncodedValue, value.ReceiptRoot, value.ReceiptProof, value.ReceiptEncodedValue)
 
     if not isValid then
-        return false, {}
+        return false
     end
 
     local processedRequiredInput = replaceVariableReferences(input.txMetadata, variables.variables)
@@ -720,7 +712,7 @@ local function verifyEVMTransaction(input, value, variables, contracts)
             or value.TxRaw.chainId ~= processedRequiredInput.chainId then
             return false
         end
-        return true, {}
+        return true
     elseif processedRequiredInput.transactionType == "contractCall" then
         local contract = processedRequiredInput.contractReference
         local decodedTx = contract:decode(value.TxRaw.input)
@@ -746,7 +738,7 @@ local function verifyEVMTransaction(input, value, variables, contracts)
     else
     end
 
-    return true, {}
+    return true
 end
 
 -- Return the verifier function
