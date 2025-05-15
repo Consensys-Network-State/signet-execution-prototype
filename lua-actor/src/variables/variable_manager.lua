@@ -14,6 +14,7 @@ function VariableManager.new(variables)
             name = var.name,
             description = var.description,
             validation = var.validation,
+            txMetadata = var.txMetadata,
             get = function(self)
                 return self.value
             end,

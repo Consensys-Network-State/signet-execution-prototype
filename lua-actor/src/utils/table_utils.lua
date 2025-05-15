@@ -79,6 +79,38 @@ local function replaceVariableReferences(obj, variablesTable)
     return result
 end
 
+-- Helper function to replace contract references with their actual table values
+local function replaceContractReferences(obj, contractsTable)
+    if type(obj) ~= "table" then
+        if type(obj) == "string" then
+            -- Only replace if the entire string matches the pattern
+            local contractName = obj:match("^%${contracts%.([%w_]+)}$")
+            if contractName then
+                local contract = contractsTable[contractName]
+                if contract then
+                    return contract
+                end
+                return "${contracts." .. contractName .. "}" -- Keep original if contract not found
+            end
+        end
+        return obj
+    end
+    -- Handle arrays
+    if #obj > 0 then
+        local result = {}
+        for i, v in ipairs(obj) do
+            result[i] = replaceContractReferences(v, contractsTable)
+        end
+        return result
+    end
+    -- Handle objects
+    local result = {}
+    for k, v in pairs(obj) do
+        result[k] = replaceContractReferences(v, contractsTable)
+    end
+    return result
+end
+
 -- Helper function to print a table in a readable format
 local function printTable(t, indent, visited)
     indent = indent or 0
@@ -126,5 +158,6 @@ end
 return {
     deepCompare = deepCompare,
     replaceVariableReferences = replaceVariableReferences,
+    replaceContractReferences = replaceContractReferences,
     printTable = printTable
 } 

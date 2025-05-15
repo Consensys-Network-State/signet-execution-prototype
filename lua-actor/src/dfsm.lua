@@ -55,7 +55,7 @@ function DFSM:validateInitialParams(stateId, initialParams, initialValues)
     end
 
     -- Validate the variable values against variable definitions
-    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self.variables)
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialParams, initialValues, self)
     if not isValid then
         error("Invalid parameter value for state " .. stateId .. ": " .. errorMsg)
     end
@@ -74,7 +74,7 @@ function DFSM:validateInitialization(initialization, initialValues)
     end
 
     -- Validate the variable values against variable definitions
-    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialization.data, initialValues, self.variables)
+    local isValid, errorMsg = ValidationUtils.processAndValidateVariables(initialization.data, initialValues, self)
     if not isValid then
         error("Invalid initialization value: " .. errorMsg)
     end
