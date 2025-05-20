@@ -13,7 +13,8 @@ local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 
 local dfsm = DFSM.new(agreementDoc, false, json.decode([[
 {
-    "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
+    "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
 }
 ]]))
 
@@ -38,7 +39,9 @@ TestUtils.runTest(
             "documentHash": "%s",
             "values": {
                 "partyAName": "Damian",
-                "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+                "termDuration": "1 year",
+                "effectiveDate": "2025-05-20",
+                "scope": "Sample scope"
             }
         }
     }]], agreementHash),
@@ -81,7 +84,8 @@ TestUtils.runTest(
             "type": "signedFields",
             "documentHash": "%s",
             "values": {
-                "partyBName": "Leif"
+                "partyBName": "Leif",
+                "partyBSignature": "Leif's signature"
             }
         }
     }]], agreementHash),
@@ -106,7 +110,8 @@ TestUtils.runTest(
             "type": "signedFields",
             "documentHash": "%s",
             "values": {
-                "partyAAcceptance": "ACCEPTED"
+                "partyAAcceptance": "ACCEPTED",
+                "partyASignature": "Damian's signature"
             }
         }
     }]], agreementHash),
