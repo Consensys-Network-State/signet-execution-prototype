@@ -153,10 +153,31 @@ local function runTest(description, dfsm, inputValue, expectedSuccess, expectedE
 end
 
 local function loadInputDoc(path)
-  local file = io.open(path, "r")
-  if not file then
-      error("Could not open input document file: " .. path)
+  -- Get the directory of the calling script (level 2 in the stack)
+  local scriptPath = debug.getinfo(2, "S").source:sub(2)  -- Remove the @ prefix
+  local scriptDir = scriptPath:match("(.*[/\\])") or "."
+  
+  -- Normalize path separators to forward slashes
+  path = path:gsub("\\", "/")
+  
+  -- If path starts with ./ or ../, it's a full relative path from the script's directory
+  -- Otherwise, it's a local filename relative to the script's directory
+  local fullPath
+  if path:match("^%./") or path:match("^%.%./") then
+    -- For paths starting with ./ or ../, use them relative to script's directory
+    -- Remove the leading . and any leading slash to avoid double slashes
+    fullPath = scriptDir .. path:gsub("^%.?/", "")
+  else
+    -- For local filenames, prepend the script's directory
+    fullPath = scriptDir .. path
   end
+  
+  -- Try to open the file
+  local file = io.open(fullPath, "r")
+  if not file then
+    error("Could not open input document file: " .. fullPath)
+  end
+  
   local content = file:read("*all")
   file:close()
   return content

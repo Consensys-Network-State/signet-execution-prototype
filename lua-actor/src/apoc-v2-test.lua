@@ -9,11 +9,11 @@ local json = require("json")
 
 local Handlers = require("apoc-v2-bundled")
 
-local agreementDoc = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.wrapped.json")
-local inputA = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.partyA-input.wrapped.json")
-local inputB = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.partyB-input.wrapped.json")
-local inputAAccept = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.partyA-input-accept.wrapped.json")
-local inputAReject = TestUtils.loadInputDoc("./test-data/simple-grant/simple.grant.partyA-input-reject.wrapped.json")
+local agreementDoc = TestUtils.loadInputDoc("./tests/simple-grant/simple.grant.wrapped.json")
+local inputA = TestUtils.loadInputDoc("./tests/simple-grant/simple.grant.partyA-input.wrapped.json")
+local inputB = TestUtils.loadInputDoc("./tests/simple-grant/simple.grant.partyB-input.wrapped.json")
+local inputAAccept = TestUtils.loadInputDoc("./tests/simple-grant/simple.grant.partyA-input-accept.wrapped.json")
+local inputAReject = TestUtils.loadInputDoc("./tests/simple-grant/simple.grant.partyA-input-reject.wrapped.json")
 
 
 -- Evaluate a message

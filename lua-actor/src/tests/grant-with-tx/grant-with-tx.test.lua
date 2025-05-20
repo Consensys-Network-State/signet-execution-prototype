@@ -9,10 +9,10 @@ local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 local base64 = require(".base64")
 
-local agreementDoc = TestUtils.loadInputDoc("./tests/grant-with-tx/grant-with-tx.json")
+local agreementDoc = TestUtils.loadInputDoc("grant-with-tx.json")
 local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 
-local oracleDataDoc = TestUtils.loadInputDoc("./tests/grant-with-tx/proof-data.json")
+local oracleDataDoc = TestUtils.loadInputDoc("proof-data.json")
 -- full info on a couple of canned transactions
 local fullTxData = oracleDataDoc
 
