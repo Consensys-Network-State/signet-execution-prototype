@@ -34,40 +34,54 @@ The state includes all pending actions and exactly which parties are accountable
 7. Completion
 The process continues until the agreement reaches its complete state
 
-## Example Agreement
+## Example Agreement + Machine Implementation
 
 <img width="1328" alt="image" src="https://github.com/user-attachments/assets/1f2a88c1-ed2d-4e8d-8ba0-70260d2d0234" />
 
 [Source](https://www.figma.com/board/ZsUIUaHzEv1G3PpNlS9hyM/Agreements-Backend?node-id=0-1&p=f&t=ZkkXIpOacDahsPc6-0)
 
-## Initial State
+### Initial State
 - **Input**: VC - Template + Initial Agreement with Party A Identity Parameter
 - **DFSM State**: The state machine initializes with "Waiting for Party A Data" as the active state (highlighted in green)
 - **Variables Needed**: Party A Identity, Party B Identity, Party B Name
 - **Parameters Set**: Party A Identity Value (purple box)
 
-## After Party A Data Input
+[Agreement JSON File](./lua-actor/src/test-data/simple-grant/simple.grant.json)
+[Agreement JSON File (VC Wrapped)](./lua-actor/src/test-data/simple-grant/simple.grant.wrapped.json)
+
+### After Party A Data Input
 - **Input**: VC - Party A Data with Variable Values (Party A Name, Party B Identity)
 - **DFSM State**: Transitions to "Waiting for Party B Data" as the active state (highlighted in green)
 - **Previous State**: "Waiting for Party A Data" becomes inactive
 - **Variables Updated**: Party A Name and Party B Identity are now populated
 
-## After Party B Data Input
+[Party A Data VC](./lua-actor/src/test-data/simple-grant/simple.grant.partyA-input.wrapped.json)
+
+### After Party B Data Input
 - **Input**: VC - Party B Data with Variable Values (Party B Name)
 - **DFSM State**: Transitions to "Party A Review" as the active state (highlighted in green)
 - **Previous State**: "Waiting for Party B Data" becomes inactive
 - **Variables Updated**: Party B Name is now populated
 
-## Final State - Two Possible Outcomes
+[Party B Data VC](./lua-actor/src/test-data/simple-grant/simple.grant.partyB-input.wrapped.json)
+
+### Final State - Two Possible Outcomes
 - **Decision Point**: Party A Review Process (diamond shape) leads to two possible inputs
 
-### Acceptance Path
+#### Acceptance Path
 - **Input**: VC - Party A Review with Variable Value "ACCEPTED"
 - **DFSM State**: Transitions to "Accepted" as the final state (highlighted in green in the Accepted column)
 - **Previous State**: "Party A Review" becomes inactive
 
-### Rejection Path
+[Party A Acceptance VC](./lua-actor/src/test-data/simple-grant/simple.grant.partyA-input-accept.wrapped.json)
+
+#### Rejection Path
 - **Input**: VC - Party A Review with Variable Value "REJECTED"
 - **DFSM State**: Transitions to "Rejected" as the final state (highlighted in red in the Rejected column)
 - **Previous State**: "Party A Review" becomes inactive
 
+[Party A Rejection VC](./lua-actor/src/test-data/simple-grant/simple.grant.partyA-input-reject.wrapped.json)
+
+## AO Execution Engine Implementation
+
+See the [Lua Actor README file](./lua-actor/README.md) for more information.
