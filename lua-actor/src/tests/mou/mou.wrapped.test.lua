@@ -9,11 +9,11 @@ local TestUtils = require("test-utils")
 
 -- Load agreement document from JSON file
 local inputDir = "./wrapped"
-local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/simple.grant.wrapped.json")
-local inputA = TestUtils.loadInputDoc(inputDir .. "/simple.grant.partyA-input.wrapped.json")
-local inputB = TestUtils.loadInputDoc(inputDir .. "/simple.grant.partyB-input.wrapped.json")
-local inputAAccept = TestUtils.loadInputDoc(inputDir .. "/simple.grant.partyA-input-accept.wrapped.json")
-local inputAReject = TestUtils.loadInputDoc(inputDir .. "/simple.grant.partyA-input-reject.wrapped.json")
+local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/mou.wrapped.json")
+local inputA = TestUtils.loadInputDoc(inputDir .. "/mou.partyA-input.wrapped.json")
+local inputB = TestUtils.loadInputDoc(inputDir .. "/mou.partyB-input.wrapped.json")
+local inputAAccept = TestUtils.loadInputDoc(inputDir .. "/mou.partyA-input-accept.wrapped.json")
+local inputAReject = TestUtils.loadInputDoc(inputDir .. "/mou.partyA-input-reject.wrapped.json")
 
 local dfsm = DFSM.new(agreementDoc, true)
 
@@ -96,4 +96,4 @@ TestUtils.runTest(
 print("\n---------------------------------------------")
 print("✅ ALL TESTS PASSED: " .. testCounter.count .. " tests completed successfully!")
 print("No tests failed (execution would have stopped at first failure)")
-print("---------------------------------------------")
+print("---------------------------------------------") 

@@ -10,16 +10,16 @@ local crypto = require(".crypto.init")
 
 -- Load all test input files
 local inputDir = "./wrapped"
-local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.wrapped.json")
-local grantorInput = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.grantor-input.wrapped.json")
-local recipientInput = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.recipient-input.wrapped.json")
-local grantorAccept = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.grantor-accept.wrapped.json")
-local grantorReject = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.grantor-reject.wrapped.json")
-local workSubmission = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.work-submission.wrapped.json")
-local workAccept = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.work-accept.wrapped.json")
-local workReject = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.work-reject.wrapped.json")
-local agreementReject = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.agreement-reject.wrapped.json")
-local txProof = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.grantor-tx-proof.wrapped.json")
+local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/simple-grant.wrapped.json")
+local grantorInput = TestUtils.loadInputDoc(inputDir .. "/simple-grant.grantor-input.wrapped.json")
+local recipientInput = TestUtils.loadInputDoc(inputDir .. "/simple-grant.recipient-input.wrapped.json")
+local grantorAccept = TestUtils.loadInputDoc(inputDir .. "/simple-grant.grantor-accept.wrapped.json")
+local grantorReject = TestUtils.loadInputDoc(inputDir .. "/simple-grant.grantor-reject.wrapped.json")
+local workSubmission = TestUtils.loadInputDoc(inputDir .. "/simple-grant.work-submission.wrapped.json")
+local workAccept = TestUtils.loadInputDoc(inputDir .. "/simple-grant.work-accept.wrapped.json")
+local workReject = TestUtils.loadInputDoc(inputDir .. "/simple-grant.work-reject.wrapped.json")
+local agreementReject = TestUtils.loadInputDoc(inputDir .. "/simple-grant.agreement-reject.wrapped.json")
+local txProof = TestUtils.loadInputDoc(inputDir .. "/simple-grant.grantor-tx-proof.wrapped.json")
 
 -- Extract the agreement hash from the wrapped agreement document
 local decodedAgreement = json.decode(agreementDoc)

@@ -11,7 +11,7 @@ local base64 = require(".base64")
 
 -- Load agreement document and unwrapped input files
 local inputDir = "./unwrapped"
-local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.json")
+local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/simple-grant.json")
 local unwrappedGrantor = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-grantor.json"))
 local unwrappedRecipient = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-recipient.json"))
 local unwrappedGrantorSign = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-grantor-accept.json"))

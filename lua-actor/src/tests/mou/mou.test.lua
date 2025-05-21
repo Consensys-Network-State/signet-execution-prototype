@@ -10,7 +10,7 @@ local crypto = require(".crypto.init")
 
 -- Load agreement document and unwrapped input files
 local inputDir = "./unwrapped"
-local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/simple.grant.json")
+local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/mou.json")
 local unwrappedA = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyA.json"))
 local unwrappedB = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyB.json"))
 local unwrappedAccept = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyA-accept.json"))
@@ -165,4 +165,4 @@ TestUtils.runTest(
 print("\n---------------------------------------------")
 print("✅ ALL TESTS PASSED: " .. testCounter.count .. " tests completed successfully!")
 print("No tests failed (execution would have stopped at first failure)")
-print("---------------------------------------------")
+print("---------------------------------------------") 
