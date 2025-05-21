@@ -8,22 +8,22 @@
     "values": {
       "grantorRejectionReason": "Terms do not meet our requirements"
     },
-    "documentHash": "0x50bf922e684ff5d3402633d748eac048c8a29a6d5955827f3d222d316e39c448"
+    "documentHash": "0xd2422ee1f7ad448b96ce1edf08ad3b8165ff71be3ddcff05c84792440d58b074"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-21T16:07:10.917Z",
+  "issuanceDate": "2025-05-21T16:16:25.171Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
-    "created": "2025-05-21T16:07:10.917Z",
+    "created": "2025-05-21T16:16:25.171Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0x684451fa56e04c905903ba369cd9e39227f7353bf0edb66694def1e0471685de1d531007b8745422d2ae7799002a1ff2e898b5de923863230c0a8432acbef48a1c",
+    "proofValue": "0x4bb19f9680dde82e49cde19fc6ca1f076f75325eccde1805b575c659978f92596c707c85c7eb4401a1bfce96ed1938caf96b714fb6a7e940a2735a7483504ab41c",
     "eip712": {
       "domain": {
         "chainId": 1,
