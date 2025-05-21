@@ -1,0 +1,126 @@
+{
+  "issuer": {
+    "id": "did:pkh:eip155:1:0x3fAC9dcd3830d147EB1361bDcf588b1E5cde4431"
+  },
+  "credentialSubject": {
+    "id": "did:example:mou-recipient-1",
+    "agreement": "eyJtZXRhZGF0YSI6eyJpZCI6ImRpZDpleGFtcGxlOm1vdS12MSIsInRlbXBsYXRlSWQiOiJkaWQ6dGVtcGxhdGU6bW91LXYxIiwidmVyc2lvbiI6IjEuMC4wIiwiY3JlYXRlZEF0IjoiMjAyNC0wMy0yMFQxMjowMDowMFoiLCJuYW1lIjoiTWVtb3JhbmR1bSBvZiBVbmRlcnN0YW5kaW5nIiwiYXV0aG9yIjoiQWdyZWVtZW50cyBQcm90b2NvbCIsImRlc2NyaXB0aW9uIjoiVGVtcGxhdGUgZm9yIG5vbi1iaW5kaW5nIG1lbW9yYW5kdW0gb2YgdW5kZXJzdGFuZGluZyBiZXR3ZWVuIHR3byBwYXJ0aWVzIn0sInZhcmlhYmxlcyI6eyJwYXJ0eUFFdGhBZGRyZXNzIjp7InR5cGUiOiJhZGRyZXNzIiwibmFtZSI6IlBhcnR5IEEgQWRkcmVzcyIsImRlc2NyaXB0aW9uIjoiRXRoZXJldW0gYWRkcmVzcyBvZiB0aGUgZmlyc3QgcGFydHkiLCJ2YWxpZGF0aW9uIjp7InJlcXVpcmVkIjp0cnVlfX0sInBhcnR5QU5hbWUiOnsidHlwZSI6InN0cmluZyIsIm5hbWUiOiJQYXJ0eSBBIE5hbWUiLCJkZXNjcmlwdGlvbiI6IkxlZ2FsIG5hbWUgb2YgdGhlIGZpcnN0IHBhcnR5IiwidmFsaWRhdGlvbiI6eyJyZXF1aXJlZCI6dHJ1ZSwibWluTGVuZ3RoIjoxfX0sInBhcnR5QVNpZ25hdHVyZSI6eyJ0eXBlIjoic2lnbmF0dXJlIiwibmFtZSI6IlBhcnR5IEEgU2lnbmF0dXJlIiwiZGVzY3JpcHRpb24iOiJEaWdpdGFsIHNpZ25hdHVyZSBvZiB0aGUgZmlyc3QgcGFydHkiLCJ2YWxpZGF0aW9uIjp7InJlcXVpcmVkIjp0cnVlfX0sInBhcnR5QkV0aEFkZHJlc3MiOnsidHlwZSI6ImFkZHJlc3MiLCJuYW1lIjoiUGFydHkgQiBBZGRyZXNzIiwiZGVzY3JpcHRpb24iOiJFdGhlcmV1bSBhZGRyZXNzIG9mIHRoZSBzZWNvbmQgcGFydHkiLCJ2YWxpZGF0aW9uIjp7InJlcXVpcmVkIjp0cnVlfX0sInBhcnR5Qk5hbWUiOnsidHlwZSI6InN0cmluZyIsIm5hbWUiOiJQYXJ0eSBCIE5hbWUiLCJkZXNjcmlwdGlvbiI6IkxlZ2FsIG5hbWUgb2YgdGhlIHNlY29uZCBwYXJ0eSIsInZhbGlkYXRpb24iOnsicmVxdWlyZWQiOnRydWUsIm1pbkxlbmd0aCI6MX19LCJwYXJ0eUJTaWduYXR1cmUiOnsidHlwZSI6InNpZ25hdHVyZSIsIm5hbWUiOiJQYXJ0eSBCIFNpZ25hdHVyZSIsImRlc2NyaXB0aW9uIjoiRGlnaXRhbCBzaWduYXR1cmUgb2YgdGhlIHNlY29uZCBwYXJ0eSIsInZhbGlkYXRpb24iOnsicmVxdWlyZWQiOnRydWV9fSwiZWZmZWN0aXZlRGF0ZSI6eyJ0eXBlIjoiZGF0ZVRpbWUiLCJuYW1lIjoiRWZmZWN0aXZlIERhdGUiLCJkZXNjcmlwdGlvbiI6IlRoZSBkYXRlIHdoZW4gdGhpcyBNT1UgYmVjb21lcyBlZmZlY3RpdmUiLCJ2YWxpZGF0aW9uIjp7InJlcXVpcmVkIjp0cnVlfX0sInNjb3BlIjp7InR5cGUiOiJzdHJpbmciLCJuYW1lIjoiU2NvcGUgb2YgQ29vcGVyYXRpb24iLCJkZXNjcmlwdGlvbiI6IlRoZSBzY29wZSBvZiBjb29wZXJhdGlvbiBiZXR3ZWVuIHRoZSBwYXJ0aWVzIiwidmFsaWRhdGlvbiI6eyJyZXF1aXJlZCI6dHJ1ZX19LCJ0ZXJtRHVyYXRpb24iOnsidHlwZSI6InN0cmluZyIsIm5hbWUiOiJUZXJtIER1cmF0aW9uIiwiZGVzY3JpcHRpb24iOiJUaGUgZHVyYXRpb24gb2YgdGhlIGFncmVlbWVudCIsInZhbGlkYXRpb24iOnsicmVxdWlyZWQiOnRydWV9fX0sImNvbnRlbnQiOnsidHlwZSI6Im1kIiwiZGF0YSI6IiMgTUVNT1JBTkRVTSBPRiBVTkRFUlNUQU5ESU5HXG5cbioqQkVUV0VFTiBQQVJUWSBBOioqXG5cbjx1PiR7dmFyaWFibGVzLnBhcnR5QU5hbWV9PC91PiAoUGFydHkgQSBOYW1lKVxuXG48dT4ke3ZhcmlhYmxlcy5wYXJ0eUFFdGhBZGRyZXNzfTwvdT4gKFBhcnR5IEEgQWRkcmVzcylcblxuKipBTkQgUEFSVFkgQjoqKlxuXG48dT4ke3ZhcmlhYmxlcy5wYXJ0eUJOYW1lfTwvdT4gKFBhcnR5IEIgTmFtZSlcblxuPHU+JHt2YXJpYWJsZXMucGFydHlCRXRoQWRkcmVzc308L3U+IChQYXJ0eSBCIEFkZHJlc3MpXG5cbioqRUZGRUNUSVZFIERBVEU6KipcblxuPHU+JHt2YXJpYWJsZXMuZWZmZWN0aXZlRGF0ZX08L3U+IChFZmZlY3RpdmUgRGF0ZSlcblxuIyMgMS4gSU5UUk9EVUNUSU9OXG5cblRoaXMgTWVtb3JhbmR1bSBvZiBVbmRlcnN0YW5kaW5nIChcIk1PVVwiKSBpcyBlbnRlcmVkIGludG8gYnkgYW5kIGJldHdlZW4gUGFydHkgQSBhbmQgUGFydHkgQiAoY29sbGVjdGl2ZWx5IHJlZmVycmVkIHRvIGFzIHRoZSBcIlBhcnRpZXNcIikuXG5cblRoZSBwdXJwb3NlIG9mIHRoaXMgTU9VIGlzIHRvIGlkZW50aWZ5IHRoZSByb2xlcyBhbmQgcmVzcG9uc2liaWxpdGllcyBvZiBlYWNoIFBhcnR5LlxuXG4jIyAyLiBTQ09QRSBPRiBDT09QRVJBVElPTlxuXG48dT4ke3ZhcmlhYmxlcy5zY29wZX08L3U+XG4oU2NvcGUpXG5cbiMjIDMuIFJFU1BPTlNJQklMSVRJRVNcbiAgIC0gTWFpbnRhaW4gcmVndWxhciBjb21tdW5pY2F0aW9uIHJlZ2FyZGluZyB0aGUgcHJvZ3Jlc3Mgb2YgY29sbGFib3JhdGl2ZSBhY3Rpdml0aWVzLlxuICAgLSBEZXNpZ25hdGUgcmVwcmVzZW50YXRpdmVzIHRvIGNvb3JkaW5hdGUgdGhlIGltcGxlbWVudGF0aW9uIG9mIHRoaXMgTU9VLlxuICAgLSBTaGFyZSByZWxldmFudCBpbmZvcm1hdGlvbiBhbmQgcmVzb3VyY2VzIG5lY2Vzc2FyeSBmb3IgdGhlIHN1Y2Nlc3NmdWwgaW1wbGVtZW50YXRpb24gb2YgdGhpcyBNT1UuXG4gICAtIEFja25vd2xlZGdlIHRoZSBjb250cmlidXRpb24gb2YgdGhlIG90aGVyIFBhcnR5IGluIGFsbCBwdWJsaWMgY29tbXVuaWNhdGlvbnMgcmVsYXRlZCB0byBhY3Rpdml0aWVzIGNvbmR1Y3RlZCB1bmRlciB0aGlzIE1PVS5cblxuIyMgNC4gVEVSTSBBTkQgVEVSTUlOQVRJT05cblxuNC4xIFRoaXMgTU9VIHNoYWxsIGJlY29tZSBlZmZlY3RpdmUgb24gdGhlIGRhdGUgb2YgdGhlIGxhc3Qgc2lnbmF0dXJlIGJlbG93IGFuZCBzaGFsbCByZW1haW4gaW4gZWZmZWN0IGZvciBhIHBlcmlvZCBvZiAke3ZhcmlhYmxlcy50ZXJtRHVyYXRpb259IHVubGVzcyB0ZXJtaW5hdGVkIGVhcmxpZXIuXG5cbjQuMiBFaXRoZXIgUGFydHkgbWF5IHRlcm1pbmF0ZSB0aGlzIE1PVSBieSBwcm92aWRpbmcgd3JpdHRlbiBub3RpY2UgdG8gdGhlIG90aGVyIFBhcnR5LlxuXG40LjMgVGVybWluYXRpb24gb2YgdGhpcyBNT1Ugc2hhbGwgbm90IGFmZmVjdCB0aGUgY29tcGxldGlvbiBvZiBhbnkgYWN0aXZpdGllcyBhbHJlYWR5IGluIHByb2dyZXNzLCB1bmxlc3Mgb3RoZXJ3aXNlIGFncmVlZCBieSB0aGUgUGFydGllcy5cblxuIyMgNS4gQ09ORklERU5USUFMSVRZXG5cbjUuMSBEdXJpbmcgdGhlIGNvdXJzZSBvZiB0aGlzIE1PVSwgdGhlIFBhcnRpZXMgbWF5IHNoYXJlIGNvbmZpZGVudGlhbCBhbmQgcHJvcHJpZXRhcnkgaW5mb3JtYXRpb24gd2l0aCBlYWNoIG90aGVyLiBFYWNoIFBhcnR5IGFncmVlcyB0byBtYWludGFpbiB0aGUgY29uZmlkZW50aWFsaXR5IG9mIGFsbCBpbmZvcm1hdGlvbiBkZXNpZ25hdGVkIGFzIGNvbmZpZGVudGlhbCBieSB0aGUgZGlzY2xvc2luZyBQYXJ0eSBhbmQgc2hhbGwgbm90IGRpc2Nsb3NlIHN1Y2ggaW5mb3JtYXRpb24gdG8gYW55IHRoaXJkIHBhcnR5IHdpdGhvdXQgdGhlIHByaW9yIHdyaXR0ZW4gY29uc2VudCBvZiB0aGUgZGlzY2xvc2luZyBQYXJ0eS5cblxuIyMgNi4gSU5URUxMRUNUVUFMIFBST1BFUlRZXG5cbjYuMSBUaGlzIE1PVSBkb2VzIG5vdCB0cmFuc2ZlciBhbnkgaW50ZWxsZWN0dWFsIHByb3BlcnR5IHJpZ2h0cyBiZXR3ZWVuIHRoZSBQYXJ0aWVzLlxuXG42LjIgRWFjaCBQYXJ0eSBzaGFsbCByZXRhaW4gYWxsIHJpZ2h0cywgdGl0bGUsIGFuZCBpbnRlcmVzdCBpbiBpdHMgb3duIGludGVsbGVjdHVhbCBwcm9wZXJ0eS5cblxuNi4zIEFueSBpbnRlbGxlY3R1YWwgcHJvcGVydHkgY3JlYXRlZCBqb2ludGx5IGJ5IHRoZSBQYXJ0aWVzIGR1cmluZyB0aGUgY291cnNlIG9mIGFjdGl2aXRpZXMgdW5kZXIgdGhpcyBNT1Ugc2hhbGwgYmUgb3duZWQgam9pbnRseSBieSB0aGUgUGFydGllcywgd2l0aCBzcGVjaWZpYyB0ZXJtcyB0byBiZSBuZWdvdGlhdGVkIGluIGdvb2QgZmFpdGggYW5kIGRvY3VtZW50ZWQgaW4gYSBzZXBhcmF0ZSB3cml0dGVuIGFncmVlbWVudC5cblxuIyMgNy4gU0lHTkFUVVJFU1xuXG5JTiBXSVRORVNTIFdIRVJFT0YsIHRoZSBQYXJ0aWVzIGhhdmUgZXhlY3V0ZWQgdGhpcyBNZW1vcmFuZHVtIG9mIFVuZGVyc3RhbmRpbmcgYXMgb2YgdGhlIEVmZmVjdGl2ZSBEYXRlLlxuXG48dT4ke3ZhcmlhYmxlcy5wYXJ0eUFTaWduYXR1cmV9PC91PlxuKFBhcnR5IEEgU2lnbmF0dXJlKVxuXG48dT4ke3ZhcmlhYmxlcy5wYXJ0eUJTaWduYXR1cmV9PC91PlxuKFBhcnR5IEIgU2lnbmF0dXJlKVxuXG5CeSBzaWduaW5nLCBJIGNvbmZpcm0gdGhhdCBJIGhhdmUgcmVhZCwgdW5kZXJzdG9vZCwgYW5kIGFncmVlIHRvIGJlIGxlZ2FsbHkgYm91bmQgYnkgYWxsIHRlcm1zIG9mIHRoaXMgYWdyZWVtZW50LiJ9LCJleGVjdXRpb24iOnsic3RhdGVzIjp7IlBFTkRJTkdfUEFSVFlfQV9TSUdOQVRVUkUiOnsibmFtZSI6IlBlbmRpbmcgU2lnbmF0dXJlIEZyb20gQSIsImRlc2NyaXB0aW9uIjoiVGhpcyBzdGF0ZSBhd2FpdHMgdW50aWwgUGFydHkgQSBzdXBwbGllcyBQYXJ0eSBCJ3MgYWRkcmVzcywgZWZmZWN0aXZlIGRhdGUsIHNjb3BlLCBkdXJhdGlvbiwgYW5kIHRoZWlyIG93biBuYW1lLiJ9LCJQRU5ESU5HX1BBUlRZX0JfU0lHTkFUVVJFIjp7Im5hbWUiOiJQZW5kaW5nIFNpZ25hdHVyZSBGcm9tIEIiLCJkZXNjcmlwdGlvbiI6IlRoaXMgc3RhdGUgYXdhaXRzIHVudGlsIFBhcnR5IEIgY29uZmlybXMgdGhlaXIgaWRlbnRpdHkgYnkgc3VwcGx5aW5nIHRoZWlyIG5hbWUuIn0sIlBFTkRJTkdfQUNDRVBUQU5DRSI6eyJuYW1lIjoiUGVuZGluZyBGaW5hbCBBY2NlcHRhbmNlIiwiZGVzY3JpcHRpb24iOiJUaGlzIHN0YXRlIGF3YWl0cyBQYXJ0eSBBJ3MgZmluYWwgYWNjZXB0YW5jZSBvZiBQYXJ0eSBCJ3MgZGF0YS4ifSwiQUNDRVBURUQiOnsibmFtZSI6IkFncmVlbWVudCBBY2NlcHRlZCIsImRlc2NyaXB0aW9uIjoiVGhlIGFncmVlbWVudCBoYXMgYmVlbiBhY2NlcHRlZCBieSBib3RoIHBhcnRpZXMgYW5kIGlzIG5vdyBpbiBmb3JjZS4ifSwiUkVKRUNURUQiOnsibmFtZSI6IkFncmVlbWVudCBSZWplY3RlZCIsImRlc2NyaXB0aW9uIjoiVGhlIGFncmVlbWVudCBoYXMgYmVlbiByZWplY3RlZCBieSBQYXJ0eSBBIGFuZCB3aWxsIG5vdCBwcm9jZWVkLiJ9fSwiaW5pdGlhbGl6ZSI6eyJuYW1lIjoiSW5pdGlhbGl6ZSIsImRlc2NyaXB0aW9uIjoiSW5pdGlhbGl6ZSB0aGUgZ3JhbnQiLCJkYXRhIjp7InBhcnR5QUV0aEFkZHJlc3MiOiIke3ZhcmlhYmxlcy5wYXJ0eUFFdGhBZGRyZXNzfSIsInBhcnR5QkV0aEFkZHJlc3MiOiIke3ZhcmlhYmxlcy5wYXJ0eUJFdGhBZGRyZXNzfSJ9fSwiaW5wdXRzIjp7InBhcnR5QURhdGEiOnsidHlwZSI6IlZlcmlmaWVkQ3JlZGVudGlhbEVJUDcxMiIsInNjaGVtYSI6InZlcmlmaWVkLWNyZWRlbnRpYWwtZWlwNzEyLnNjaGVtYS5qc29uIiwiZGlzcGxheU5hbWUiOiJQYXJ0eSBBIFNpZ25hdHVyZSIsImRlc2NyaXB0aW9uIjoiRUlQNzEyIHNpZ25hdHVyZSBmcm9tIFBhcnR5IEEgcHJvcG9zaW5nIHRoZSBNT1UgdGVybXMgaW5jbHVkaW5nIHNjb3BlLCBkdXJhdGlvbiwgYW5kIGVmZmVjdGl2ZSBkYXRlIiwiZGF0YSI6eyJwYXJ0eUFOYW1lIjoiJHt2YXJpYWJsZXMucGFydHlBTmFtZX0iLCJzY29wZSI6IiR7dmFyaWFibGVzLnNjb3BlfSIsInRlcm1EdXJhdGlvbiI6IiR7dmFyaWFibGVzLnRlcm1EdXJhdGlvbn0iLCJlZmZlY3RpdmVEYXRlIjoiJHt2YXJpYWJsZXMuZWZmZWN0aXZlRGF0ZX0ifSwiaXNzdWVyIjoiJHt2YXJpYWJsZXMucGFydHlBRXRoQWRkcmVzcy52YWx1ZX0ifSwicGFydHlCRGF0YSI6eyJ0eXBlIjoiVmVyaWZpZWRDcmVkZW50aWFsRUlQNzEyIiwic2NoZW1hIjoidmVyaWZpZWQtY3JlZGVudGlhbC1laXA3MTIuc2NoZW1hLmpzb24iLCJkaXNwbGF5TmFtZSI6IlBhcnR5IEIgU2lnbmF0dXJlIiwiZGVzY3JpcHRpb24iOiJFSVA3MTIgc2lnbmF0dXJlIGZyb20gUGFydHkgQiBhY2NlcHRpbmcgdGhlIE1PVSB0ZXJtcyIsImRhdGEiOnsicGFydHlCTmFtZSI6IiR7dmFyaWFibGVzLnBhcnR5Qk5hbWV9IiwicGFydHlCU2lnbmF0dXJlIjoiJHt2YXJpYWJsZXMucGFydHlCU2lnbmF0dXJlfSJ9LCJpc3N1ZXIiOiIke3ZhcmlhYmxlcy5wYXJ0eUJFdGhBZGRyZXNzLnZhbHVlfSJ9LCJhY2NlcHRlZCI6eyJ0eXBlIjoiVmVyaWZpZWRDcmVkZW50aWFsRUlQNzEyIiwic2NoZW1hIjoidmVyaWZpZWQtY3JlZGVudGlhbC1laXA3MTIuc2NoZW1hLmpzb24iLCJkaXNwbGF5TmFtZSI6IlBhcnR5IEEgQWNjZXB0ZWQgUGFydHkgQidzIERhdGEiLCJkZXNjcmlwdGlvbiI6IkVJUDcxMiBzaWduYXR1cmUgZnJvbSBQYXJ0eSBBIGFjY2VwdGluZyBQYXJ0eSBCJ3MgZGF0YSIsImRhdGEiOnsicGFydHlBU2lnbmF0dXJlIjoiJHt2YXJpYWJsZXMucGFydHlBU2lnbmF0dXJlfSJ9LCJpc3N1ZXIiOiIke3ZhcmlhYmxlcy5wYXJ0eUFFdGhBZGRyZXNzLnZhbHVlfSJ9LCJyZWplY3RlZCI6eyJ0eXBlIjoiVmVyaWZpZWRDcmVkZW50aWFsRUlQNzEyIiwic2NoZW1hIjoidmVyaWZpZWQtY3JlZGVudGlhbC1laXA3MTIuc2NoZW1hLmpzb24iLCJkaXNwbGF5TmFtZSI6IlBhcnR5IEEgUmVqZWN0ZWQgUGFydHkgQidzIERhdGEiLCJkZXNjcmlwdGlvbiI6IkVJUDcxMiBzaWduYXR1cmUgZnJvbSBQYXJ0eSBBIHJlamVjdGluZyBQYXJ0eSBCJ3MgZGF0YSIsImRhdGEiOnsicGFydHlBUmVqZWN0aW9uU2lnbmF0dXJlIjp7InR5cGUiOiJzaWduYXR1cmUiLCJuYW1lIjoiUGFydHkgQSBSZWplY3Rpb24gU2lnbmF0dXJlIiwidmFsaWRhdGlvbiI6eyJyZXF1aXJlZCI6dHJ1ZX19fSwiaXNzdWVyIjoiJHt2YXJpYWJsZXMucGFydHlBRXRoQWRkcmVzcy52YWx1ZX0ifX0sInRyYW5zaXRpb25zIjpbeyJmcm9tIjoiUEVORElOR19QQVJUWV9BX1NJR05BVFVSRSIsInRvIjoiUEVORElOR19QQVJUWV9CX1NJR05BVFVSRSIsImNvbmRpdGlvbnMiOlt7InR5cGUiOiJpc1ZhbGlkIiwiaW5wdXQiOiJwYXJ0eUFEYXRhIn1dfSx7ImZyb20iOiJQRU5ESU5HX1BBUlRZX0JfU0lHTkFUVVJFIiwidG8iOiJQRU5ESU5HX0FDQ0VQVEFOQ0UiLCJjb25kaXRpb25zIjpbeyJ0eXBlIjoiaXNWYWxpZCIsImlucHV0IjoicGFydHlCRGF0YSJ9XX0seyJmcm9tIjoiUEVORElOR19BQ0NFUFRBTkNFIiwidG8iOiJBQ0NFUFRFRCIsImNvbmRpdGlvbnMiOlt7InR5cGUiOiJpc1ZhbGlkIiwiaW5wdXQiOiJhY2NlcHRlZCJ9XX0seyJmcm9tIjoiUEVORElOR19BQ0NFUFRBTkNFIiwidG8iOiJSRUpFQ1RFRCIsImNvbmRpdGlvbnMiOlt7InR5cGUiOiJpc1ZhbGlkIiwiaW5wdXQiOiJyZWplY3RlZCJ9XX1dfX0=",
+    "params": {
+      "partyAEthAddress": "0x67fD5A5ec681b1208308813a2B3A0DD431Be7278",
+      "partyBEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
+    }
+  },
+  "type": [
+    "VerifiableCredential",
+    "AgreementCredential"
+  ],
+  "issuanceDate": "2025-05-21T15:23:27.443Z",
+  "@context": [
+    "https://www.w3.org/2018/credentials/v1"
+  ],
+  "proof": {
+    "verificationMethod": "did:pkh:eip155:1:0x3fAC9dcd3830d147EB1361bDcf588b1E5cde4431#blockchainAccountId",
+    "created": "2025-05-21T15:23:27.443Z",
+    "proofPurpose": "assertionMethod",
+    "type": "EthereumEip712Signature2021",
+    "proofValue": "0x1b042e69562d6ebe24efecdaaaa6a2b666b39317d7dc09c246473f50de844a3f7dd48668aab5c4281d2e5d4485f69564d0ca3aecd8d7f566b14a7c31cd72ffa21c",
+    "eip712": {
+      "domain": {
+        "chainId": 1,
+        "name": "VerifiableCredential",
+        "version": "1"
+      },
+      "types": {
+        "EIP712Domain": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "version",
+            "type": "string"
+          },
+          {
+            "name": "chainId",
+            "type": "uint256"
+          }
+        ],
+        "CredentialSubject": [
+          {
+            "name": "agreement",
+            "type": "string"
+          },
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "params",
+            "type": "Params"
+          }
+        ],
+        "Params": [
+          {
+            "name": "partyAEthAddress",
+            "type": "string"
+          },
+          {
+            "name": "partyBEthAddress",
+            "type": "string"
+          }
+        ],
+        "Issuer": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "Proof": [
+          {
+            "name": "created",
+            "type": "string"
+          },
+          {
+            "name": "proofPurpose",
+            "type": "string"
+          },
+          {
+            "name": "type",
+            "type": "string"
+          },
+          {
+            "name": "verificationMethod",
+            "type": "string"
+          }
+        ],
+        "VerifiableCredential": [
+          {
+            "name": "@context",
+            "type": "string[]"
+          },
+          {
+            "name": "credentialSubject",
+            "type": "CredentialSubject"
+          },
+          {
+            "name": "issuanceDate",
+            "type": "string"
+          },
+          {
+            "name": "issuer",
+            "type": "Issuer"
+          },
+          {
+            "name": "proof",
+            "type": "Proof"
+          },
+          {
+            "name": "type",
+            "type": "string[]"
+          }
+        ]
+      },
+      "primaryType": "VerifiableCredential"
+    }
+  }
+}

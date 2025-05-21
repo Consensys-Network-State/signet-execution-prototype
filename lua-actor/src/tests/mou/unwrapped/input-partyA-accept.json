@@ -1,0 +1,8 @@
+{
+  "inputId": "accepted",
+  "type": "signedFields",
+  "values": {
+      "partyAAcceptance": "ACCEPTED",
+      "partyASignature": "Damian's signature"
+  }
+}
