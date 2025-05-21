@@ -8,7 +8,14 @@ local DFSM = require("dfsm")
 local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 
-local agreementDoc = TestUtils.loadInputDoc("./unwrapped/simple.grant.json")
+-- Load agreement document and unwrapped input files
+local inputDir = "./unwrapped"
+local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/simple.grant.json")
+local unwrappedA = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyA.json"))
+local unwrappedB = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyB.json"))
+local unwrappedAccept = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyA-accept.json"))
+local unwrappedReject = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyA-reject.json"))
+
 local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 
 local dfsm = DFSM.new(agreementDoc, false, json.decode([[
@@ -34,17 +41,17 @@ TestUtils.runTest(
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "inputId": "partyAData",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "partyAName": "Damian",
-                "termDuration": "1 year",
-                "effectiveDate": "2025-05-20",
-                "scope": "Sample scope"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedA.inputId,
+    unwrappedA.type,
+    agreementHash,
+    json.encode(unwrappedA.values)
+    ),
     true,  -- expect success
     nil,
     "PENDING_PARTY_B_SIGNATURE",
@@ -80,15 +87,17 @@ TestUtils.runTest(
             "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
         },
         "credentialSubject": {
-            "inputId": "partyBData",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "partyBName": "Leif",
-                "partyBSignature": "Leif's signature"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]],
+    unwrappedB.inputId,
+    unwrappedB.type,
+    agreementHash,
+    json.encode(unwrappedB.values)
+    ),
     true,  -- expect success
     nil,
     "PENDING_ACCEPTANCE",
@@ -106,15 +115,17 @@ TestUtils.runTest(
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "inputId": "accepted",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "partyAAcceptance": "ACCEPTED",
-                "partyASignature": "Damian's signature"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]],
+    unwrappedAccept.inputId,
+    unwrappedAccept.type,
+    agreementHash,
+    json.encode(unwrappedAccept.values)
+    ),
     true,  -- expect success
     nil,
     "ACCEPTED",
@@ -132,14 +143,17 @@ TestUtils.runTest(
             "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
         },
         "credentialSubject": {
-            "inputId": "rejected",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "partyARejection": "REJECTED"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]],
+    unwrappedReject.inputId,
+    unwrappedReject.type,
+    agreementHash,
+    json.encode(unwrappedReject.values)
+    ),
     false,  -- expect failure
     "State machine is complete",
     "ACCEPTED",  -- state should not change

@@ -9,7 +9,17 @@ local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 local base64 = require(".base64")
 
-local agreementDoc = TestUtils.loadInputDoc("./unwrapped/grant-with-tx.json")
+-- Load agreement document and unwrapped input files
+local inputDir = "./unwrapped"
+local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.json")
+local unwrappedGrantor = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-grantor.json"))
+local unwrappedRecipient = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-recipient.json"))
+local unwrappedGrantorSign = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-grantor-accept.json"))
+local unwrappedWorkSubmit = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-work-submission.json"))
+local unwrappedWorkAccept = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-work-accept.json"))
+local unwrappedWorkReject = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-work-reject.json"))
+local unwrappedGrantorReject = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-grantor-reject.json"))
+
 local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 
 local oracleDataDoc = TestUtils.loadInputDoc("proof-data.json")
@@ -38,17 +48,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "grantorData",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "grantorName": "Damian",
-                "scope": "Development of Web3 tooling",
-                "termDuration": "6 months",
-                "effectiveDate": "2024-03-20T12:00:00Z"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedGrantor.inputId,
+    unwrappedGrantor.type,
+    agreementHash,
+    json.encode(unwrappedGrantor.values)
+    ),
     true,  -- expect success
     nil,
     "AWAITING_RECIPIENT_SIGNATURE",
@@ -65,15 +75,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
         "credentialSubject": {
-            "inputId": "recipientSigning",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "recipientName": "Leif",
-                "recipientSignature": "0xsignature"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedRecipient.inputId,
+    unwrappedRecipient.type,
+    agreementHash,
+    json.encode(unwrappedRecipient.values)
+    ),
     true,  -- expect success
     nil,
     "AWAITING_GRANTOR_SIGNATURE",
@@ -90,14 +102,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "grantorSigning",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "grantorSignature": "0xgrantorsignature"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedGrantorSign.inputId,
+    unwrappedGrantorSign.type,
+    agreementHash,
+    json.encode(unwrappedGrantorSign.values)
+    ),
     true,  -- expect success
     nil,
     "AWAITING_WORK_SUBMISSION",
@@ -113,15 +128,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
         "credentialSubject": {
-            "inputId": "workSubmission",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "submissionHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-                "submissionUrl": "https://ipfs.io/ipfs/QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedWorkSubmit.inputId,
+    unwrappedWorkSubmit.type,
+    agreementHash,
+    json.encode(unwrappedWorkSubmit.values)
+    ),
     true,  -- expect success
     nil,
     "WORK_IN_REVIEW",
@@ -146,17 +163,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "grantorData",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "grantorName": "Damian",
-                "scope": "Development of Web3 tooling",
-                "termDuration": "6 months",
-                "effectiveDate": "2024-03-20T12:00:00Z"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedGrantor.inputId,
+    unwrappedGrantor.type,
+    agreementHash,
+    json.encode(unwrappedGrantor.values)
+    ),
     true,
     nil,
     "AWAITING_RECIPIENT_SIGNATURE",
@@ -172,15 +189,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
         "credentialSubject": {
-            "inputId": "recipientSigning",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "recipientName": "Leif",
-                "recipientSignature": "0xsignature"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedRecipient.inputId,
+    unwrappedRecipient.type,
+    agreementHash,
+    json.encode(unwrappedRecipient.values)
+    ),
     true,
     nil,
     "AWAITING_GRANTOR_SIGNATURE",
@@ -196,14 +215,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "grantorSigning",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "grantorSignature": "0xgrantorsignature"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedGrantorSign.inputId,
+    unwrappedGrantorSign.type,
+    agreementHash,
+    json.encode(unwrappedGrantorSign.values)
+    ),
     true,
     nil,
     "AWAITING_WORK_SUBMISSION",
@@ -219,15 +241,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
         "credentialSubject": {
-            "inputId": "workSubmission",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "submissionHash": "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
-                "submissionUrl": "https://ipfs.io/ipfs/QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedWorkSubmit.inputId,
+    unwrappedWorkSubmit.type,
+    agreementHash,
+    json.encode(unwrappedWorkSubmit.values)
+    ),
     true,
     nil,
     "WORK_IN_REVIEW",
@@ -244,14 +268,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "workAccepted",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "acceptanceComments": "Great job, the work meets all requirements!"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedWorkAccept.inputId,
+    unwrappedWorkAccept.type,
+    agreementHash,
+    json.encode(unwrappedWorkAccept.values)
+    ),
     true,
     nil,
     "AWAITING_PAYMENT",
@@ -298,19 +325,75 @@ local resubmitDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 
 -- Bring the state to WORK_IN_REVIEW (same steps as before, compacted for brevity)
 TestUtils.runTest("Initial setup for resubmit flow (grantor data)", resubmitDfsm, 
-    string.format([[{"type":"VerifiedCredentialEIP712","issuer":"0x5B38Da6a701c568545dCfcB03FcB875f56beddC4","credentialSubject":{"inputId":"grantorData","type":"signedFields","documentHash":"%s","values":{"grantorName":"Damian","scope":"Development of Web3 tooling","termDuration":"6 months","effectiveDate":"2024-03-20T12:00:00Z"}}}]], agreementHash),
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+        "credentialSubject": {
+            "inputId": "%s",
+            "type": "%s",
+            "documentHash": "%s",
+            "values": %s
+        }
+    }]], 
+    unwrappedGrantor.inputId,
+    unwrappedGrantor.type,
+    agreementHash,
+    json.encode(unwrappedGrantor.values)
+    ),
     true, nil, "AWAITING_RECIPIENT_SIGNATURE", DFSMUtils, testCounter, expectVc)
 
 TestUtils.runTest("Initial setup for resubmit flow (recipient signing)", resubmitDfsm, 
-    string.format([[{"type":"VerifiedCredentialEIP712","issuer":"0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db","credentialSubject":{"inputId":"recipientSigning","type":"signedFields","documentHash":"%s","values":{"recipientName":"Leif","recipientSignature":"0xsignature"}}}]], agreementHash),
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
+        "credentialSubject": {
+            "inputId": "%s",
+            "type": "%s",
+            "documentHash": "%s",
+            "values": %s
+        }
+    }]], 
+    unwrappedRecipient.inputId,
+    unwrappedRecipient.type,
+    agreementHash,
+    json.encode(unwrappedRecipient.values)
+    ),
     true, nil, "AWAITING_GRANTOR_SIGNATURE", DFSMUtils, testCounter, expectVc)
 
 TestUtils.runTest("Initial setup for resubmit flow (grantor signing)", resubmitDfsm, 
-    string.format([[{"type":"VerifiedCredentialEIP712","issuer":"0x5B38Da6a701c568545dCfcB03FcB875f56beddC4","credentialSubject":{"inputId":"grantorSigning","type":"signedFields","documentHash":"%s","values":{"grantorSignature":"0xgrantorsignature"}}}]], agreementHash),
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+        "credentialSubject": {
+            "inputId": "%s",
+            "type": "%s",
+            "documentHash": "%s",
+            "values": %s
+        }
+    }]], 
+    unwrappedGrantorSign.inputId,
+    unwrappedGrantorSign.type,
+    agreementHash,
+    json.encode(unwrappedGrantorSign.values)
+    ),
     true, nil, "AWAITING_WORK_SUBMISSION", DFSMUtils, testCounter, expectVc)
 
 TestUtils.runTest("Initial setup for resubmit flow (work submission)", resubmitDfsm, 
-    string.format([[{"type":"VerifiedCredentialEIP712","issuer":"0xBe32388C134a952cdBCc5673E93d46FfD8b85065","credentialSubject":{"inputId":"workSubmission","type":"signedFields","documentHash":"%s","values":{"submissionHash":"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","submissionUrl":"https://ipfs.io/ipfs/QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx"}}}]], agreementHash),
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
+        "credentialSubject": {
+            "inputId": "%s",
+            "type": "%s",
+            "documentHash": "%s",
+            "values": %s
+        }
+    }]], 
+    unwrappedWorkSubmit.inputId,
+    unwrappedWorkSubmit.type,
+    agreementHash,
+    json.encode(unwrappedWorkSubmit.values)
+    ),
     true, nil, "WORK_IN_REVIEW", DFSMUtils, testCounter, expectVc)
 
 -- Work Resubmission Requested - should succeed and transition back to AWAITING_WORK_SUBMISSION
@@ -348,19 +431,75 @@ local rejectDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 
 -- Bring the state to WORK_IN_REVIEW (same steps as before, compacted for brevity)
 TestUtils.runTest("Initial setup for reject flow", rejectDfsm, 
-    string.format([[{"type":"VerifiedCredentialEIP712","issuer":"0x5B38Da6a701c568545dCfcB03FcB875f56beddC4","credentialSubject":{"inputId":"grantorData","type":"signedFields","documentHash":"%s","values":{"grantorName":"Damian","scope":"Development of Web3 tooling","termDuration":"6 months","effectiveDate":"2024-03-20T12:00:00Z"}}}]], agreementHash),
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+        "credentialSubject": {
+            "inputId": "%s",
+            "type": "%s",
+            "documentHash": "%s",
+            "values": %s
+        }
+    }]], 
+    unwrappedGrantor.inputId,
+    unwrappedGrantor.type,
+    agreementHash,
+    json.encode(unwrappedGrantor.values)
+    ),
     true, nil, "AWAITING_RECIPIENT_SIGNATURE", DFSMUtils, testCounter, expectVc)
 
 TestUtils.runTest("Continuing setup for reject flow", rejectDfsm, 
-    string.format([[{"type":"VerifiedCredentialEIP712","issuer":"0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db","credentialSubject":{"inputId":"recipientSigning","type":"signedFields","documentHash":"%s","values":{"recipientName":"Leif","recipientSignature":"0xsignature"}}}]], agreementHash),
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
+        "credentialSubject": {
+            "inputId": "%s",
+            "type": "%s",
+            "documentHash": "%s",
+            "values": %s
+        }
+    }]], 
+    unwrappedRecipient.inputId,
+    unwrappedRecipient.type,
+    agreementHash,
+    json.encode(unwrappedRecipient.values)
+    ),
     true, nil, "AWAITING_GRANTOR_SIGNATURE", DFSMUtils, testCounter, expectVc)
 
 TestUtils.runTest("Continuing setup for reject flow", rejectDfsm, 
-    string.format([[{"type":"VerifiedCredentialEIP712","issuer":"0x5B38Da6a701c568545dCfcB03FcB875f56beddC4","credentialSubject":{"inputId":"grantorSigning","type":"signedFields","documentHash":"%s","values":{"grantorSignature":"0xgrantorsignature"}}}]], agreementHash),
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+        "credentialSubject": {
+            "inputId": "%s",
+            "type": "%s",
+            "documentHash": "%s",
+            "values": %s
+        }
+    }]], 
+    unwrappedGrantorSign.inputId,
+    unwrappedGrantorSign.type,
+    agreementHash,
+    json.encode(unwrappedGrantorSign.values)
+    ),
     true, nil, "AWAITING_WORK_SUBMISSION", DFSMUtils, testCounter, expectVc)
 
 TestUtils.runTest("Continuing setup for reject flow", rejectDfsm, 
-    string.format([[{"type":"VerifiedCredentialEIP712","issuer":"0xBe32388C134a952cdBCc5673E93d46FfD8b85065","credentialSubject":{"inputId":"workSubmission","type":"signedFields","documentHash":"%s","values":{"submissionHash":"0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef","submissionUrl":"https://ipfs.io/ipfs/QmZ4tDuvesekSs4qM5ZBKpXiZGun7S2CYtEZRB3DYXkjGx"}}}]], agreementHash),
+    string.format([[{
+        "type": "VerifiedCredentialEIP712",
+        "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
+        "credentialSubject": {
+            "inputId": "%s",
+            "type": "%s",
+            "documentHash": "%s",
+            "values": %s
+        }
+    }]], 
+    unwrappedWorkSubmit.inputId,
+    unwrappedWorkSubmit.type,
+    agreementHash,
+    json.encode(unwrappedWorkSubmit.values)
+    ),
     true, nil, "WORK_IN_REVIEW", DFSMUtils, testCounter, expectVc)
 
 -- Work Rejected - should succeed and transition to REJECTED
@@ -371,14 +510,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "workRejected",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "rejectionReason": "The work does not meet our standards and is too far off from the requirements to be salvaged"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedWorkReject.inputId,
+    unwrappedWorkReject.type,
+    agreementHash,
+    json.encode(unwrappedWorkReject.values)
+    ),
     true,
     nil,
     "REJECTED",
@@ -403,17 +545,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "grantorData",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "grantorName": "Damian",
-                "scope": "Development of Web3 tooling",
-                "termDuration": "6 months",
-                "effectiveDate": "2024-03-20T12:00:00Z"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedGrantor.inputId,
+    unwrappedGrantor.type,
+    agreementHash,
+    json.encode(unwrappedGrantor.values)
+    ),
     true,  -- expect success
     nil,
     "AWAITING_RECIPIENT_SIGNATURE",
@@ -429,15 +571,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
         "credentialSubject": {
-            "inputId": "recipientSigning",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "recipientName": "Leif",
-                "recipientSignature": "0xsignature"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedRecipient.inputId,
+    unwrappedRecipient.type,
+    agreementHash,
+    json.encode(unwrappedRecipient.values)
+    ),
     true,  -- expect success
     nil,
     "AWAITING_GRANTOR_SIGNATURE",
@@ -454,14 +598,17 @@ TestUtils.runTest(
         "type": "VerifiedCredentialEIP712",
         "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
         "credentialSubject": {
-            "inputId": "grantorRejection",
-            "type": "signedFields",
+            "inputId": "%s",
+            "type": "%s",
             "documentHash": "%s",
-            "values": {
-                "grantorRejectionReason": "Terms do not meet our requirements"
-            }
+            "values": %s
         }
-    }]], agreementHash),
+    }]], 
+    unwrappedGrantorReject.inputId,
+    unwrappedGrantorReject.type,
+    agreementHash,
+    json.encode(unwrappedGrantorReject.values)
+    ),
     true,  -- expect success
     nil,
     "REJECTED",
