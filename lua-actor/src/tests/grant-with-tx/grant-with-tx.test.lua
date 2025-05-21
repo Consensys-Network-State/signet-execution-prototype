@@ -9,7 +9,7 @@ local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 local base64 = require(".base64")
 
-local agreementDoc = TestUtils.loadInputDoc("grant-with-tx.json")
+local agreementDoc = TestUtils.loadInputDoc("./unwrapped/grant-with-tx.json")
 local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 
 local oracleDataDoc = TestUtils.loadInputDoc("proof-data.json")

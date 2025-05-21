@@ -5,20 +5,21 @@ import { fileURLToPath } from 'url'
 import { getTransactionProof, stringifyProofData } from './fetch-tx-proof.js'
 import { ethers } from 'ethers'
 
-const __inputDirname = fileURLToPath(new URL('.', import.meta.url))
-const outputDir = fileURLToPath(new URL('../../../grant-with-tx', import.meta.url))
+const testDir = '../../../'
+const inputDirname = fileURLToPath(new URL(`${testDir}/grant-with-tx/unwrapped`, import.meta.url))
+const outputDir = fileURLToPath(new URL(`${testDir}/grant-with-tx/wrapped`, import.meta.url))
 if (!fs.existsSync(outputDir)){
   fs.mkdirSync(outputDir);
 }
-const agreement = JSON.parse(readFileSync(join(__inputDirname, 'input.json'), 'utf-8'));
-const grantorInput = JSON.parse(readFileSync(join(__inputDirname, 'input-grantor.json'), 'utf-8'));
-const recipientInput = JSON.parse(readFileSync(join(__inputDirname, 'input-recipient.json'), 'utf-8'));
-const grantorAcceptInput = JSON.parse(readFileSync(join(__inputDirname, 'input-grantor-accept.json'), 'utf-8'));
-const grantorRejectInput = JSON.parse(readFileSync(join(__inputDirname, 'input-grantor-reject.json'), 'utf-8'));
-const workSubmissionInput = JSON.parse(readFileSync(join(__inputDirname, 'input-work-submission.json'), 'utf-8'));
-const workAcceptInput = JSON.parse(readFileSync(join(__inputDirname, 'input-work-accept.json'), 'utf-8'));
-const workRejectInput = JSON.parse(readFileSync(join(__inputDirname, 'input-work-reject.json'), 'utf-8'));
-const agreementRejectInput = JSON.parse(readFileSync(join(__inputDirname, 'input-agreement-reject.json'), 'utf-8'));
+const agreement = JSON.parse(readFileSync(join(inputDirname, 'input.json'), 'utf-8'));
+const grantorInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor.json'), 'utf-8'));
+const recipientInput = JSON.parse(readFileSync(join(inputDirname, 'input-recipient.json'), 'utf-8'));
+const grantorAcceptInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor-accept.json'), 'utf-8'));
+const grantorRejectInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor-reject.json'), 'utf-8'));
+const workSubmissionInput = JSON.parse(readFileSync(join(inputDirname, 'input-work-submission.json'), 'utf-8'));
+const workAcceptInput = JSON.parse(readFileSync(join(inputDirname, 'input-work-accept.json'), 'utf-8'));
+const workRejectInput = JSON.parse(readFileSync(join(inputDirname, 'input-work-reject.json'), 'utf-8'));
+const agreementRejectInput = JSON.parse(readFileSync(join(inputDirname, 'input-agreement-reject.json'), 'utf-8'));
 const txHash = "0x15cdc2d5157685faaca3da6928fe412608747e76a7daee0800d5c79c2b76a0cd";
 
 async function writeVc(params, name) {
