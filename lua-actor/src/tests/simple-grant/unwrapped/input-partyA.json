@@ -3,6 +3,8 @@
   "type": "signedFields",
   "values": {
       "partyAName": "Damian",
-      "partyBEthAddress": "0x19f88d164C7F8Cd07a311BD3eb8BC3829bc7dC76"
+      "termDuration": "1 year",
+      "effectiveDate": "2025-05-20",
+      "scope": "Sample scope"
   }
 }
