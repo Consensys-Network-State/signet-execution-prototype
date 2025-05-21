@@ -1,0 +1,7 @@
+{
+  "inputId": "rejected",
+  "type": "signedFields",
+  "values": {
+      "partyARejection": "REJECTED"
+  }
+}
