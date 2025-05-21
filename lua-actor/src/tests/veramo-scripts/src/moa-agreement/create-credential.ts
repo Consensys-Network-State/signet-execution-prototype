@@ -4,16 +4,17 @@ import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { ethers } from 'ethers'
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
-const outputDir = fileURLToPath(new URL('../../../simple-grant', import.meta.url))
+const testDir = '../../../'
+const inputDir = fileURLToPath(new URL(`${testDir}/simple-grant/unwrapped`, import.meta.url))
+const outputDir = fileURLToPath(new URL(`${testDir}/simple-grant/wrapped`, import.meta.url))
 if (!fs.existsSync(outputDir)){
   fs.mkdirSync(outputDir);
 }
-const agreement = JSON.parse(readFileSync(join(__dirname, 'agreement.md.dfsm.json'), 'utf-8'));
-const partyAInput = JSON.parse(readFileSync(join(__dirname, 'input-partyA.json'), 'utf-8'));
-const partyBInput = JSON.parse(readFileSync(join(__dirname, 'input-partyB.json'), 'utf-8'));
-const partyAAcceptInput = JSON.parse(readFileSync(join(__dirname, 'input-partyA-accept.json'), 'utf-8'));
-const partyARejectInput = JSON.parse(readFileSync(join(__dirname, 'input-partyA-reject.json'), 'utf-8'));
+const agreement = JSON.parse(readFileSync(join(inputDir, 'simple.grant.json'), 'utf-8'));
+const partyAInput = JSON.parse(readFileSync(join(inputDir, 'input-partyA.json'), 'utf-8'));
+const partyBInput = JSON.parse(readFileSync(join(inputDir, 'input-partyB.json'), 'utf-8'));
+const partyAAcceptInput = JSON.parse(readFileSync(join(inputDir, 'input-partyA-accept.json'), 'utf-8'));
+const partyARejectInput = JSON.parse(readFileSync(join(inputDir, 'input-partyA-reject.json'), 'utf-8'));
 
 async function writeVc(params, name) {
   const vc = await agent.createVerifiableCredential(params);
