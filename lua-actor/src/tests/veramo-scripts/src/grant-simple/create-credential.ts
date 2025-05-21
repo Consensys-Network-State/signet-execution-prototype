@@ -6,12 +6,12 @@ import { getTransactionProof, stringifyProofData } from './fetch-tx-proof.js'
 import { ethers } from 'ethers'
 
 const testDir = '../../../'
-const inputDirname = fileURLToPath(new URL(`${testDir}/grant-with-tx/unwrapped`, import.meta.url))
-const outputDir = fileURLToPath(new URL(`${testDir}/grant-with-tx/wrapped`, import.meta.url))
+const inputDirname = fileURLToPath(new URL(`${testDir}/grant-simple/unwrapped`, import.meta.url))
+const outputDir = fileURLToPath(new URL(`${testDir}/grant-simple/wrapped`, import.meta.url))
 if (!fs.existsSync(outputDir)){
   fs.mkdirSync(outputDir);
 }
-const agreement = JSON.parse(readFileSync(join(inputDirname, 'input.json'), 'utf-8'));
+const agreement = JSON.parse(readFileSync(join(inputDirname, 'grant-simple.json'), 'utf-8'));
 const grantorInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor.json'), 'utf-8'));
 const recipientInput = JSON.parse(readFileSync(join(inputDirname, 'input-recipient.json'), 'utf-8'));
 const grantorAcceptInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor-accept.json'), 'utf-8'));
@@ -49,13 +49,13 @@ async function main() {
   const proofDataBase64 = btoa(proofDataStr);
 
   try {
-    const filenamePrefix = "grant-with-tx";
+    const filenamePrefix = "grant-simple";
 
     const agreementParams = {
       credential: {
         issuer: { id: agreementCreator.did },
         credentialSubject: {
-          id: "did:example:grant-recipient-1",
+          id: "did:example:grant-simple-recipient-1",
           agreement: Buffer.from(JSON.stringify(agreement)).toString('base64'),
           params: {
             grantorEthAddress: grantorEthAddress,
