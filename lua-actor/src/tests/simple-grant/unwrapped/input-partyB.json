@@ -1,8 +1,0 @@
-{
-  "inputId": "partyBData",
-  "type": "signedFields",
-  "values": {
-      "partyBName": "Leif",
-      "partyBSignature": "Leif's signature"
-  }
-}

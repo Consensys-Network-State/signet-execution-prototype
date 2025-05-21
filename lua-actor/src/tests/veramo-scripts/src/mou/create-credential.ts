@@ -5,12 +5,12 @@ import { fileURLToPath } from 'url'
 import { ethers } from 'ethers'
 
 const testDir = '../../../'
-const inputDir = fileURLToPath(new URL(`${testDir}/simple-grant/unwrapped`, import.meta.url))
-const outputDir = fileURLToPath(new URL(`${testDir}/simple-grant/wrapped`, import.meta.url))
+const inputDir = fileURLToPath(new URL(`${testDir}/mou/unwrapped`, import.meta.url))
+const outputDir = fileURLToPath(new URL(`${testDir}/mou/wrapped`, import.meta.url))
 if (!fs.existsSync(outputDir)){
   fs.mkdirSync(outputDir);
 }
-const agreement = JSON.parse(readFileSync(join(inputDir, 'simple.grant.json'), 'utf-8'));
+const agreement = JSON.parse(readFileSync(join(inputDir, 'mou.json'), 'utf-8'));
 const partyAInput = JSON.parse(readFileSync(join(inputDir, 'input-partyA.json'), 'utf-8'));
 const partyBInput = JSON.parse(readFileSync(join(inputDir, 'input-partyB.json'), 'utf-8'));
 const partyAAcceptInput = JSON.parse(readFileSync(join(inputDir, 'input-partyA-accept.json'), 'utf-8'));
@@ -39,12 +39,12 @@ async function main() {
   const partyBEthAddress = didStrToEthAddress(partyB.did);
 
   try {
-    const filenamePrefix = "simple.grant";
+    const filenamePrefix = "mou";
     const agreementParams = {
       credential: {
         issuer: { id: agreementCreator.did },
         credentialSubject: {
-          id: "did:example:grant-recipient-1",
+          id: "did:example:mou-recipient-1",
           agreement: Buffer.from(JSON.stringify(agreement)).toString('base64'),
           params: {
             partyAEthAddress,
@@ -115,4 +115,4 @@ async function main() {
   }
 }
 
-main().catch(console.log)
+main().catch(console.log) 
