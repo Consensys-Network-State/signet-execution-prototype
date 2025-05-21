@@ -9,16 +9,17 @@ local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 
 -- Load all test input files
-local agreementDoc = TestUtils.loadInputDoc("grant-with-tx.wrapped.json")
-local grantorInput = TestUtils.loadInputDoc("grant-with-tx.grantor-input.wrapped.json")
-local recipientInput = TestUtils.loadInputDoc("grant-with-tx.recipient-input.wrapped.json")
-local grantorAccept = TestUtils.loadInputDoc("grant-with-tx.grantor-accept.wrapped.json")
-local grantorReject = TestUtils.loadInputDoc("grant-with-tx.grantor-reject.wrapped.json")
-local workSubmission = TestUtils.loadInputDoc("grant-with-tx.work-submission.wrapped.json")
-local workAccept = TestUtils.loadInputDoc("grant-with-tx.work-accept.wrapped.json")
-local workReject = TestUtils.loadInputDoc("grant-with-tx.work-reject.wrapped.json")
-local agreementReject = TestUtils.loadInputDoc("grant-with-tx.agreement-reject.wrapped.json")
-local txProof = TestUtils.loadInputDoc("grant-with-tx.grantor-tx-proof.wrapped.json")
+local inputDir = "./wrapped"
+local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.wrapped.json")
+local grantorInput = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.grantor-input.wrapped.json")
+local recipientInput = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.recipient-input.wrapped.json")
+local grantorAccept = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.grantor-accept.wrapped.json")
+local grantorReject = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.grantor-reject.wrapped.json")
+local workSubmission = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.work-submission.wrapped.json")
+local workAccept = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.work-accept.wrapped.json")
+local workReject = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.work-reject.wrapped.json")
+local agreementReject = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.agreement-reject.wrapped.json")
+local txProof = TestUtils.loadInputDoc(inputDir .. "/grant-with-tx.grantor-tx-proof.wrapped.json")
 
 -- Extract the agreement hash from the wrapped agreement document
 local decodedAgreement = json.decode(agreementDoc)

@@ -8,7 +8,7 @@ local DFSM = require("dfsm")
 local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 
-local agreementDoc = TestUtils.loadInputDoc("./tests/simple-grant/simple.grant.json")
+local agreementDoc = TestUtils.loadInputDoc("./simple.grant.json")
 local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 
 local dfsm = DFSM.new(agreementDoc, false, json.decode([[
