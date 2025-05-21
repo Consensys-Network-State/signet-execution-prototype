@@ -7,24 +7,27 @@
     "type": "signedFields",
     "values": {
       "partyAName": "Damian",
+      "termDuration": "1 year",
+      "effectiveDate": "2025-05-20",
+      "scope": "Sample scope",
       "partyBEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
     },
-    "documentHash": "0xf028760baf1634253e75cd147c7f6259ba2623a1ed50fde3da431763443c93d2"
+    "documentHash": "0xe32f06ae6dc90497cfe88b1c76d083a47f69eba9f7c0157978e513815d59fc05"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-12T18:48:42.169Z",
+  "issuanceDate": "2025-05-20T18:28:07.671Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
-    "created": "2025-05-12T18:48:42.169Z",
+    "created": "2025-05-20T18:28:07.671Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0xb4bff40fddf9b79fe65e54a818e32acc988dfbab08a9136f1b49a2d9e05c63b7638448100e898ffb740efd8d57eac59b48584f8a7e65fcb11f07683db60f67091c",
+    "proofValue": "0xeca3f85697be06802ab6a0ea2441413bf14aa414a594e38c2e387b4eb9981e9f3a5fb9b4ee4020df00bda3f00d0cda5295d2700fb9fc6bdf9b7519ff1392f0aa1b",
     "eip712": {
       "domain": {
         "chainId": 1,
@@ -66,11 +69,23 @@
         ],
         "Values": [
           {
+            "name": "effectiveDate",
+            "type": "string"
+          },
+          {
             "name": "partyAName",
             "type": "string"
           },
           {
             "name": "partyBEthAddress",
+            "type": "string"
+          },
+          {
+            "name": "scope",
+            "type": "string"
+          },
+          {
+            "name": "termDuration",
             "type": "string"
           }
         ],
