@@ -6,6 +6,8 @@ In particular, make sure to create a `.env` file with a secret key inside this d
 
 # 🤖✅ Vibe Coding Tests ✅🤖
 
+If your goal is to create an agreement with a full test suite, [like this](./grant-with-feedback/grant-with-feedback.md), you can follow these steps to generate your own using AI assistance.
+
 1. Create an input DFSM you would like to use, using one of the existing templates, like [this sample agreement with feedback](./grant-with-feedback/unwrapped/grant-with-feedback.json). Iterate on this JSON file until the right DFSM is created. It is recommended that you create a corresponding md file to visually describe the state machine. You could even start with the diagram first. See [this corresponding md file](./grant-with-feedback/grant-with-feedback.md).
 
 **Sample prompt:**
