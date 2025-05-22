@@ -16,20 +16,19 @@ local function runTestSuite(params)
     local inputDir = params.inputDir
     local expectVc = params.expectVc
     local loadInput = params.loadInput
-    local isWrapped = params.isWrapped
 
     -- Load agreement document and unwrapped input files
-    local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/mou" .. (isWrapped and ".wrapped" or "") .. ".json")
-    local unwrappedA = loadInput(inputDir .. "/input-partyA" .. (isWrapped and ".wrapped" or "") .. ".json")
-    local unwrappedB = loadInput(inputDir .. "/input-partyB" .. (isWrapped and ".wrapped" or "") .. ".json")
-    local unwrappedAccept = loadInput(inputDir .. "/input-partyA-accept" .. (isWrapped and ".wrapped" or "") .. ".json")
-    local unwrappedReject = loadInput(inputDir .. "/input-partyA-reject" .. (isWrapped and ".wrapped" or "") .. ".json")
+    local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/mou" .. (expectVc and ".wrapped" or "") .. ".json")
+    local unwrappedA = loadInput(inputDir .. "/input-partyA" .. (expectVc and ".wrapped" or "") .. ".json")
+    local unwrappedB = loadInput(inputDir .. "/input-partyB" .. (expectVc and ".wrapped" or "") .. ".json")
+    local unwrappedAccept = loadInput(inputDir .. "/input-partyA-accept" .. (expectVc and ".wrapped" or "") .. ".json")
+    local unwrappedReject = loadInput(inputDir .. "/input-partyA-reject" .. (expectVc and ".wrapped" or "") .. ".json")
 
     local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 
     -- Initialize DFSM (for unwrapped tests, pass party eth addresses)
     local dfsm
-    if isWrapped then
+    if expectVc then
         dfsm = DFSM.new(agreementDoc, expectVc)
     else
         dfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
@@ -45,7 +44,7 @@ local function runTestSuite(params)
 
     -- Helper function to format test input (for unwrapped tests)
     local function formatTestInput(input, inputId, type, values)
-        if isWrapped then
+        if expectVc then
             return input
         else
             return string.format([[{
@@ -143,8 +142,7 @@ print("\n=== Running Unwrapped Test Suite ===")
 runTestSuite({
     inputDir = "./unwrapped",
     expectVc = false,
-    loadInput = function(path) return json.decode(TestUtils.loadInputDoc(path)) end,
-    isWrapped = false
+    loadInput = function(path) return json.decode(TestUtils.loadInputDoc(path)) end
 })
 
 -- Run wrapped test suite (using raw loadInputDoc for wrapped inputs)
@@ -152,8 +150,7 @@ print("\n=== Running Wrapped Test Suite ===")
 runTestSuite({
     inputDir = "./wrapped",
     expectVc = true,
-    loadInput = function(path) return TestUtils.loadInputDoc(path) end,
-    isWrapped = true
+    loadInput = function(path) return json.decode(TestUtils.loadInputDoc(path)) end
 })
 
 -- Print final test summary

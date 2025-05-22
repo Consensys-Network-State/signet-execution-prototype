@@ -17,10 +17,9 @@ local function runTestSuite(params)
     local inputDir = params.inputDir
     local expectVc = params.expectVc
     local loadInput = params.loadInput
-    local isWrapped = params.isWrapped
 
     -- Load agreement document and input files
-    local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-simple" .. (isWrapped and ".wrapped" or "") .. ".json")
+    local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-simple" .. (expectVc and ".wrapped" or "") .. ".json")
     
     -- Load all test inputs
     local inputs = {}
@@ -36,18 +35,18 @@ local function runTestSuite(params)
     }
     
     for key, file in pairs(inputFiles) do
-        local path = inputDir .. "/" .. file .. (isWrapped and ".wrapped" or "") .. ".json"
+        local path = inputDir .. "/" .. file .. (expectVc and ".wrapped" or "") .. ".json"
         inputs[key] = loadInput(path)
     end
 
     -- For wrapped tests, we also need the transaction proof
-    if isWrapped then
+    if expectVc then
         inputs["tx-proof"] = TestUtils.loadInputDoc(inputDir .. "/input-tx-proof.wrapped.json")
     end
 
     -- Extract agreement hash
     local agreementHash
-    if isWrapped then
+    if expectVc then
         local decodedAgreement = json.decode(agreementDoc)
         local agreementBase64 = decodedAgreement.credentialSubject.agreement
         agreementHash = crypto.digest.keccak256(agreementBase64).asHex()
@@ -57,7 +56,7 @@ local function runTestSuite(params)
 
     -- Initialize DFSM
     local dfsm
-    if isWrapped then
+    if expectVc then
         dfsm = DFSM.new(agreementDoc, expectVc)
     else
         dfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
@@ -73,7 +72,7 @@ local function runTestSuite(params)
 
     -- Helper function to format test input
     local function formatTestInput(input, inputId, type, values)
-        if isWrapped then
+        if expectVc then
             return input
         else
             return string.format([[{
@@ -148,7 +147,7 @@ local function runTestSuite(params)
     )
 
     -- Create new instance for acceptance flow
-    local acceptDfsm = DFSM.new(agreementDoc, expectVc, isWrapped and nil or json.decode([[
+    local acceptDfsm = DFSM.new(agreementDoc, expectVc, expectVc and nil or json.decode([[
 {
     "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
@@ -189,7 +188,7 @@ local function runTestSuite(params)
     )
 
     -- 6. Payment proof (only for wrapped tests)
-    if isWrapped then
+    if expectVc then
         TestUtils.runTest(
             "Payment Proof",
             acceptDfsm,
@@ -232,7 +231,7 @@ local function runTestSuite(params)
     end
 
     -- Create new instance for rejection flows
-    local rejectDfsm = DFSM.new(agreementDoc, expectVc, isWrapped and nil or json.decode([[
+    local rejectDfsm = DFSM.new(agreementDoc, expectVc, expectVc and nil or json.decode([[
 {
     "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
@@ -277,7 +276,7 @@ local function runTestSuite(params)
     )
 
     -- 8. Work rejection flow
-    local workRejectDfsm = DFSM.new(agreementDoc, expectVc, isWrapped and nil or json.decode([[
+    local workRejectDfsm = DFSM.new(agreementDoc, expectVc, expectVc and nil or json.decode([[
 {
     "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
@@ -340,8 +339,7 @@ print("\n=== Running Unwrapped Test Suite ===")
 runTestSuite({
     inputDir = "./unwrapped",
     expectVc = false,
-    loadInput = function(path) return json.decode(TestUtils.loadInputDoc(path)) end,
-    isWrapped = false
+    loadInput = function(path) return json.decode(TestUtils.loadInputDoc(path)) end
 })
 
 -- Run wrapped test suite
@@ -349,8 +347,7 @@ print("\n=== Running Wrapped Test Suite ===")
 runTestSuite({
     inputDir = "./wrapped",
     expectVc = true,
-    loadInput = function(path) return TestUtils.loadInputDoc(path) end,
-    isWrapped = true
+    loadInput = function(path) return json.decode(TestUtils.loadInputDoc(path)) end
 })
 
 -- Print final test summary
