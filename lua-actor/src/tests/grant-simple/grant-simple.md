@@ -7,16 +7,18 @@ stateDiagram-v2
     
     state "Happy Path States" as happyStates #LightGreen
     
-    [*] --> AWAITING_RECIPIENT_SIGNATURE: grantorData
+    [*] --> AWAITING_TEMPLATE_VARIABLES: initialize
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: grantorData
     AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: recipientSigning
     AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: grantorSigning
     AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: workSubmission
     WORK_IN_REVIEW --> AWAITING_PAYMENT: workAccepted
-    AWAITING_PAYMENT --> WORK_ACCEPTED_AND_PAID: paymentSent
+    AWAITING_PAYMENT --> WORK_ACCEPTED_AND_PAID: workTokenSentTx
     WORK_ACCEPTED_AND_PAID --> [*]
     
     state happyStates {
         [*]
+        AWAITING_TEMPLATE_VARIABLES
         AWAITING_RECIPIENT_SIGNATURE
         AWAITING_GRANTOR_SIGNATURE
         AWAITING_WORK_SUBMISSION
@@ -35,7 +37,8 @@ stateDiagram-v2
     
     state "Resubmission States" as resubStates #LightGreen
     
-    [*] --> AWAITING_RECIPIENT_SIGNATURE: grantorData
+    [*] --> AWAITING_TEMPLATE_VARIABLES: initialize
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: grantorData
     AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: recipientSigning
     AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: grantorSigning
     AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: workSubmission
@@ -43,11 +46,11 @@ stateDiagram-v2
     
     state resubStates {
         [*]
+        AWAITING_TEMPLATE_VARIABLES
         AWAITING_RECIPIENT_SIGNATURE
         AWAITING_GRANTOR_SIGNATURE
         AWAITING_WORK_SUBMISSION
         WORK_IN_REVIEW
-        AWAITING_WORK_SUBMISSION
     }
 ```
 
@@ -60,7 +63,8 @@ stateDiagram-v2
     
     state "Rejection States" as rejectStates #LightGreen
     
-    [*] --> AWAITING_RECIPIENT_SIGNATURE: grantorData
+    [*] --> AWAITING_TEMPLATE_VARIABLES: initialize
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: grantorData
     AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: recipientSigning
     AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: grantorSigning
     AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: workSubmission
@@ -69,6 +73,7 @@ stateDiagram-v2
     
     state rejectStates {
         [*]
+        AWAITING_TEMPLATE_VARIABLES
         AWAITING_RECIPIENT_SIGNATURE
         AWAITING_GRANTOR_SIGNATURE
         AWAITING_WORK_SUBMISSION
@@ -86,13 +91,15 @@ stateDiagram-v2
     
     state "Agreement Rejection States" as agreeRejectStates #LightGreen
     
-    [*] --> AWAITING_RECIPIENT_SIGNATURE: grantorData
+    [*] --> AWAITING_TEMPLATE_VARIABLES: initialize
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: grantorData
     AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: recipientSigning
     AWAITING_GRANTOR_SIGNATURE --> REJECTED: grantorRejection
     REJECTED --> [*]
     
     state agreeRejectStates {
         [*]
+        AWAITING_TEMPLATE_VARIABLES
         AWAITING_RECIPIENT_SIGNATURE
         AWAITING_GRANTOR_SIGNATURE
         REJECTED
