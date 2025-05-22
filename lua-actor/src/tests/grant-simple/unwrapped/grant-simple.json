@@ -127,21 +127,13 @@
         "name": "Pending Grantor Signature",
         "description": "This state awaits Grantor's final acceptance of Recipient's data."
       },
-      "AWAITING_WORK_SUBMISSION": {
-        "name": "Awaiting Work Submission",
-        "description": "The agreement has been accepted by both parties. Awaiting work submission."
-      },
-      "WORK_IN_REVIEW": {
-        "name": "Work In Review",
-        "description": "The work has been submitted by recipient and is now awaiting grantor review."
-      },
       "AWAITING_PAYMENT": {
-        "name": "Work Accepted, Awaiting Payment",
-        "description": "The work has been reviewed and accepted. Awaiting payment from grantor."
+        "name": "Awaiting Payment",
+        "description": "Agreement has been signed by both parties. Awaiting payment from grantor."
       },
       "WORK_ACCEPTED_AND_PAID": {
         "name": "Grant Payment Fulfilled",
-        "description": "The work has been submitted, reviewed, and payment has been successfully sent."
+        "description": "The agreement has been signed and payment has been successfully sent."
       },
       "REJECTED": {
         "name": "Agreement Rejected",
@@ -207,70 +199,11 @@
         },
         "issuer": "${variables.grantorEthAddress.value}"
       },
-      "workSubmission": {
-        "type": "VerifiedCredentialEIP712",
-        "schema": "verified-credential-eip712.schema.json",
-        "displayName": "Work Submission",
-        "description": "Recipient submits completed work for review.",
-        "data": {
-          "submissionHash": {
-            "type": "string",
-            "name": "Submission Hash",
-            "description": "Hash of the work submission content",
-            "validation": {
-              "required": true
-            }
-          },
-          "submissionUrl": {
-            "type": "string",
-            "name": "Submission URL",
-            "description": "URL to access the submitted work content",
-            "validation": {
-              "required": true
-            }
-          }
-        },
-        "issuer": "${variables.recipientEthAddress.value}"
-      },
-      "workAccepted": {
-        "type": "VerifiedCredentialEIP712",
-        "schema": "verified-credential-eip712.schema.json",
-        "displayName": "Work Accepted",
-        "description": "Grantor accepts the submitted work and provides comments.",
-        "data": {
-          "acceptanceComments": {
-            "type": "string",
-            "name": "Acceptance Comments",
-            "description": "Grantor's comments on the accepted work",
-            "validation": {
-              "required": true
-            }
-          }
-        },
-        "issuer": "${variables.grantorEthAddress.value}"
-      },
-      "workRejected": {
-        "type": "VerifiedCredentialEIP712",
-        "schema": "verified-credential-eip712.schema.json",
-        "displayName": "Work Rejected",
-        "description": "Grantor rejects the submitted work.",
-        "data": {
-          "rejectionReason": {
-            "type": "string",
-            "name": "Rejection Reason",
-            "description": "Reason for rejecting the submitted work",
-            "validation": {
-              "required": true
-            }
-          }
-        },
-        "issuer": "${variables.grantorEthAddress.value}"
-      },
       "workTokenSentTx": {
         "type": "VerifiedCredentialEIP712",
         "schema": "verified-credential-eip712.schema.json",
-        "displayName": "Work Approved and Payment Proof",
-        "description": "Grantor confirms work has been accepted and payment has been sent.",
+        "displayName": "Payment Proof",
+        "description": "Grantor confirms payment has been sent.",
         "data": {
            "workTokenSentTx": "${variables.workTokenSentTx}"
         },
@@ -300,41 +233,11 @@
       },
       {
         "from": "AWAITING_GRANTOR_SIGNATURE",
-        "to": "AWAITING_WORK_SUBMISSION",
-        "conditions": [
-          {
-            "type": "isValid",
-            "input": "grantorSigning"
-          }
-        ]
-      },
-      {
-        "from": "AWAITING_WORK_SUBMISSION",
-        "to": "WORK_IN_REVIEW",
-        "conditions": [
-          {
-            "type": "isValid",
-            "input": "workSubmission"
-          }
-        ]
-      },
-      {
-        "from": "WORK_IN_REVIEW",
         "to": "AWAITING_PAYMENT",
         "conditions": [
           {
             "type": "isValid",
-            "input": "workAccepted"
-          }
-        ]
-      },
-      {
-        "from": "WORK_IN_REVIEW",
-        "to": "REJECTED",
-        "conditions": [
-          {
-            "type": "isValid",
-            "input": "workRejected"
+            "input": "grantorSigning"
           }
         ]
       },
