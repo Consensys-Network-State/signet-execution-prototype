@@ -250,49 +250,42 @@ local function runTestSuite(params)
     end
 
     -- Test invalid payment
+    local invalidInput
     if expectVc then
         local invalidTxProof = json.decode(json.encode(inputs["tx-proof"])) -- Deep copy
         invalidTxProof.credentialSubject.values.workTokenSentTx.value = "0xinvalidtxhash"
-        TestUtils.runTest(
-            "Invalid Payment Transaction",
-            paymentDfsm,
-            invalidTxProof,
-            false,
-            "Proof provided for variable Transaction Hash is invalid",
-            "AWAITING_PAYMENT",
-            DFSMUtils,
-            testCounter,
-            expectVc
-        )
+        invalidInput = invalidTxProof
     else
         -- For unwrapped tests, simulate payment with transaction data
         local fullTxData = TestUtils.loadInputDoc("proof-data.json")
         local fullTxDataB64 = base64.encode(fullTxData)
-        TestUtils.runTest(
-            "Invalid Payment Transaction",
-            paymentDfsm,
-            string.format([[{
-                "type": "VerifiedCredentialEIP712",
-                "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-                "credentialSubject": {
-                    "inputId": "workTokenSentTx",
-                    "documentHash": "%s",
-                    "values": {
-                        "workTokenSentTx": {
-                            "value": "0xinvalidtxhash",
-                            "proof": "%s"
-                        }
+        invalidInput = string.format([[{
+            "type": "VerifiedCredentialEIP712",
+            "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+            "credentialSubject": {
+                "inputId": "workTokenSentTx",
+                "documentHash": "%s",
+                "values": {
+                    "workTokenSentTx": {
+                        "value": "0xinvalidtxhash",
+                        "proof": "%s"
                     }
                 }
-            }]], agreementHash, fullTxDataB64),
-            false,
-            "Proof provided for variable Transaction Hash is invalid",
-            "AWAITING_PAYMENT",
-            DFSMUtils,
-            testCounter,
-            expectVc
-        )
+            }
+        }]], agreementHash, fullTxDataB64)
     end
+
+    TestUtils.runTest(
+        "Invalid Payment Transaction",
+        paymentDfsm,
+        invalidInput,
+        false,
+        "Proof provided for variable Transaction Hash is invalid",
+        "AWAITING_PAYMENT",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
 end
 
 -- Run unwrapped test suite
