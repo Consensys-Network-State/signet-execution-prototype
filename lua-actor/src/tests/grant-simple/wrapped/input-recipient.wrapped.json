@@ -9,22 +9,22 @@
       "recipientName": "Leif",
       "recipientSignature": "0xsignature"
     },
-    "documentHash": "0x6fe80b4344d8b4b3dd3b39a5f20edef770730a525b3b0f7dbee7929a30fe1723"
+    "documentHash": "0xf1dcad4c60d1bad51a6794a411c891008d125b36347c2a92b85e3234ec1f9a8b"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-22T14:32:09.075Z",
+  "issuanceDate": "2025-05-22T18:42:06.822Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0xBe32388C134a952cdBCc5673E93d46FfD8b85065#blockchainAccountId",
-    "created": "2025-05-22T14:32:09.075Z",
+    "created": "2025-05-22T18:42:06.822Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0xcd671be6d44c26eb77a699506f5d1c6f9ccb183621adbe8091fa7a1f04b4811627829080fe2cd8d33e46fc83f316f353d337fec8ccb66d17c6398b29601cf1e21b",
+    "proofValue": "0xcede98c73e08cd7e47d4cd78526a127e0f8b1faf332e839e11e73b469d4940dd4054485e1172c2d95d689aedaf72ee0a9f6fb5abec8e4a78b93a7a7d0335c0d61c",
     "eip712": {
       "domain": {
         "chainId": 1,
