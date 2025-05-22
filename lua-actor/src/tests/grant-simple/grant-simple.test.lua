@@ -9,633 +9,351 @@ local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 local base64 = require(".base64")
 
--- Load agreement document and unwrapped input files
-local inputDir = "./unwrapped"
-local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-simple.json")
-local unwrappedGrantor = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-grantor.json"))
-local unwrappedRecipient = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-recipient.json"))
-local unwrappedGrantorSign = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-grantor-accept.json"))
-local unwrappedWorkSubmit = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-work-submission.json"))
-local unwrappedWorkAccept = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-work-accept.json"))
-local unwrappedWorkReject = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-work-reject.json"))
-local unwrappedGrantorReject = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-grantor-reject.json"))
-
-local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
-
-local oracleDataDoc = TestUtils.loadInputDoc("proof-data.json")
--- full info on a couple of canned transactions
-local fullTxData = oracleDataDoc
-
-local expectVc = false
-local dfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
-{
-    "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-    "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
-}
-]]))
-
-print(DFSMUtils.formatFSMSummary(dfsm))
-print(DFSMUtils.renderDFSMState(dfsm))
-
 -- Test counter for tracking results
 local testCounter = { count = 0 }
 
--- Valid Grantor data - should succeed and transition to AWAITING_RECIPIENT_SIGNATURE
-TestUtils.runTest(
-    "Valid Grantor data submission", 
-    dfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantor.inputId,
-    unwrappedGrantor.type,
-    agreementHash,
-    json.encode(unwrappedGrantor.values)
-    ),
-    true,  -- expect success
-    nil,
-    "AWAITING_RECIPIENT_SIGNATURE",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+-- Helper function to run test suite with given configuration
+local function runTestSuite(params)
+    local inputDir = params.inputDir
+    local expectVc = params.expectVc
+    local loadInput = params.loadInput
+    local isWrapped = params.isWrapped
 
--- Valid Recipient data - should succeed and transition to AWAITING_GRANTOR_SIGNATURE
-TestUtils.runTest(
-    "Valid Recipient data submission", 
-    dfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedRecipient.inputId,
-    unwrappedRecipient.type,
-    agreementHash,
-    json.encode(unwrappedRecipient.values)
-    ),
-    true,  -- expect success
-    nil,
-    "AWAITING_GRANTOR_SIGNATURE",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+    -- Load agreement document and input files
+    local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-simple" .. (isWrapped and ".wrapped" or "") .. ".json")
+    
+    -- Load all test inputs
+    local inputs = {}
+    local inputFiles = {
+        grantor_input = "input-grantor",
+        recipient_input = "input-recipient",
+        grantor_accept = "input-grantor-accept",
+        grantor_reject = "input-grantor-reject",
+        work_submission = "input-work-submission",
+        work_accept = "input-work-accept",
+        work_reject = "input-work-reject",
+        agreement_reject = "input-agreement-reject"
+    }
+    
+    for key, file in pairs(inputFiles) do
+        local path = inputDir .. "/" .. file .. (isWrapped and ".wrapped" or "") .. ".json"
+        inputs[key] = loadInput(path)
+    end
 
--- Valid Grantor signature - should succeed and transition to AWAITING_WORK_SUBMISSION
-TestUtils.runTest(
-    "Valid Grantor signature submission", 
-    dfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantorSign.inputId,
-    unwrappedGrantorSign.type,
-    agreementHash,
-    json.encode(unwrappedGrantorSign.values)
-    ),
-    true,  -- expect success
-    nil,
-    "AWAITING_WORK_SUBMISSION",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+    -- For wrapped tests, we also need the transaction proof
+    if isWrapped then
+        inputs["tx-proof"] = TestUtils.loadInputDoc(inputDir .. "/input-tx-proof.wrapped.json")
+    end
 
-TestUtils.runTest(
-    "Work Submission", 
-    dfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedWorkSubmit.inputId,
-    unwrappedWorkSubmit.type,
-    agreementHash,
-    json.encode(unwrappedWorkSubmit.values)
-    ),
-    true,  -- expect success
-    nil,
-    "WORK_IN_REVIEW",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+    -- Extract agreement hash
+    local agreementHash
+    if isWrapped then
+        local decodedAgreement = json.decode(agreementDoc)
+        local agreementBase64 = decodedAgreement.credentialSubject.agreement
+        agreementHash = crypto.digest.keccak256(agreementBase64).asHex()
+    else
+        agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
+    end
 
--- Create a new instance to test the acceptance flow
-local acceptDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
+    -- Initialize DFSM
+    local dfsm
+    if isWrapped then
+        dfsm = DFSM.new(agreementDoc, expectVc)
+    else
+        dfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
 {
     "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
 }
 ]]))
+    end
 
--- Bring the state to WORK_IN_REVIEW (repeating previous steps)
-TestUtils.runTest(
-    "Valid Grantor data submission (for accept flow)", 
-    acceptDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantor.inputId,
-    unwrappedGrantor.type,
-    agreementHash,
-    json.encode(unwrappedGrantor.values)
-    ),
-    true,
-    nil,
-    "AWAITING_RECIPIENT_SIGNATURE",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+    print(DFSMUtils.formatFSMSummary(dfsm))
+    print(DFSMUtils.renderDFSMState(dfsm))
 
-TestUtils.runTest(
-    "Valid Recipient data submission (for accept flow)", 
-    acceptDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedRecipient.inputId,
-    unwrappedRecipient.type,
-    agreementHash,
-    json.encode(unwrappedRecipient.values)
-    ),
-    true,
-    nil,
-    "AWAITING_GRANTOR_SIGNATURE",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
-
-TestUtils.runTest(
-    "Valid Grantor signature submission (for accept flow)", 
-    acceptDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantorSign.inputId,
-    unwrappedGrantorSign.type,
-    agreementHash,
-    json.encode(unwrappedGrantorSign.values)
-    ),
-    true,
-    nil,
-    "AWAITING_WORK_SUBMISSION",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
-
-TestUtils.runTest(
-    "Work Submission (for accept flow)", 
-    acceptDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedWorkSubmit.inputId,
-    unwrappedWorkSubmit.type,
-    agreementHash,
-    json.encode(unwrappedWorkSubmit.values)
-    ),
-    true,
-    nil,
-    "WORK_IN_REVIEW",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
-
--- Work Accepted - should succeed and transition to AWAITING_PAYMENT
-TestUtils.runTest(
-    "Work Accepted", 
-    acceptDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedWorkAccept.inputId,
-    unwrappedWorkAccept.type,
-    agreementHash,
-    json.encode(unwrappedWorkAccept.values)
-    ),
-    true,
-    nil,
-    "AWAITING_PAYMENT",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
-
--- Tokens sent - should succeed and transition to WORK_ACCEPTED_AND_PAID
-local fullTxDataB64 = base64.encode(fullTxData)
-
-TestUtils.runTest(
-    "Payment sent", 
-    acceptDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "workTokenSentTx",
-            "documentHash": "%s",
-            "values": {
-                "workTokenSentTx": {
-                    "value": "0x15cdc2d5157685faaca3da6928fe412608747e76a7daee0800d5c79c2b76a0cd",
-                    "proof": "%s"
+    -- Helper function to format test input
+    local function formatTestInput(input, inputId, type, values)
+        if isWrapped then
+            return input
+        else
+            return string.format([[{
+                "type": "VerifiedCredentialEIP712",
+                "issuer": "%s",
+                "credentialSubject": {
+                    "inputId": "%s",
+                    "type": "%s",
+                    "documentHash": "%s",
+                    "values": %s
                 }
-            }
-        }
-    }]], agreementHash, fullTxDataB64),
-    true,  -- expect success
-    nil,
-    "WORK_ACCEPTED_AND_PAID",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+            }]], 
+            "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+            inputId,
+            type,
+            agreementHash,
+            json.encode(values))
+        end
+    end
 
--- Create new instance to test resubmission flow
-local resubmitDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
+    -- Run all test cases
+    -- 1. Initial Grantor data submission
+    TestUtils.runTest(
+        "Valid Grantor data submission",
+        dfsm,
+        formatTestInput(inputs["grantor_input"], "grantorData", "grantorData", inputs["grantor_input"].values),
+        true,
+        nil,
+        "AWAITING_RECIPIENT_SIGNATURE",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- 2. Recipient data submission
+    TestUtils.runTest(
+        "Valid Recipient data submission",
+        dfsm,
+        formatTestInput(inputs["recipient_input"], "recipientSigning", "recipientSigning", inputs["recipient_input"].values),
+        true,
+        nil,
+        "AWAITING_GRANTOR_SIGNATURE",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- 3. Grantor acceptance
+    TestUtils.runTest(
+        "Valid Grantor acceptance submission",
+        dfsm,
+        formatTestInput(inputs["grantor_accept"], "grantorSigning", "grantorSigning", inputs["grantor_accept"].values),
+        true,
+        nil,
+        "AWAITING_WORK_SUBMISSION",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- 4. Work submission
+    TestUtils.runTest(
+        "Work Submission",
+        dfsm,
+        formatTestInput(inputs["work_submission"], "workSubmission", "workSubmission", inputs["work_submission"].values),
+        true,
+        nil,
+        "WORK_IN_REVIEW",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- Create new instance for acceptance flow
+    local acceptDfsm = DFSM.new(agreementDoc, expectVc, isWrapped and nil or json.decode([[
 {
     "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
 }
 ]]))
 
--- Bring the state to WORK_IN_REVIEW (same steps as before, compacted for brevity)
-TestUtils.runTest("Initial setup for resubmit flow (grantor data)", resubmitDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantor.inputId,
-    unwrappedGrantor.type,
-    agreementHash,
-    json.encode(unwrappedGrantor.values)
-    ),
-    true, nil, "AWAITING_RECIPIENT_SIGNATURE", DFSMUtils, testCounter, expectVc)
+    -- Bring state to WORK_IN_REVIEW
+    for _, test in ipairs({
+        {name = "Initial setup for accept flow (grantor)", input = "grantor_input", inputId = "grantorData", nextState = "AWAITING_RECIPIENT_SIGNATURE"},
+        {name = "Initial setup for accept flow (recipient)", input = "recipient_input", inputId = "recipientSigning", nextState = "AWAITING_GRANTOR_SIGNATURE"},
+        {name = "Initial setup for accept flow (grantor accept)", input = "grantor_accept", inputId = "grantorSigning", nextState = "AWAITING_WORK_SUBMISSION"},
+        {name = "Initial setup for accept flow (work submission)", input = "work_submission", inputId = "workSubmission", nextState = "WORK_IN_REVIEW"}
+    }) do
+        TestUtils.runTest(
+            test.name,
+            acceptDfsm,
+            formatTestInput(inputs[test.input], test.inputId, test.inputId, inputs[test.input].values),
+            true,
+            nil,
+            test.nextState,
+            DFSMUtils,
+            testCounter,
+            expectVc
+        )
+    end
 
-TestUtils.runTest("Initial setup for resubmit flow (recipient signing)", resubmitDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedRecipient.inputId,
-    unwrappedRecipient.type,
-    agreementHash,
-    json.encode(unwrappedRecipient.values)
-    ),
-    true, nil, "AWAITING_GRANTOR_SIGNATURE", DFSMUtils, testCounter, expectVc)
+    -- 5. Work acceptance
+    TestUtils.runTest(
+        "Work Accepted",
+        acceptDfsm,
+        formatTestInput(inputs["work_accept"], "workAccepted", "workAccepted", inputs["work_accept"].values),
+        true,
+        nil,
+        "AWAITING_PAYMENT",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
 
-TestUtils.runTest("Initial setup for resubmit flow (grantor signing)", resubmitDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantorSign.inputId,
-    unwrappedGrantorSign.type,
-    agreementHash,
-    json.encode(unwrappedGrantorSign.values)
-    ),
-    true, nil, "AWAITING_WORK_SUBMISSION", DFSMUtils, testCounter, expectVc)
+    -- 6. Payment proof (only for wrapped tests)
+    if isWrapped then
+        TestUtils.runTest(
+            "Payment Proof",
+            acceptDfsm,
+            inputs["tx-proof"],
+            true,
+            nil,
+            "WORK_ACCEPTED_AND_PAID",
+            DFSMUtils,
+            testCounter,
+            expectVc
+        )
+    else
+        -- For unwrapped tests, simulate payment with transaction data
+        local fullTxData = TestUtils.loadInputDoc("proof-data.json")
+        local fullTxDataB64 = base64.encode(fullTxData)
+        TestUtils.runTest(
+            "Payment sent",
+            acceptDfsm,
+            string.format([[{
+                "type": "VerifiedCredentialEIP712",
+                "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+                "credentialSubject": {
+                    "inputId": "workTokenSentTx",
+                    "documentHash": "%s",
+                    "values": {
+                        "workTokenSentTx": {
+                            "value": "0x15cdc2d5157685faaca3da6928fe412608747e76a7daee0800d5c79c2b76a0cd",
+                            "proof": "%s"
+                        }
+                    }
+                }
+            }]], agreementHash, fullTxDataB64),
+            true,
+            nil,
+            "WORK_ACCEPTED_AND_PAID",
+            DFSMUtils,
+            testCounter,
+            expectVc
+        )
+    end
 
-TestUtils.runTest("Initial setup for resubmit flow (work submission)", resubmitDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedWorkSubmit.inputId,
-    unwrappedWorkSubmit.type,
-    agreementHash,
-    json.encode(unwrappedWorkSubmit.values)
-    ),
-    true, nil, "WORK_IN_REVIEW", DFSMUtils, testCounter, expectVc)
-
--- Work Resubmission Requested - should succeed and transition back to AWAITING_WORK_SUBMISSION
-TestUtils.runTest(
-    "Work Resubmission Requested", 
-    resubmitDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "workResubmissionRequested",
-            "type": "signedFields",
-            "documentHash": "%s",
-            "values": {
-                "resubmissionReason": "The work is missing some required elements",
-                "resubmissionInstructions": "Please add section 3.2 covering security considerations"
-            }
-        }
-    }]], agreementHash),
-    true,
-    nil,
-    "AWAITING_WORK_SUBMISSION",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
-
--- Create new instance to test rejection flow
-local rejectDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
+    -- Create new instance for rejection flows
+    local rejectDfsm = DFSM.new(agreementDoc, expectVc, isWrapped and nil or json.decode([[
 {
     "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
     "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
 }
 ]]))
 
--- Bring the state to WORK_IN_REVIEW (same steps as before, compacted for brevity)
-TestUtils.runTest("Initial setup for reject flow", rejectDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantor.inputId,
-    unwrappedGrantor.type,
-    agreementHash,
-    json.encode(unwrappedGrantor.values)
-    ),
-    true, nil, "AWAITING_RECIPIENT_SIGNATURE", DFSMUtils, testCounter, expectVc)
+    -- 7. Agreement rejection flow
+    TestUtils.runTest(
+        "Initial Grantor data (for agreement rejection)",
+        rejectDfsm,
+        formatTestInput(inputs["grantor_input"], "grantorData", "grantorData", inputs["grantor_input"].values),
+        true,
+        nil,
+        "AWAITING_RECIPIENT_SIGNATURE",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
 
-TestUtils.runTest("Continuing setup for reject flow", rejectDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedRecipient.inputId,
-    unwrappedRecipient.type,
-    agreementHash,
-    json.encode(unwrappedRecipient.values)
-    ),
-    true, nil, "AWAITING_GRANTOR_SIGNATURE", DFSMUtils, testCounter, expectVc)
+    TestUtils.runTest(
+        "Recipient data (for agreement rejection)",
+        rejectDfsm,
+        formatTestInput(inputs["recipient_input"], "recipientSigning", "recipientSigning", inputs["recipient_input"].values),
+        true,
+        nil,
+        "AWAITING_GRANTOR_SIGNATURE",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
 
-TestUtils.runTest("Continuing setup for reject flow", rejectDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantorSign.inputId,
-    unwrappedGrantorSign.type,
-    agreementHash,
-    json.encode(unwrappedGrantorSign.values)
-    ),
-    true, nil, "AWAITING_WORK_SUBMISSION", DFSMUtils, testCounter, expectVc)
+    TestUtils.runTest(
+        "Agreement Rejection",
+        rejectDfsm,
+        formatTestInput(inputs["agreement_reject"], "grantorRejection", "grantorRejection", inputs["agreement_reject"].values),
+        true,
+        nil,
+        "REJECTED",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
 
-TestUtils.runTest("Continuing setup for reject flow", rejectDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedWorkSubmit.inputId,
-    unwrappedWorkSubmit.type,
-    agreementHash,
-    json.encode(unwrappedWorkSubmit.values)
-    ),
-    true, nil, "WORK_IN_REVIEW", DFSMUtils, testCounter, expectVc)
-
--- Work Rejected - should succeed and transition to REJECTED
-TestUtils.runTest(
-    "Work Rejected", 
-    rejectDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedWorkReject.inputId,
-    unwrappedWorkReject.type,
-    agreementHash,
-    json.encode(unwrappedWorkReject.values)
-    ),
-    true,
-    nil,
-    "REJECTED",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
-
--- Rejection case for agreement - testing from an alternative starting point
-local agreementRejectionDfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
+    -- 8. Work rejection flow
+    local workRejectDfsm = DFSM.new(agreementDoc, expectVc, isWrapped and nil or json.decode([[
 {
     "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-    "recipientEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+    "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
 }
 ]]))
 
--- Run tests to bring to AWAITING_GRANTOR_SIGNATURE state
-TestUtils.runTest(
-    "Valid Grantor data submission (for agreement rejection test)", 
-    agreementRejectionDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantor.inputId,
-    unwrappedGrantor.type,
-    agreementHash,
-    json.encode(unwrappedGrantor.values)
-    ),
-    true,  -- expect success
-    nil,
-    "AWAITING_RECIPIENT_SIGNATURE",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+    -- Bring state to WORK_IN_REVIEW
+    for _, test in ipairs({
+        {name = "Initial setup for work rejection (grantor)", input = "grantor_input", inputId = "grantorData", nextState = "AWAITING_RECIPIENT_SIGNATURE"},
+        {name = "Initial setup for work rejection (recipient)", input = "recipient_input", inputId = "recipientSigning", nextState = "AWAITING_GRANTOR_SIGNATURE"},
+        {name = "Initial setup for work rejection (grantor accept)", input = "grantor_accept", inputId = "grantorSigning", nextState = "AWAITING_WORK_SUBMISSION"},
+        {name = "Initial setup for work rejection (work submission)", input = "work_submission", inputId = "workSubmission", nextState = "WORK_IN_REVIEW"}
+    }) do
+        TestUtils.runTest(
+            test.name,
+            workRejectDfsm,
+            formatTestInput(inputs[test.input], test.inputId, test.inputId, inputs[test.input].values),
+            true,
+            nil,
+            test.nextState,
+            DFSMUtils,
+            testCounter,
+            expectVc
+        )
+    end
 
-TestUtils.runTest(
-    "Valid Recipient data submission (for agreement rejection test)", 
-    agreementRejectionDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedRecipient.inputId,
-    unwrappedRecipient.type,
-    agreementHash,
-    json.encode(unwrappedRecipient.values)
-    ),
-    true,  -- expect success
-    nil,
-    "AWAITING_GRANTOR_SIGNATURE",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+    TestUtils.runTest(
+        "Work Rejection",
+        workRejectDfsm,
+        formatTestInput(inputs["work_reject"], "workRejected", "workRejected", inputs["work_reject"].values),
+        true,
+        nil,
+        "REJECTED",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
 
--- Now test agreement rejection
-TestUtils.runTest(
-    "Grantor rejects the agreement", 
-    agreementRejectionDfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedGrantorReject.inputId,
-    unwrappedGrantorReject.type,
-    agreementHash,
-    json.encode(unwrappedGrantorReject.values)
-    ),
-    true,  -- expect success
-    nil,
-    "REJECTED",
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+    -- 9. Invalid input test
+    TestUtils.runTest(
+        "Invalid input ID",
+        workRejectDfsm,
+        [[{
+            "credentialSubject": {
+                "inputId": "invalidInput"
+            },
+            "someValue": true
+        }]],
+        false,
+        "State machine is complete",
+        "REJECTED",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+end
 
--- Invalid input - should fail with error
-TestUtils.runTest(
-    "Invalid input ID", 
-    agreementRejectionDfsm,
-    [[{
-        "credentialSubject": {
-            "inputId": "invalidInput"
-        },
-        "someValue": true
-    }]],
-    false,  -- expect failure
-    "State machine is complete",
-    "REJECTED", -- state should not change
-    DFSMUtils,
-    testCounter,
-    expectVc
-)
+-- Run unwrapped test suite
+print("\n=== Running Unwrapped Test Suite ===")
+runTestSuite({
+    inputDir = "./unwrapped",
+    expectVc = false,
+    loadInput = function(path) return json.decode(TestUtils.loadInputDoc(path)) end,
+    isWrapped = false
+})
 
--- Print test summary
+-- Run wrapped test suite
+print("\n=== Running Wrapped Test Suite ===")
+runTestSuite({
+    inputDir = "./wrapped",
+    expectVc = true,
+    loadInput = function(path) return TestUtils.loadInputDoc(path) end,
+    isWrapped = true
+})
+
+-- Print final test summary
 print("\n---------------------------------------------")
 print("✅ ALL TESTS PASSED: " .. testCounter.count .. " tests completed successfully!")
 print("No tests failed (execution would have stopped at first failure)")

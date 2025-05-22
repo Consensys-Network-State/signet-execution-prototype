@@ -28,8 +28,8 @@ async function writeVc(params, name) {
   if (!isValid) {
     throw new Error(`Generated an invalid VC given params: ${JSON.stringify(params)}`);
   }
-  // console.log("PartyA VC: ", JSON.stringify(vc));
-  const filename = `${name}.json`;
+  // Use consistent naming with unwrapped version, just add .wrapped suffix
+  const filename = `${name}.wrapped.json`;
   const vcStr = JSON.stringify(vc, null, 2);
   writeFileSync(join(outputDir, filename), vcStr);
   console.log(`Saved VC to ./${outputDir}/${filename}`);
@@ -49,8 +49,7 @@ async function main() {
   const proofDataBase64 = btoa(proofDataStr);
 
   try {
-    const filenamePrefix = "grant-simple";
-
+    // Use consistent naming with unwrapped version
     const agreementParams = {
       credential: {
         issuer: { id: agreementCreator.did },
@@ -64,13 +63,9 @@ async function main() {
         },
         type: ['VerifiableCredential','AgreementCredential'],
       },
-      // proofFormat: 'JwtProof2020',
       proofFormat: 'EthereumEip712Signature2021',
-      // This is utilizing one of our veramo lib patches to supply the EIP-712 model definition directly,
-      // instead of attemping to auto-generate it.
-      // eip712Types: types,
     };
-    const { vcStr } = await writeVc(agreementParams, `${filenamePrefix}.wrapped`);
+    const { vcStr } = await writeVc(agreementParams, `grant-simple`);
     const agreementDocHash = ethers.keccak256(new TextEncoder().encode(vcStr));
 
     // Set the documentHash for all input VCs
@@ -93,7 +88,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(grantorInputParams, `${filenamePrefix}.grantor-input.wrapped`);
+    await writeVc(grantorInputParams, `input-grantor`);
 
     const recipientInputParams = {
       credential: {
@@ -103,7 +98,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(recipientInputParams, `${filenamePrefix}.recipient-input.wrapped`);
+    await writeVc(recipientInputParams, `input-recipient`);
 
     const grantorAcceptParams = {
       credential: {
@@ -113,7 +108,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(grantorAcceptParams, `${filenamePrefix}.grantor-accept.wrapped`);
+    await writeVc(grantorAcceptParams, `input-grantor-accept`);
 
     const grantorRejectParams = {
       credential: {
@@ -123,7 +118,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(grantorRejectParams, `${filenamePrefix}.grantor-reject.wrapped`);
+    await writeVc(grantorRejectParams, `input-grantor-reject`);
 
     const txProofVcParams = {
       credential: {
@@ -142,7 +137,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(txProofVcParams, `${filenamePrefix}.grantor-tx-proof.wrapped`);
+    await writeVc(txProofVcParams, `input-tx-proof`);
 
     const workSubmissionParams = {
       credential: {
@@ -152,7 +147,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(workSubmissionParams, `${filenamePrefix}.work-submission.wrapped`);
+    await writeVc(workSubmissionParams, `input-work-submission`);
 
     const workAcceptParams = {
       credential: {
@@ -162,7 +157,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(workAcceptParams, `${filenamePrefix}.work-accept.wrapped`);
+    await writeVc(workAcceptParams, `input-work-accept`);
 
     const workRejectParams = {
       credential: {
@@ -172,7 +167,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(workRejectParams, `${filenamePrefix}.work-reject.wrapped`);
+    await writeVc(workRejectParams, `input-work-reject`);
 
     const agreementRejectParams = {
       credential: {
@@ -182,7 +177,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(agreementRejectParams, `${filenamePrefix}.agreement-reject.wrapped`);
+    await writeVc(agreementRejectParams, `input-agreement-reject`);
   } catch(e) {
     console.error("Error", e)
   }
