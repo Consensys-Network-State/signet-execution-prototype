@@ -29,6 +29,7 @@ local function runTestSuite(params)
         grantor_accept = "input-grantor-accept",
         grantor_reject = "input-grantor-reject",
         work_submission = "input-work-submission",
+        work_submission_2 = "input-work-submission-2",
         work_accept = "input-work-accept",
         work_reject = "input-work-reject",
         agreement_reject = "input-agreement-reject"
@@ -133,9 +134,9 @@ local function runTestSuite(params)
         expectVc
     )
 
-    -- 4. Work submission
+    -- 4. Initial Work submission
     TestUtils.runTest(
-        "Work Submission",
+        "Initial Work Submission",
         dfsm,
         formatTestInput(inputs["work_submission"], "workSubmission", "workSubmission", inputs["work_submission"].values),
         true,
@@ -146,38 +147,36 @@ local function runTestSuite(params)
         expectVc
     )
 
-    -- Create new instance for acceptance flow
-    local acceptDfsm = DFSM.new(agreementDoc, expectVc, expectVc and nil or json.decode([[
-{
-    "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-    "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
-}
-]]))
+    -- 5. Work rejection
+    TestUtils.runTest(
+        "Work Rejection",
+        dfsm,
+        formatTestInput(inputs["work_reject"], "workRejected", "workRejected", inputs["work_reject"].values),
+        true,
+        nil,
+        "AWAITING_WORK_SUBMISSION",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
 
-    -- Bring state to WORK_IN_REVIEW
-    for _, test in ipairs({
-        {name = "Initial setup for accept flow (grantor)", input = "grantor_input", inputId = "grantorData", nextState = "AWAITING_RECIPIENT_SIGNATURE"},
-        {name = "Initial setup for accept flow (recipient)", input = "recipient_input", inputId = "recipientSigning", nextState = "AWAITING_GRANTOR_SIGNATURE"},
-        {name = "Initial setup for accept flow (grantor accept)", input = "grantor_accept", inputId = "grantorSigning", nextState = "AWAITING_WORK_SUBMISSION"},
-        {name = "Initial setup for accept flow (work submission)", input = "work_submission", inputId = "workSubmission", nextState = "WORK_IN_REVIEW"}
-    }) do
-        TestUtils.runTest(
-            test.name,
-            acceptDfsm,
-            formatTestInput(inputs[test.input], test.inputId, test.inputId, inputs[test.input].values),
-            true,
-            nil,
-            test.nextState,
-            DFSMUtils,
-            testCounter,
-            expectVc
-        )
-    end
+    -- 6. Second Work submission
+    TestUtils.runTest(
+        "Second Work Submission",
+        dfsm,
+        formatTestInput(inputs["work_submission_2"], "workSubmission", "workSubmission", inputs["work_submission_2"].values),
+        true,
+        nil,
+        "WORK_IN_REVIEW",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
 
-    -- 5. Work acceptance
+    -- 7. Work acceptance
     TestUtils.runTest(
         "Work Accepted",
-        acceptDfsm,
+        dfsm,
         formatTestInput(inputs["work_accept"], "workAccepted", "workAccepted", inputs["work_accept"].values),
         true,
         nil,
@@ -187,11 +186,11 @@ local function runTestSuite(params)
         expectVc
     )
 
-    -- 6. Payment proof (only for wrapped tests)
+    -- 8. Payment proof
     if expectVc then
         TestUtils.runTest(
             "Payment Proof",
-            acceptDfsm,
+            dfsm,
             inputs["tx-proof"],
             true,
             nil,
@@ -206,7 +205,7 @@ local function runTestSuite(params)
         local fullTxDataB64 = base64.encode(fullTxData)
         TestUtils.runTest(
             "Payment sent",
-            acceptDfsm,
+            dfsm,
             string.format([[{
                 "type": "VerifiedCredentialEIP712",
                 "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
@@ -230,7 +229,7 @@ local function runTestSuite(params)
         )
     end
 
-    -- Create new instance for rejection flows
+    -- Create new instance for agreement rejection flow
     local rejectDfsm = DFSM.new(agreementDoc, expectVc, expectVc and nil or json.decode([[
 {
     "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
@@ -238,7 +237,7 @@ local function runTestSuite(params)
 }
 ]]))
 
-    -- 7. Agreement rejection flow
+    -- Agreement rejection flow
     TestUtils.runTest(
         "Initial Grantor data (for agreement rejection)",
         rejectDfsm,
@@ -275,50 +274,10 @@ local function runTestSuite(params)
         expectVc
     )
 
-    -- 8. Work rejection flow
-    local workRejectDfsm = DFSM.new(agreementDoc, expectVc, expectVc and nil or json.decode([[
-{
-    "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-    "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
-}
-]]))
-
-    -- Bring state to WORK_IN_REVIEW
-    for _, test in ipairs({
-        {name = "Initial setup for work rejection (grantor)", input = "grantor_input", inputId = "grantorData", nextState = "AWAITING_RECIPIENT_SIGNATURE"},
-        {name = "Initial setup for work rejection (recipient)", input = "recipient_input", inputId = "recipientSigning", nextState = "AWAITING_GRANTOR_SIGNATURE"},
-        {name = "Initial setup for work rejection (grantor accept)", input = "grantor_accept", inputId = "grantorSigning", nextState = "AWAITING_WORK_SUBMISSION"},
-        {name = "Initial setup for work rejection (work submission)", input = "work_submission", inputId = "workSubmission", nextState = "WORK_IN_REVIEW"}
-    }) do
-        TestUtils.runTest(
-            test.name,
-            workRejectDfsm,
-            formatTestInput(inputs[test.input], test.inputId, test.inputId, inputs[test.input].values),
-            true,
-            nil,
-            test.nextState,
-            DFSMUtils,
-            testCounter,
-            expectVc
-        )
-    end
-
-    TestUtils.runTest(
-        "Work Rejection",
-        workRejectDfsm,
-        formatTestInput(inputs["work_reject"], "workRejected", "workRejected", inputs["work_reject"].values),
-        true,
-        nil,
-        "REJECTED",
-        DFSMUtils,
-        testCounter,
-        expectVc
-    )
-
-    -- 9. Invalid input test
+    -- Invalid input test
     TestUtils.runTest(
         "Invalid input ID",
-        workRejectDfsm,
+        rejectDfsm,
         [[{
             "credentialSubject": {
                 "inputId": "invalidInput"

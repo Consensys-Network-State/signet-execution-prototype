@@ -1,0 +1,8 @@
+{
+    "inputId": "workSubmission",
+    "type": "workSubmission",
+    "values": {
+        "submissionHash": "0x456789abcdef",
+        "submissionUrl": "ipfs://QmUpdatedWorkSubmissionHash"
+    }
+} 

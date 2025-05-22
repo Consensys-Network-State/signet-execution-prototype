@@ -365,7 +365,7 @@
       },
       {
         "from": "WORK_IN_REVIEW",
-        "to": "REJECTED",
+        "to": "AWAITING_WORK_SUBMISSION",
         "conditions": [
           {
             "type": "isValid",

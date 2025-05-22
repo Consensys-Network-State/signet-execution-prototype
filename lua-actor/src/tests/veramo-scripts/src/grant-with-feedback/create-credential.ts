@@ -17,6 +17,7 @@ const recipientInput = JSON.parse(readFileSync(join(inputDirname, 'input-recipie
 const grantorAcceptInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor-accept.json'), 'utf-8'));
 const grantorRejectInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor-reject.json'), 'utf-8'));
 const workSubmissionInput = JSON.parse(readFileSync(join(inputDirname, 'input-work-submission.json'), 'utf-8'));
+const workSubmission2Input = JSON.parse(readFileSync(join(inputDirname, 'input-work-submission-2.json'), 'utf-8'));
 const workAcceptInput = JSON.parse(readFileSync(join(inputDirname, 'input-work-accept.json'), 'utf-8'));
 const workRejectInput = JSON.parse(readFileSync(join(inputDirname, 'input-work-reject.json'), 'utf-8'));
 const agreementRejectInput = JSON.parse(readFileSync(join(inputDirname, 'input-agreement-reject.json'), 'utf-8'));
@@ -74,6 +75,7 @@ async function main() {
     grantorAcceptInput.documentHash = agreementDocHash;
     grantorRejectInput.documentHash = agreementDocHash;
     workSubmissionInput.documentHash = agreementDocHash;
+    workSubmission2Input.documentHash = agreementDocHash;
     workAcceptInput.documentHash = agreementDocHash;
     workRejectInput.documentHash = agreementDocHash;
     agreementRejectInput.documentHash = agreementDocHash;
@@ -148,6 +150,16 @@ async function main() {
       proofFormat: 'EthereumEip712Signature2021',
     };
     await writeVc(workSubmissionParams, `input-work-submission`);
+
+    const workSubmission2Params = {
+      credential: {
+        issuer: { id: recipient.did },
+        credentialSubject: workSubmission2Input,
+        type: ['VerifiableCredential','AgreementInputCredential'],
+      },
+      proofFormat: 'EthereumEip712Signature2021',
+    };
+    await writeVc(workSubmission2Params, `input-work-submission-2`);
 
     const workAcceptParams = {
       credential: {
