@@ -1,118 +1,113 @@
-# DFSM Test Paths
+# Grant Agreement with Feedback State Machine
 
-## Happy Path - Complete Agreement Flow
 ```mermaid
 stateDiagram-v2
     direction LR
     
-    state "Happy Path States" as happyStates #LightGreen
+    [*] --> AWAITING_TEMPLATE_VARIABLES: initialize
     
-    [*] --> AWAITING_RECIPIENT_SIGNATURE: grantorData
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: grantorData
     AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: recipientSigning
+    
     AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: grantorSigning
-    AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: workSubmission
-    WORK_IN_REVIEW --> AWAITING_PAYMENT: workAccepted
-    AWAITING_PAYMENT --> WORK_ACCEPTED_AND_PAID: paymentSent
-    WORK_ACCEPTED_AND_PAID --> [*]
-    
-    state happyStates {
-        [*]
-        AWAITING_RECIPIENT_SIGNATURE
-        AWAITING_GRANTOR_SIGNATURE
-        AWAITING_WORK_SUBMISSION
-        WORK_IN_REVIEW
-        AWAITING_PAYMENT
-        WORK_ACCEPTED_AND_PAID
-    }
-```
-
-**Description**: Tests the complete happy path from agreement creation through work acceptance and payment. Verifies that all states transition correctly when valid inputs are provided at each step.
-
-## Work Resubmission Path
-```mermaid
-stateDiagram-v2
-    direction LR
-    
-    state "Resubmission States" as resubStates #LightGreen
-    
-    [*] --> AWAITING_RECIPIENT_SIGNATURE: grantorData
-    AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: recipientSigning
-    AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: grantorSigning
-    AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: workSubmission
-    WORK_IN_REVIEW --> AWAITING_WORK_SUBMISSION: workResubmissionRequested
-    
-    state resubStates {
-        [*]
-        AWAITING_RECIPIENT_SIGNATURE
-        AWAITING_GRANTOR_SIGNATURE
-        AWAITING_WORK_SUBMISSION
-        WORK_IN_REVIEW
-        AWAITING_WORK_SUBMISSION
-    }
-```
-
-**Description**: Tests the work resubmission flow where the grantor requests changes to the submitted work. Verifies that the state machine correctly transitions back to AWAITING_WORK_SUBMISSION when resubmission is requested.
-
-## Work Rejection Path
-```mermaid
-stateDiagram-v2
-    direction LR
-    
-    state "Rejection States" as rejectStates #LightGreen
-    
-    [*] --> AWAITING_RECIPIENT_SIGNATURE: grantorData
-    AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: recipientSigning
-    AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: grantorSigning
-    AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: workSubmission
-    WORK_IN_REVIEW --> REJECTED: workRejected
-    REJECTED --> [*]
-    
-    state rejectStates {
-        [*]
-        AWAITING_RECIPIENT_SIGNATURE
-        AWAITING_GRANTOR_SIGNATURE
-        AWAITING_WORK_SUBMISSION
-        WORK_IN_REVIEW
-        REJECTED
-    }
-```
-
-**Description**: Tests the work rejection flow where the grantor rejects the submitted work. Verifies that the state machine correctly transitions to REJECTED state when work is rejected.
-
-## Agreement Rejection Path
-```mermaid
-stateDiagram-v2
-    direction LR
-    
-    state "Agreement Rejection States" as agreeRejectStates #LightGreen
-    
-    [*] --> AWAITING_RECIPIENT_SIGNATURE: grantorData
-    AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: recipientSigning
     AWAITING_GRANTOR_SIGNATURE --> REJECTED: grantorRejection
-    REJECTED --> [*]
     
-    state agreeRejectStates {
-        [*]
-        AWAITING_RECIPIENT_SIGNATURE
-        AWAITING_GRANTOR_SIGNATURE
-        REJECTED
-    }
+    AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: workSubmission
+    
+    WORK_IN_REVIEW --> AWAITING_PAYMENT: workAccepted
+    WORK_IN_REVIEW --> REJECTED: workRejected
+    
+    AWAITING_PAYMENT --> WORK_ACCEPTED_AND_PAID: workTokenSentTx
+    
+    WORK_ACCEPTED_AND_PAID --> [*]
+    REJECTED --> [*]
 ```
 
-**Description**: Tests the agreement rejection flow where the grantor rejects the agreement after recipient signing. Verifies that the state machine correctly transitions to REJECTED state when the agreement is rejected.
+## Test Scenarios
 
-## Invalid Input Test
+### 1. Happy Path
+This test verifies the successful completion of a grant agreement where work is submitted, accepted, and payment is made.
+
 ```mermaid
 stateDiagram-v2
     direction LR
-    
-    state "Invalid Input State" as invalidState #LightGreen
-    
-    REJECTED --> REJECTED: invalidInput
-    
-    state invalidState {
-        REJECTED
-    }
+    [*] --> AWAITING_TEMPLATE_VARIABLES
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: ✅ grantorData
+    AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: ✅ recipientSigning
+    AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: ✅ grantorSigning
+    AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: ✅ workSubmission
+    WORK_IN_REVIEW --> AWAITING_PAYMENT: ✅ workAccepted
+    AWAITING_PAYMENT --> WORK_ACCEPTED_AND_PAID: ✅ workTokenSentTx
+    WORK_ACCEPTED_AND_PAID --> [*]
 ```
 
-**Description**: Tests error handling for invalid input. Verifies that the state machine remains in its current state (REJECTED) and returns an error when an invalid input ID is provided. 
+Test Steps:
+1. Grantor submits initial data
+2. Recipient signs the agreement
+3. Grantor approves and signs
+4. Recipient submits work
+5. Grantor accepts the work
+6. Valid payment transaction is submitted
+
+### 2. Agreement Rejection Path
+This test verifies that the grantor can reject the agreement after the recipient has signed.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> AWAITING_TEMPLATE_VARIABLES
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: ✅ grantorData
+    AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: ✅ recipientSigning
+    AWAITING_GRANTOR_SIGNATURE --> REJECTED: ❌ grantorRejection
+    REJECTED --> [*]
+```
+
+Test Steps:
+1. Grantor submits initial data
+2. Recipient signs the agreement
+3. Grantor rejects the agreement
+
+### 3. Work Rejection Path
+This test verifies that the grantor can reject the submitted work, ending the agreement.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> AWAITING_TEMPLATE_VARIABLES
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: ✅ grantorData
+    AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: ✅ recipientSigning
+    AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: ✅ grantorSigning
+    AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: ✅ workSubmission
+    WORK_IN_REVIEW --> REJECTED: ❌ workRejected
+    REJECTED --> [*]
+```
+
+Test Steps:
+1. Grantor submits initial data
+2. Recipient signs the agreement
+3. Grantor approves and signs
+4. Recipient submits work
+5. Grantor rejects the work
+
+### 4. Invalid Input Test
+This test verifies that invalid inputs are properly handled and rejected.
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> AWAITING_TEMPLATE_VARIABLES
+    AWAITING_TEMPLATE_VARIABLES --> AWAITING_RECIPIENT_SIGNATURE: ✅ grantorData
+    AWAITING_RECIPIENT_SIGNATURE --> AWAITING_GRANTOR_SIGNATURE: ✅ recipientSigning
+    AWAITING_GRANTOR_SIGNATURE --> AWAITING_WORK_SUBMISSION: ✅ grantorSigning
+    AWAITING_WORK_SUBMISSION --> WORK_IN_REVIEW: ✅ workSubmission
+    WORK_IN_REVIEW --> WORK_IN_REVIEW: ❌ invalidInput
+```
+
+Test Steps:
+1. Follow normal flow until WORK_IN_REVIEW state
+2. Submit invalid input
+3. Verify state remains unchanged and error is returned
+
+Note: The test suite runs these scenarios twice:
+- Once with "unwrapped" inputs (raw JSON)
+- Once with "wrapped" inputs (VerifiedCredential format)
