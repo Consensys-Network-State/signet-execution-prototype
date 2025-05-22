@@ -22,7 +22,7 @@ async function writeVc(params, name) {
   if (!isValid) {
     throw new Error(`Generated an invalidl VC given params: ${JSON.stringify(params)}`);
   }
-  const filename = `${name}.json`;
+  const filename = `${name}.wrapped.json`;
   const vcStr = JSON.stringify(vc, null, 2);
   writeFileSync(join(outputDir, filename), vcStr);
   console.log(`Saved VC to ./${outputDir}/${filename}`);
@@ -39,7 +39,6 @@ async function main() {
   const partyBEthAddress = didStrToEthAddress(partyB.did);
 
   try {
-    const filenamePrefix = "mou";
     const agreementParams = {
       credential: {
         issuer: { id: agreementCreator.did },
@@ -53,22 +52,16 @@ async function main() {
         },
         type: ['VerifiableCredential','AgreementCredential'],
       },
-      // proofFormat: 'JwtProof2020',
       proofFormat: 'EthereumEip712Signature2021',
-      // This is utilizing one of our veramo lib patches to supply the EIP-712 model definition directly,
-      // instead of attemping to auto-generate it.
-      // eip712Types: types,
     };
-    const { vcStr: agreementDocStr } = await writeVc(agreementParams, `${filenamePrefix}.wrapped`);
+    const { vcStr: agreementDocStr } = await writeVc(agreementParams, `mou`);
     const agreementDocHash = ethers.keccak256(new TextEncoder().encode(agreementDocStr));
 
-    // Set the documentHash for all input VCs
     partyAInput.documentHash = agreementDocHash;
     partyBInput.documentHash = agreementDocHash;
     partyAAcceptInput.documentHash = agreementDocHash;
     partyARejectInput.documentHash = agreementDocHash;
 
-    // making sure that we're referencing the right Eth address regardless of whose Veramo agent the script is running on
     partyAInput.values.partyBEthAddress = partyBEthAddress;
     const partyAInputParams = {
       credential: {
@@ -77,9 +70,8 @@ async function main() {
         type: ['VerifiableCredential','AgreementInputCredential'],
       },
       proofFormat: 'EthereumEip712Signature2021',
-      // now: new Date('2025-04-14T13:55:57.321Z'), // fixing the timestamp to get a consistently hashing output
     };
-    await writeVc(partyAInputParams, `${filenamePrefix}.partyA-input.wrapped`);
+    await writeVc(partyAInputParams, `input-partyA`);
 
     const partyBInputParams = {
       credential: {
@@ -89,7 +81,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(partyBInputParams, `${filenamePrefix}.partyB-input.wrapped`);
+    await writeVc(partyBInputParams, `input-partyB`);
 
     const partyAAcceptParams = {
       credential: {
@@ -99,7 +91,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(partyAAcceptParams, `${filenamePrefix}.partyA-input-accept.wrapped`);
+    await writeVc(partyAAcceptParams, `input-partyA-accept`);
 
     const partyARejectParams = {
       credential: {
@@ -109,7 +101,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    await writeVc(partyARejectParams, `${filenamePrefix}.partyA-input-reject.wrapped`);
+    await writeVc(partyARejectParams, `input-partyA-reject`);
   } catch(e) {
     console.error("Error", e)
   }
