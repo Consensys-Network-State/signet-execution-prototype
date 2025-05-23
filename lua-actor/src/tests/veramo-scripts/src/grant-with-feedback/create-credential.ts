@@ -2,7 +2,7 @@ import { agent } from '../veramo/setup.js'
 import fs, { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
-import { getTransactionProof, stringifyProofData } from './fetch-tx-proof.js'
+import { getTransactionProof, stringifyProofData } from '../fetch-tx-proof.js'
 import { ethers } from 'ethers'
 
 const testDir = '../../../'
