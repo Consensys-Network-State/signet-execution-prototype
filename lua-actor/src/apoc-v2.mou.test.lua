@@ -1,13 +1,13 @@
 require("setup")
 
 local TestUtils = require("test-utils")
-local tablesEqual = TestUtils.tablesEqual
-local printTable = TestUtils.printTable
-local printResult = TestUtils.formatResult
-local DFSMUtils = require("utils.dfsm_utils")
 local json = require("json")
 
-local Handlers = require("apoc-v2-bundled")
+local apoc = require("apoc-v2-bundled")
+local Handlers = apoc.Handlers
+local resetState = apoc.resetState
+-- Reset the state before each test to make sure we start fresh
+resetState()
 
 local agreementDoc = TestUtils.loadInputDoc("./tests/mou/wrapped/mou.wrapped.json")
 local inputA = TestUtils.loadInputDoc("./tests/mou/wrapped/input-partyA.wrapped.json")
@@ -21,7 +21,6 @@ local response = Handlers.evaluate({
     Tags = { Action = 'Init' },
     Data = agreementDoc,
     reply = function (response)
-      -- printTable(response.Data)
       local success = response.Data.success
       print(TestUtils.formatResult(success) .. " Init message processing")
       assert(success == true)

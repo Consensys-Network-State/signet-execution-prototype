@@ -3,7 +3,11 @@ require("setup")
 local TestUtils = require("test-utils")
 local json = require("json")
 
-local Handlers = require("apoc-v2-bundled")
+local apoc = require("apoc-v2-bundled")
+local Handlers = apoc.Handlers
+local resetState = apoc.resetState
+-- Reset the state before each test to make sure we start fresh
+resetState()
 
 -- Load all test input files
 local agreementDoc = TestUtils.loadInputDoc("./tests/grant-with-feedback/wrapped/grant-with-feedback.wrapped.json")
