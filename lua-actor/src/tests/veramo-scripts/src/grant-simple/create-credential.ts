@@ -2,7 +2,11 @@ import { agent } from '../veramo/setup.js'
 import fs, { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
+<<<<<<< HEAD
 import { getTransactionProof, stringifyProofData } from '../fetch-tx-proof.js'
+=======
+import { getTransactionProofData } from './fetch-tx-proof.js'
+>>>>>>> c65821e (fix transaction proof script + small change to lua actor)
 import { ethers } from 'ethers'
 
 const testDir = '../../../'
@@ -44,9 +48,8 @@ async function main() {
   const recipient = await agent.didManagerGetByAlias({ alias: 'partyB' })
   const grantorEthAddress = didStrToEthAddress(grantor.did);
   const recipientEthAddress = didStrToEthAddress(recipient.did);
-  const proofData = await getTransactionProof(txHash);
-  const proofDataStr = await stringifyProofData(proofData);
-  const proofDataBase64 = btoa(proofDataStr);
+  const proofDataStr = await getTransactionProofData(txHash, 59141);
+  const proofDataBase64 = btoa(proofDataStr!);
 
   try {
     // Use consistent naming with unwrapped version
