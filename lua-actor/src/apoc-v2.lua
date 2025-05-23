@@ -15,6 +15,13 @@ DocumentHash = DocumentHash or nil
 DocumentOwner = DocumentOwner or nil
 -- END: actor's internal state
 
+local function resetState()
+  StateMachine = nil
+  Document = nil
+  DocumentHash = nil
+  DocumentOwner = nil
+end
+
 local function reply_error(msg, error)
   msg.reply(
   {
@@ -127,4 +134,4 @@ Handlers.add(
   end
 )
 
-return Handlers
+return { Handlers = Handlers, resetState = resetState }

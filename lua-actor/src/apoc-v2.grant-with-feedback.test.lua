@@ -3,16 +3,20 @@ require("setup")
 local TestUtils = require("test-utils")
 local json = require("json")
 
-local Handlers = require("apoc-v2-bundled")
+local apoc = require("apoc-v2-bundled")
+local Handlers = apoc.Handlers
+local resetState = apoc.resetState
+-- Reset the state before each test to make sure we start fresh
+resetState()
 
 -- Load all test input files
-local agreementDoc = TestUtils.loadInputDoc("./tests/grant-simple/wrapped/grant-simple.wrapped.json")
-local inputA = TestUtils.loadInputDoc("./tests/grant-simple/wrapped/grant-simple.grantor-input.wrapped.json")
-local inputB = TestUtils.loadInputDoc("./tests/grant-simple/wrapped/grant-simple.recipient-input.wrapped.json")
-local inputAAccept = TestUtils.loadInputDoc("./tests/grant-simple/wrapped/grant-simple.grantor-accept.wrapped.json")
-local workSubmission = TestUtils.loadInputDoc("./tests/grant-simple/wrapped/grant-simple.work-submission.wrapped.json")
-local workAccept = TestUtils.loadInputDoc("./tests/grant-simple/wrapped/grant-simple.work-accept.wrapped.json")
-local inputATxProof = TestUtils.loadInputDoc("./tests/grant-simple/wrapped/grant-simple.grantor-tx-proof.wrapped.json")
+local agreementDoc = TestUtils.loadInputDoc("./tests/grant-with-feedback/wrapped/grant-with-feedback.wrapped.json")
+local inputA = TestUtils.loadInputDoc("./tests/grant-with-feedback/wrapped/input-grantor.wrapped.json")
+local inputB = TestUtils.loadInputDoc("./tests/grant-with-feedback/wrapped/input-recipient.wrapped.json")
+local inputAAccept = TestUtils.loadInputDoc("./tests/grant-with-feedback/wrapped/input-grantor-accept.wrapped.json")
+local workSubmission = TestUtils.loadInputDoc("./tests/grant-with-feedback/wrapped/input-work-submission.wrapped.json")
+local workAccept = TestUtils.loadInputDoc("./tests/grant-with-feedback/wrapped/input-work-accept.wrapped.json")
+local inputATxProof = TestUtils.loadInputDoc("./tests/grant-with-feedback/wrapped/input-tx-proof.wrapped.json")
 
 -- Initialize the agreement
 local response = Handlers.evaluate({

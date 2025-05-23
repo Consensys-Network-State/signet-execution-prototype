@@ -8,160 +8,152 @@ local DFSM = require("dfsm")
 local TestUtils = require("test-utils")
 local crypto = require(".crypto.init")
 
--- Load agreement document and unwrapped input files
-local inputDir = "./unwrapped"
-local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/mou.json")
-local unwrappedA = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyA.json"))
-local unwrappedB = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyB.json"))
-local unwrappedAccept = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyA-accept.json"))
-local unwrappedReject = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-partyA-reject.json"))
-
-local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
-
-local dfsm = DFSM.new(agreementDoc, false, json.decode([[
-{
-    "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-    "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db",
-}
-]]))
-
-print(DFSMUtils.formatFSMSummary(dfsm))
-print(DFSMUtils.renderDFSMState(dfsm))
-
 -- Test counter for tracking results
 local testCounter = { count = 0 }
 
--- Valid Party A data - should succeed and transition to PENDING_PARTY_B_SIGNATURE
-TestUtils.runTest(
-    "Valid Party A data submission", 
-    dfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-        },
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]], 
-    unwrappedA.inputId,
-    unwrappedA.type,
-    agreementHash,
-    json.encode(unwrappedA.values)
-    ),
-    true,  -- expect success
-    nil,
-    "PENDING_PARTY_B_SIGNATURE",
-    DFSMUtils,
-    testCounter
-)
+-- Helper function to run test suite with given configuration
+local function runTestSuite(params)
+    local inputDir = params.inputDir
+    local expectVc = params.expectVc
+    local loadInput = params.loadInput
 
--- Invalid input ID - should fail with unknown input error
-TestUtils.runTest(
-    "Invalid input ID", 
-    dfsm, 
-    string.format([[{
-        "credentialSubject": {
-            "inputId": "invalidInput",
-            "documentHash": "%s"
-        },
-        "someValue": true
-    }]], agreementHash),
-    false,  -- expect failure
-    "Unknown input",
-    "PENDING_PARTY_B_SIGNATURE",  -- state should not change
-    DFSMUtils,
-    testCounter
-)
+    -- Load agreement document and unwrapped input files
+    local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/mou" .. (expectVc and ".wrapped" or "") .. ".json")
+    local unwrappedA = loadInput(inputDir .. "/input-partyA" .. (expectVc and ".wrapped" or "") .. ".json")
+    local unwrappedB = loadInput(inputDir .. "/input-partyB" .. (expectVc and ".wrapped" or "") .. ".json")
+    local unwrappedAccept = loadInput(inputDir .. "/input-partyA-accept" .. (expectVc and ".wrapped" or "") .. ".json")
+    local unwrappedReject = loadInput(inputDir .. "/input-partyA-reject" .. (expectVc and ".wrapped" or "") .. ".json")
 
--- Valid Party B data - should succeed and transition to PENDING_ACCEPTANCE
-TestUtils.runTest(
-    "Valid Party B data submission", 
-    dfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
-        },
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]],
-    unwrappedB.inputId,
-    unwrappedB.type,
-    agreementHash,
-    json.encode(unwrappedB.values)
-    ),
-    true,  -- expect success
-    nil,
-    "PENDING_ACCEPTANCE",
-    DFSMUtils,
-    testCounter
-)
+    local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 
--- Valid acceptance - should succeed and transition to ACCEPTED
-TestUtils.runTest(
-    "Valid acceptance submission", 
-    dfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-        },
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]],
-    unwrappedAccept.inputId,
-    unwrappedAccept.type,
-    agreementHash,
-    json.encode(unwrappedAccept.values)
-    ),
-    true,  -- expect success
-    nil,
-    "ACCEPTED",
-    DFSMUtils,
-    testCounter
-)
+    -- Initialize DFSM (for unwrapped tests, pass party eth addresses)
+    local dfsm
+    if expectVc then
+        dfsm = DFSM.new(agreementDoc, expectVc)
+    else
+        dfsm = DFSM.new(agreementDoc, expectVc, json.decode([[
+{
+    "partyAEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+    "partyBEthAddress": "0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db"
+}
+]]))
+    end
 
--- Rejection after completion - should fail because state machine is complete
-TestUtils.runTest(
-    "Attempting rejection after completion", 
-    dfsm, 
-    string.format([[{
-        "type": "VerifiedCredentialEIP712",
-        "issuer": {
-            "id": "did:pkh:eip155:1:0x5B38Da6a701c568545dCfcB03FcB875f56beddC4"
-        },
-        "credentialSubject": {
-            "inputId": "%s",
-            "type": "%s",
-            "documentHash": "%s",
-            "values": %s
-        }
-    }]],
-    unwrappedReject.inputId,
-    unwrappedReject.type,
-    agreementHash,
-    json.encode(unwrappedReject.values)
-    ),
-    false,  -- expect failure
-    "State machine is complete",
-    "ACCEPTED",  -- state should not change
-    DFSMUtils,
-    testCounter
-)
+    print(DFSMUtils.formatFSMSummary(dfsm))
+    print(DFSMUtils.renderDFSMState(dfsm))
 
--- Print test summary
+    -- Helper function to format test input (for unwrapped tests)
+    local function formatTestInput(input, inputId, type, values)
+        if expectVc then
+            return input
+        else
+            return string.format([[{
+                "type": "VerifiedCredentialEIP712",
+                "issuer": "%s",
+                "credentialSubject": {
+                    "inputId": "%s",
+                    "type": "%s",
+                    "documentHash": "%s",
+                    "values": %s
+                }
+            }]], 
+            "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
+            inputId,
+            type,
+            agreementHash,
+            json.encode(values))
+        end
+    end
+
+    -- Valid Party A data – should succeed and transition to PENDING_PARTY_B_SIGNATURE
+    TestUtils.runTest(
+        "Valid Party A data submission", 
+        dfsm, 
+        formatTestInput(unwrappedA, unwrappedA.inputId, unwrappedA.type, unwrappedA.values),
+        true,  -- expect success
+        nil,
+        "PENDING_PARTY_B_SIGNATURE",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- Invalid input ID – should fail with unknown input error
+    TestUtils.runTest(
+        "Invalid input ID", 
+        dfsm, 
+        string.format([[{
+            "credentialSubject": {
+                "inputId": "invalidInput",
+                "documentHash": "%s"
+            },
+            "someValue": true
+        }]], agreementHash),
+        false,  -- expect failure
+        "Unknown input",
+        "PENDING_PARTY_B_SIGNATURE",  -- state should not change
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- Valid Party B data – should succeed and transition to PENDING_ACCEPTANCE
+    TestUtils.runTest(
+        "Valid Party B data submission", 
+        dfsm, 
+        formatTestInput(unwrappedB, unwrappedB.inputId, unwrappedB.type, unwrappedB.values),
+        true,  -- expect success
+        nil,
+        "PENDING_ACCEPTANCE",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- Valid acceptance – should succeed and transition to ACCEPTED
+    TestUtils.runTest(
+        "Valid acceptance submission", 
+        dfsm, 
+        formatTestInput(unwrappedAccept, unwrappedAccept.inputId, unwrappedAccept.type, unwrappedAccept.values),
+        true,  -- expect success
+        nil,
+        "ACCEPTED",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- Rejection after completion – should fail because state machine is complete
+    TestUtils.runTest(
+        "Rejection after completion", 
+        dfsm, 
+        formatTestInput(unwrappedReject, unwrappedReject.inputId, unwrappedReject.type, unwrappedReject.values),
+        false,  -- expect failure
+        "State machine is complete",
+        "ACCEPTED",  -- state should not change
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+end
+
+-- Run unwrapped test suite (using json.decode for unwrapped inputs)
+print("\n=== Running Unwrapped Test Suite ===")
+runTestSuite({
+    inputDir = "./unwrapped",
+    expectVc = false,
+    loadInput = function(path) return json.decode(TestUtils.loadInputDoc(path)) end
+})
+
+-- Run wrapped test suite (using raw loadInputDoc for wrapped inputs)
+print("\n=== Running Wrapped Test Suite ===")
+runTestSuite({
+    inputDir = "./wrapped",
+    expectVc = true,
+    loadInput = function(path) return json.decode(TestUtils.loadInputDoc(path)) end
+})
+
+-- Print final test summary
 print("\n---------------------------------------------")
 print("✅ ALL TESTS PASSED: " .. testCounter.count .. " tests completed successfully!")
 print("No tests failed (execution would have stopped at first failure)")

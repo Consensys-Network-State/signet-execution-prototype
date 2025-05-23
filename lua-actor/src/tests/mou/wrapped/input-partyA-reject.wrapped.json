@@ -3,28 +3,27 @@
     "id": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278"
   },
   "credentialSubject": {
-    "inputId": "accepted",
+    "inputId": "rejected",
     "type": "signedFields",
     "values": {
-      "partyAAcceptance": "ACCEPTED",
-      "partyASignature": "Damian's signature"
+      "partyARejection": "REJECTED"
     },
-    "documentHash": "0x6193ff55807750445f86211ed9a086f93a64f1a063ac1fe6f385dff0bf694b4f"
+    "documentHash": "0xb4ecf6443c783f68889414326c13e10b641e4e0442e1cb97eaa1e5e91af138cb"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-21T15:23:27.521Z",
+  "issuanceDate": "2025-05-22T14:55:28.835Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
-    "created": "2025-05-21T15:23:27.521Z",
+    "created": "2025-05-22T14:55:28.835Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0xc1a0b519b83b3fa2996fc55d303cd9c0dbcbd4c138829ccccfbf97b98a8522e30b713012a4615e38b82b034bff6ef71c3f0ef07935731f6438aff40e74d3215b1b",
+    "proofValue": "0x0b2e1caa44e86ad4a3c8a9761ff2c3c31feffc9c9236b280f20bcfa771c017bd26e312245963640908a9bfca5a45f2bb0ca319d67b687dc468c0a42aa68cba5b1b",
     "eip712": {
       "domain": {
         "chainId": 1,
@@ -66,11 +65,7 @@
         ],
         "Values": [
           {
-            "name": "partyAAcceptance",
-            "type": "string"
-          },
-          {
-            "name": "partyASignature",
+            "name": "partyARejection",
             "type": "string"
           }
         ],

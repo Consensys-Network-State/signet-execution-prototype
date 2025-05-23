@@ -1,33 +1,30 @@
 {
   "issuer": {
-    "id": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278"
+    "id": "did:pkh:eip155:1:0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
   },
   "credentialSubject": {
-    "inputId": "partyAData",
+    "inputId": "partyBData",
     "type": "signedFields",
     "values": {
-      "partyAName": "Damian",
-      "termDuration": "1 year",
-      "effectiveDate": "2025-05-20",
-      "scope": "Sample scope",
-      "partyBEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
+      "partyBName": "Leif",
+      "partyBSignature": "Leif's signature"
     },
-    "documentHash": "0x6193ff55807750445f86211ed9a086f93a64f1a063ac1fe6f385dff0bf694b4f"
+    "documentHash": "0xb4ecf6443c783f68889414326c13e10b641e4e0442e1cb97eaa1e5e91af138cb"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-21T15:23:27.503Z",
+  "issuanceDate": "2025-05-22T14:55:28.819Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
-    "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
-    "created": "2025-05-21T15:23:27.503Z",
+    "verificationMethod": "did:pkh:eip155:1:0xBe32388C134a952cdBCc5673E93d46FfD8b85065#blockchainAccountId",
+    "created": "2025-05-22T14:55:28.819Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0xc42e7c033f0d856c9292a41ac0f280cbd756bfd43826803613946bb000fc90347a857f24b7526fc37cdd95e92908febcf34c56f359d6a914144fc1ab6152e7bd1c",
+    "proofValue": "0x2d5880fe38a46590e175777dc648a0ec5d84a3e94b291de6a67a5b4bd0b0fc39654aa711bb610602ee7f824a861901c6029af52f9bfb8d1eeb21f5b7ed88134c1c",
     "eip712": {
       "domain": {
         "chainId": 1,
@@ -69,23 +66,11 @@
         ],
         "Values": [
           {
-            "name": "effectiveDate",
+            "name": "partyBName",
             "type": "string"
           },
           {
-            "name": "partyAName",
-            "type": "string"
-          },
-          {
-            "name": "partyBEthAddress",
-            "type": "string"
-          },
-          {
-            "name": "scope",
-            "type": "string"
-          },
-          {
-            "name": "termDuration",
+            "name": "partyBSignature",
             "type": "string"
           }
         ],

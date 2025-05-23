@@ -8,6 +8,8 @@ local DFSM = require("dfsm")
 -- Import test utilities
 local TestUtils = require("test-utils")
 
+-- TODO: update this test file if we care to have something verifying a Tx with a token transfer
+
 -- Load agreement document from JSON file
 local function loadAgreementDoc()
     local file = io.open("./test-data/tx-grant/tx-grant.json", "r")

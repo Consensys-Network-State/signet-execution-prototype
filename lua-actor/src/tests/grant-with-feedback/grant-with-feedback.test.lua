@@ -19,7 +19,7 @@ local function runTestSuite(params)
     local loadInput = params.loadInput
 
     -- Load agreement document and input files
-    local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-simple" .. (expectVc and ".wrapped" or "") .. ".json")
+    local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/grant-with-feedback" .. (expectVc and ".wrapped" or "") .. ".json")
     
     -- Load all test inputs
     local inputs = {}
@@ -28,6 +28,10 @@ local function runTestSuite(params)
         recipient_input = "input-recipient",
         grantor_accept = "input-grantor-accept",
         grantor_reject = "input-grantor-reject",
+        work_submission = "input-work-submission",
+        work_submission_2 = "input-work-submission-2",
+        work_accept = "input-work-accept",
+        work_reject = "input-work-reject",
         agreement_reject = "input-agreement-reject"
     }
     
@@ -38,8 +42,7 @@ local function runTestSuite(params)
 
     -- For wrapped tests, we also need the transaction proof
     if expectVc then
-        local path = inputDir .. "/input-tx-proof.wrapped.json"
-        inputs["tx-proof"] = loadInput(path)
+        inputs["tx-proof"] = TestUtils.loadInputDoc(inputDir .. "/input-tx-proof.wrapped.json")
     end
 
     -- Extract agreement hash
@@ -92,9 +95,7 @@ local function runTestSuite(params)
     end
 
     -- Run all test cases
-    -- 1. Happy Path Tests
-    print("\n=== Running Happy Path Tests ===")
-    
+    -- 1. Initial Grantor data submission
     TestUtils.runTest(
         "Valid Grantor data submission",
         dfsm,
@@ -107,8 +108,9 @@ local function runTestSuite(params)
         expectVc
     )
 
+    -- 2. Recipient data submission
     TestUtils.runTest(
-        "Valid Recipient signature submission",
+        "Valid Recipient data submission",
         dfsm,
         formatTestInput(inputs["recipient_input"], "recipientSigning", "recipientSigning", inputs["recipient_input"].values),
         true,
@@ -119,10 +121,63 @@ local function runTestSuite(params)
         expectVc
     )
 
+    -- 3. Grantor acceptance
     TestUtils.runTest(
-        "Valid Grantor signature submission",
+        "Valid Grantor acceptance submission",
         dfsm,
         formatTestInput(inputs["grantor_accept"], "grantorSigning", "grantorSigning", inputs["grantor_accept"].values),
+        true,
+        nil,
+        "AWAITING_WORK_SUBMISSION",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- 4. Initial Work submission
+    TestUtils.runTest(
+        "Initial Work Submission",
+        dfsm,
+        formatTestInput(inputs["work_submission"], "workSubmission", "workSubmission", inputs["work_submission"].values),
+        true,
+        nil,
+        "WORK_IN_REVIEW",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- 5. Work rejection
+    TestUtils.runTest(
+        "Work Rejection",
+        dfsm,
+        formatTestInput(inputs["work_reject"], "workRejected", "workRejected", inputs["work_reject"].values),
+        true,
+        nil,
+        "AWAITING_WORK_SUBMISSION",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- 6. Second Work submission
+    TestUtils.runTest(
+        "Second Work Submission",
+        dfsm,
+        formatTestInput(inputs["work_submission_2"], "workSubmission", "workSubmission", inputs["work_submission_2"].values),
+        true,
+        nil,
+        "WORK_IN_REVIEW",
+        DFSMUtils,
+        testCounter,
+        expectVc
+    )
+
+    -- 7. Work acceptance
+    TestUtils.runTest(
+        "Work Accepted",
+        dfsm,
+        formatTestInput(inputs["work_accept"], "workAccepted", "workAccepted", inputs["work_accept"].values),
         true,
         nil,
         "AWAITING_PAYMENT",
@@ -131,10 +186,10 @@ local function runTestSuite(params)
         expectVc
     )
 
-    -- Payment validation
+    -- 8. Payment proof
     if expectVc then
         TestUtils.runTest(
-            "Valid Payment Proof",
+            "Payment Proof",
             dfsm,
             inputs["tx-proof"],
             true,
@@ -149,7 +204,7 @@ local function runTestSuite(params)
         local fullTxData = TestUtils.loadInputDoc("proof-data.json")
         local fullTxDataB64 = base64.encode(fullTxData)
         TestUtils.runTest(
-            "Valid Payment Transaction",
+            "Payment sent",
             dfsm,
             string.format([[{
                 "type": "VerifiedCredentialEIP712",
@@ -174,9 +229,7 @@ local function runTestSuite(params)
         )
     end
 
-    -- 2. Rejection Path Tests
-    print("\n=== Running Rejection Path Tests ===")
-    
+    -- Create new instance for agreement rejection flow
     local rejectDfsm = DFSM.new(agreementDoc, expectVc, expectVc and nil or json.decode([[
 {
     "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
@@ -184,8 +237,9 @@ local function runTestSuite(params)
 }
 ]]))
 
+    -- Agreement rejection flow
     TestUtils.runTest(
-        "Initial Grantor data (for rejection)",
+        "Initial Grantor data (for agreement rejection)",
         rejectDfsm,
         formatTestInput(inputs["grantor_input"], "grantorData", "grantorData", inputs["grantor_input"].values),
         true,
@@ -197,7 +251,7 @@ local function runTestSuite(params)
     )
 
     TestUtils.runTest(
-        "Recipient signature (for rejection)",
+        "Recipient data (for agreement rejection)",
         rejectDfsm,
         formatTestInput(inputs["recipient_input"], "recipientSigning", "recipientSigning", inputs["recipient_input"].values),
         true,
@@ -209,7 +263,7 @@ local function runTestSuite(params)
     )
 
     TestUtils.runTest(
-        "Agreement Rejection by Grantor",
+        "Agreement Rejection",
         rejectDfsm,
         formatTestInput(inputs["agreement_reject"], "grantorRejection", "grantorRejection", inputs["agreement_reject"].values),
         true,
@@ -220,68 +274,19 @@ local function runTestSuite(params)
         expectVc
     )
 
-    -- 3. Invalid Payment Tests
-    print("\n=== Running Invalid Payment Tests ===")
-    
-    local paymentDfsm = DFSM.new(agreementDoc, expectVc, expectVc and nil or json.decode([[
-{
-    "grantorEthAddress": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-    "recipientEthAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
-}
-]]))
-
-    -- Bring state to AWAITING_PAYMENT
-    for _, test in ipairs({
-        {name = "Setup for payment (grantor)", input = "grantor_input", inputId = "grantorData", nextState = "AWAITING_RECIPIENT_SIGNATURE"},
-        {name = "Setup for payment (recipient)", input = "recipient_input", inputId = "recipientSigning", nextState = "AWAITING_GRANTOR_SIGNATURE"},
-        {name = "Setup for payment (grantor accept)", input = "grantor_accept", inputId = "grantorSigning", nextState = "AWAITING_PAYMENT"}
-    }) do
-        TestUtils.runTest(
-            test.name,
-            paymentDfsm,
-            formatTestInput(inputs[test.input], test.inputId, test.inputId, inputs[test.input].values),
-            true,
-            nil,
-            test.nextState,
-            DFSMUtils,
-            testCounter,
-            expectVc
-        )
-    end
-
-    -- Test invalid payment
-    local invalidInput
-    if expectVc then
-        local invalidTxProof = json.decode(json.encode(inputs["tx-proof"])) -- Deep copy
-        invalidTxProof.credentialSubject.values.workTokenSentTx.value = "0xinvalidtxhash"
-        invalidInput = invalidTxProof
-    else
-        -- For unwrapped tests, simulate payment with transaction data
-        local fullTxData = TestUtils.loadInputDoc("proof-data.json")
-        local fullTxDataB64 = base64.encode(fullTxData)
-        invalidInput = string.format([[{
-            "type": "VerifiedCredentialEIP712",
-            "issuer": "0x5B38Da6a701c568545dCfcB03FcB875f56beddC4",
-            "credentialSubject": {
-                "inputId": "workTokenSentTx",
-                "documentHash": "%s",
-                "values": {
-                    "workTokenSentTx": {
-                        "value": "0xinvalidtxhash",
-                        "proof": "%s"
-                    }
-                }
-            }
-        }]], agreementHash, fullTxDataB64)
-    end
-
+    -- Invalid input test
     TestUtils.runTest(
-        "Invalid Payment Transaction",
-        paymentDfsm,
-        invalidInput,
+        "Invalid input ID",
+        rejectDfsm,
+        [[{
+            "credentialSubject": {
+                "inputId": "invalidInput"
+            },
+            "someValue": true
+        }]],
         false,
-        "Proof provided for variable Transaction Hash is invalid",
-        "AWAITING_PAYMENT",
+        "State machine is complete",
+        "REJECTED",
         DFSMUtils,
         testCounter,
         expectVc

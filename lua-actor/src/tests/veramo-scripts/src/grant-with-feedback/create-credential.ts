@@ -6,17 +6,18 @@ import { getTransactionProof, stringifyProofData } from '../fetch-tx-proof.js'
 import { ethers } from 'ethers'
 
 const testDir = '../../../'
-const inputDirname = fileURLToPath(new URL(`${testDir}/grant-simple/unwrapped`, import.meta.url))
-const outputDir = fileURLToPath(new URL(`${testDir}/grant-simple/wrapped`, import.meta.url))
+const inputDirname = fileURLToPath(new URL(`${testDir}/grant-with-feedback/unwrapped`, import.meta.url))
+const outputDir = fileURLToPath(new URL(`${testDir}/grant-with-feedback/wrapped`, import.meta.url))
 if (!fs.existsSync(outputDir)){
   fs.mkdirSync(outputDir);
 }
-const agreement = JSON.parse(readFileSync(join(inputDirname, 'grant-simple.json'), 'utf-8'));
+const agreement = JSON.parse(readFileSync(join(inputDirname, 'grant-with-feedback.json'), 'utf-8'));
 const grantorInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor.json'), 'utf-8'));
 const recipientInput = JSON.parse(readFileSync(join(inputDirname, 'input-recipient.json'), 'utf-8'));
 const grantorAcceptInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor-accept.json'), 'utf-8'));
 const grantorRejectInput = JSON.parse(readFileSync(join(inputDirname, 'input-grantor-reject.json'), 'utf-8'));
 const workSubmissionInput = JSON.parse(readFileSync(join(inputDirname, 'input-work-submission.json'), 'utf-8'));
+const workSubmission2Input = JSON.parse(readFileSync(join(inputDirname, 'input-work-submission-2.json'), 'utf-8'));
 const workAcceptInput = JSON.parse(readFileSync(join(inputDirname, 'input-work-accept.json'), 'utf-8'));
 const workRejectInput = JSON.parse(readFileSync(join(inputDirname, 'input-work-reject.json'), 'utf-8'));
 const agreementRejectInput = JSON.parse(readFileSync(join(inputDirname, 'input-agreement-reject.json'), 'utf-8'));
@@ -54,7 +55,7 @@ async function main() {
       credential: {
         issuer: { id: agreementCreator.did },
         credentialSubject: {
-          id: "did:example:grant-simple-recipient-1",
+          id: "did:example:grant-with-feedback-recipient-1",
           agreement: Buffer.from(JSON.stringify(agreement)).toString('base64'),
           params: {
             grantorEthAddress: grantorEthAddress,
@@ -65,7 +66,7 @@ async function main() {
       },
       proofFormat: 'EthereumEip712Signature2021',
     };
-    const { vcStr } = await writeVc(agreementParams, `grant-simple`);
+    const { vcStr } = await writeVc(agreementParams, `grant-with-feedback`);
     const agreementDocHash = ethers.keccak256(new TextEncoder().encode(vcStr));
 
     // Set the documentHash for all input VCs
@@ -74,6 +75,7 @@ async function main() {
     grantorAcceptInput.documentHash = agreementDocHash;
     grantorRejectInput.documentHash = agreementDocHash;
     workSubmissionInput.documentHash = agreementDocHash;
+    workSubmission2Input.documentHash = agreementDocHash;
     workAcceptInput.documentHash = agreementDocHash;
     workRejectInput.documentHash = agreementDocHash;
     agreementRejectInput.documentHash = agreementDocHash;
@@ -148,6 +150,16 @@ async function main() {
       proofFormat: 'EthereumEip712Signature2021',
     };
     await writeVc(workSubmissionParams, `input-work-submission`);
+
+    const workSubmission2Params = {
+      credential: {
+        issuer: { id: recipient.did },
+        credentialSubject: workSubmission2Input,
+        type: ['VerifiableCredential','AgreementInputCredential'],
+      },
+      proofFormat: 'EthereumEip712Signature2021',
+    };
+    await writeVc(workSubmission2Params, `input-work-submission-2`);
 
     const workAcceptParams = {
       credential: {
