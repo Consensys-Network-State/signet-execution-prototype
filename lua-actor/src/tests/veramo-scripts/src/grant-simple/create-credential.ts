@@ -2,11 +2,7 @@ import { agent } from '../veramo/setup.js'
 import fs, { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
-<<<<<<< HEAD
-import { getTransactionProof, stringifyProofData } from '../fetch-tx-proof.js'
-=======
-import { getTransactionProofData } from './fetch-tx-proof.js'
->>>>>>> c65821e (fix transaction proof script + small change to lua actor)
+import { getTransactionProofData } from '../fetch-tx-proof.js'
 import { ethers } from 'ethers'
 
 const testDir = '../../../'
