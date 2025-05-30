@@ -718,7 +718,7 @@ local function verifyEVMTransaction(input, value, dfsm)
         return true
     elseif processedRequiredInput.transactionType == "contractCall" then
         local contract = processedRequiredInput.contractReference
-        local decodedTx = contract:decode(value.TxRaw.input)
+        local decodedTx = contract:decode(value.TxRaw.data)
         if (decodedTx.function_name ~= processedRequiredInput.method) then
             return false
         end
