@@ -35,36 +35,40 @@ This test demonstrates the core functionality: initialization, activation, signa
 ```mermaid
 stateDiagram-v2
     direction LR
-    [*] --> INITIALIZED: ✅ Initialize
-    INITIALIZED --> ACTIVE: ✅ First Activation
-    ACTIVE --> INACTIVE: ✅ Deactivation
-    INACTIVE --> INACTIVE: ❌ Try Deactivate Again (Fails)
-    INACTIVE --> ACTIVE: ✅ Reactivation
-    ACTIVE --> ACTIVE: ✅ Alice Signs
-    ACTIVE --> ACTIVE: ✅ Bob Signs
-    ACTIVE --> ACTIVE: ❌ Invalid Input ID (Fails)
-    ACTIVE --> ACTIVE: ❌ Invalid Issuer (Fails)
+    [*] --> INITIALIZED: "✅ Initialize"
+    INITIALIZED --> ACTIVE: "✅ Activate manifesto for first time"
+    ACTIVE --> INACTIVE: "✅ Deactivate manifesto"
+    INACTIVE --> INACTIVE: "❌ Try deactivate when already inactive"
+    INACTIVE --> ACTIVE: "✅ Reactivate manifesto"
+    ACTIVE --> ACTIVE: "✅ Alice signs manifesto"
+    ACTIVE --> ACTIVE: "✅ Bob signs manifesto"
+    ACTIVE --> ACTIVE: "❌ Invalid input ID"
+    ACTIVE --> ACTIVE: "❌ Invalid issuer (unwrapped only)"
 ```
 
 Test Steps:
 1. **Initialization Check**:
    - Verify the manifesto starts in `INITIALIZED` state
-2. **First Activation**:
+2. **Activate manifesto for first time**:
    - Controller activates the manifesto (`INITIALIZED → ACTIVE`)
-3. **Deactivation**:
+3. **Deactivate manifesto**:
    - Controller deactivates the manifesto (`ACTIVE → INACTIVE`)
-4. **Invalid Deactivation**:
-   - Attempt to deactivate when already inactive (should fail)
+4. **Try to deactivate when already inactive**:
+   - Attempt to deactivate when already inactive (should fail with "No valid transition")
    - State remains `INACTIVE`
-5. **Reactivation**:
+5. **Reactivate manifesto**:
    - Controller reactivates the manifesto (`INACTIVE → ACTIVE`)
-6. **Signature Collection** (Main Happy Path):
+6. **Alice signs the manifesto** (Main Happy Path):
    - Alice signs the manifesto (`ACTIVE → ACTIVE`)
+   - State remains `ACTIVE` to continue collecting signatures
+7. **Bob signs the manifesto** (Main Happy Path):
    - Bob signs the manifesto (`ACTIVE → ACTIVE`)
-   - Multiple signatures can be collected while manifesto remains active
-7. **Input Validation Tests**:
-   - Test invalid input ID (should fail)
+   - State remains `ACTIVE` to continue collecting signatures
+8. **Invalid input ID**:
+   - Test invalid input ID (should fail with "Unknown input")
+9. **Invalid issuer (unwrapped only)**:
    - Test invalid issuer/controller (should fail with "Issuer mismatch")
+   - Skipped for wrapped tests (handled by cryptographic verification)
 
 ### 2. Signature Collection Flow
 This demonstrates the main use case: collecting signatures from multiple parties when the manifesto is active.
@@ -73,12 +77,16 @@ This demonstrates the main use case: collecting signatures from multiple parties
 stateDiagram-v2
     direction LR
     [*] --> INITIALIZED
-    INITIALIZED --> ACTIVE: ✅ Controller Activates
-    ACTIVE --> ACTIVE: ✅ Alice Signs<br/>(Name: "Alice Johnson"<br/>Address: 0x4B20...)
-    ACTIVE --> ACTIVE: ✅ Bob Signs<br/>(Name: "Bob Smith"<br/>Address: 0xBe32...)
-    ACTIVE --> INACTIVE: ✅ Controller Deactivates
-    INACTIVE --> INACTIVE: ❌ Cannot Sign When Inactive
+    INITIALIZED --> ACTIVE: "✅ Controller Activates"
+    ACTIVE --> ACTIVE: "✅ Alice Signs"
+    ACTIVE --> ACTIVE: "✅ Bob Signs" 
+    ACTIVE --> INACTIVE: "✅ Controller Deactivates"
+    INACTIVE --> INACTIVE: "❌ Cannot Sign When Inactive"
 ```
+
+**Signature Details:**
+- **Alice Johnson**: `0x4B20993Bc481177ec7E8f571ceCaE8A9e22C02db`
+- **Bob Smith**: `0xBe32388C134a952cdBCc5673E93d46FfD8b85065`
 
 **Key Points:**
 - **Open Signing**: Anyone can sign when manifesto is `ACTIVE`
@@ -304,19 +312,34 @@ All inputs include full cryptographic proofs and are generated using Veramo:
 
 ### Test Coverage
 
-**Unwrapped Tests (18 tests)**:
-- ✅ State transitions (activate, deactivate, reactivate)
-- ✅ Signature collection (Alice, Bob)
-- ✅ Error handling (invalid inputs, invalid issuers)
-- ✅ State validation
+**Unwrapped Tests (8 tests)**:
+1. ✅ Activate manifesto for first time (`INITIALIZED → ACTIVE`)
+2. ✅ Deactivate manifesto (`ACTIVE → INACTIVE`)
+3. ✅ Try to deactivate when already inactive (failure case)
+4. ✅ Reactivate manifesto (`INACTIVE → ACTIVE`)
+5. ✅ Alice signs the manifesto (`ACTIVE → ACTIVE`)
+6. ✅ Bob signs the manifesto (`ACTIVE → ACTIVE`)
+7. ✅ Invalid input ID (failure case)
+8. ✅ Invalid issuer - not controller (failure case)
 
-**Wrapped Tests (18 tests)**:
-- ✅ Cryptographically verified state transitions
-- ✅ Cryptographically verified signature collection
-- ✅ Error handling (invalid inputs)
-- ⏭️ Issuer validation (handled by crypto verification)
+**Wrapped Tests (8 tests)**:
+1. ✅ Activate manifesto for first time (`INITIALIZED → ACTIVE`)
+2. ✅ Deactivate manifesto (`ACTIVE → INACTIVE`)
+3. ✅ Try to deactivate when already inactive (failure case)
+4. ✅ Reactivate manifesto (`INACTIVE → ACTIVE`)
+5. ✅ Alice signs the manifesto (`ACTIVE → ACTIVE`)
+6. ✅ Bob signs the manifesto (`ACTIVE → ACTIVE`)
+7. ✅ Invalid input ID (failure case)
+8. ⏭️ Invalid issuer test (skipped - handled by crypto verification)
 
-**Total: 36 tests** covering both validation modes
+**Total: 16 test scenarios** covering both validation modes
+*Plus initial state verification for each suite*
+
+**Test Assertions: 36 total**
+- Each successful test includes 2 assertions (success + state transition)
+- Each failed test includes 3 assertions (failure + error message + state preservation)
+- Unwrapped: 19 assertions across 8 test scenarios
+- Wrapped: 17 assertions across 8 test scenarios
 
 **Important Differences**: 
 - **Unwrapped**: Manual issuer validation using DID format
