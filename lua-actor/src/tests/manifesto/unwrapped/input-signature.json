@@ -1,8 +1,0 @@
-{
-  "inputId": "accepted",
-  "type": "signedFields",
-  "values": {
-      "partyAAcceptance": "ACCEPTED",
-      "partyASignature": "Alice's signature"
-  }
-}

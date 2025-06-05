@@ -17,7 +17,8 @@ local function runUnwrappedTestSuite()
 
     -- Load agreement document and input files
     local agreementDoc = TestUtils.loadInputDoc(inputDir .. "/manifesto.json")
-    local signatureInput = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-signature.json"))
+    local aliceSignature = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-alice-signature.json"))
+    local bobSignature = json.decode(TestUtils.loadInputDoc(inputDir .. "/input-bob-signature.json"))
 
     local agreementHash = crypto.digest.keccak256(agreementDoc).asHex()
 
@@ -110,7 +111,33 @@ local function runUnwrappedTestSuite()
         false
     )
 
-    -- Test 6: Invalid input ID – should fail with unknown input error
+    -- Test 6: Alice signs the manifesto (ACTIVE -> ACTIVE)
+    TestUtils.runTest(
+        "Alice signs the manifesto", 
+        dfsm, 
+        formatTestInput("signManifesto", aliceSignature.values.signerAddress, aliceSignature.values),
+        true,  -- expect success
+        nil,
+        "ACTIVE",  -- state remains ACTIVE
+        DFSMUtils,
+        testCounter,
+        false
+    )
+
+    -- Test 7: Bob signs the manifesto (ACTIVE -> ACTIVE)
+    TestUtils.runTest(
+        "Bob signs the manifesto", 
+        dfsm, 
+        formatTestInput("signManifesto", bobSignature.values.signerAddress, bobSignature.values),
+        true,  -- expect success
+        nil,
+        "ACTIVE",  -- state remains ACTIVE
+        DFSMUtils,
+        testCounter,
+        false
+    )
+
+    -- Test 8: Invalid input ID – should fail with unknown input error
     TestUtils.runTest(
         "Invalid input ID", 
         dfsm, 
@@ -129,7 +156,7 @@ local function runUnwrappedTestSuite()
         false
     )
 
-    -- Test 7: Invalid issuer (not controller) - should fail
+    -- Test 9: Invalid issuer (not controller) - should fail
     TestUtils.runTest(
         "Invalid issuer (not controller)", 
         dfsm, 

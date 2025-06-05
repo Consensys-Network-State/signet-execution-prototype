@@ -16,6 +16,31 @@
       "validation": {
         "required": true
       }
+    },
+    "signerName": {
+      "type": "string",
+      "name": "Signer Name",
+      "description": "Name of the person signing the manifesto",
+      "validation": {
+        "required": true,
+        "minLength": 1
+      }
+    },
+    "signerAddress": {
+      "type": "address",
+      "name": "Signer Address", 
+      "description": "Ethereum address of the signer",
+      "validation": {
+        "required": true
+      }
+    },
+    "signature": {
+      "type": "string",
+      "name": "Digital Signature",
+      "description": "Digital signature of the manifesto",
+      "validation": {
+        "required": true
+      }
     }
   },
   "content": {
@@ -64,6 +89,17 @@
           "activation": "DEACTIVATE"
         },
         "issuer": "${variables.controller.value}"
+      },
+      "signManifesto": {
+        "type": "VerifiedCredentialEIP712",
+        "schema": "verified-credential-eip712.schema.json",
+        "displayName": "Sign Manifesto",
+        "description": "Sign the manifesto agreement",
+        "data": {
+          "signerName": "${variables.signerName}",
+          "signerAddress": "${variables.signerAddress}",
+          "signature": "${variables.signature}"
+        }
       }
     },
     "transitions": [
@@ -94,6 +130,16 @@
           {
             "type": "isValid",
             "input": "activate"
+          }
+        ]
+      },
+      {
+        "from": "ACTIVE",
+        "to": "ACTIVE",
+        "conditions": [
+          {
+            "type": "isValid",
+            "input": "signManifesto"
           }
         ]
       }
