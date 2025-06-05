@@ -11,9 +11,11 @@ stateDiagram-v2
     [*] --> INITIALIZED: initialize
     
     INITIALIZED --> ACTIVE: activate
-    ACTIVE --> INACTIVE: deactivate
+    ACTIVE --> INACTIVE: deactivate  
     INACTIVE --> ACTIVE: activate
     ACTIVE --> ACTIVE: signManifesto
+    
+    note right of ACTIVE : Accepts signatures<br/>while ACTIVE
     
     ACTIVE --> [*]: (terminal if no more transitions)
     INACTIVE --> [*]: (terminal if no more transitions)
@@ -37,9 +39,9 @@ stateDiagram-v2
     direction LR
     [*] --> INITIALIZED: "✅ Initialize"
     INITIALIZED --> ACTIVE: "✅ Controller Activates"
-    ACTIVE --> ACTIVE: "✅ Alice Signs"
-    ACTIVE --> ACTIVE: "✅ Bob Signs"
-    ACTIVE --> ACTIVE: "✅ More Signatures..."
+    ACTIVE --> ACTIVE: "✅ Alice Signs (signManifesto)"
+    ACTIVE --> ACTIVE: "✅ Bob Signs (signManifesto)"
+    ACTIVE --> ACTIVE: "✅ More Signatures (signManifesto)..."
     ACTIVE --> INACTIVE: "✅ Controller Deactivates"
     INACTIVE --> [*]: "Complete"
 ```
