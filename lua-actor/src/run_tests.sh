@@ -1,0 +1,1 @@
+LUA_INIT=@setup.lua lua run-tests.lua

@@ -55,7 +55,7 @@ function DFSMUtils.renderDFSMState(dfsm)
     }
     
     -- Use the map representation for consistent display
-    local receivedMap = dfsm:getReceivedInputValuesMap()
+    local receivedMap = dfsm:getReceivedInputHashesMap()
     for id, _ in pairs(receivedMap) do
         table.insert(state, string.format("  - %s", id))
     end

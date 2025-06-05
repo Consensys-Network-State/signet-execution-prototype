@@ -324,8 +324,18 @@ function DFSM:processInput(inputValue, validateVC)
                     end
                 end
                 
-                -- Store the input on the stack and update state
-                table.insert(self.receivedInputValues, {id = inputId, value = inputValue})
+                -- Store only the hash and issuer instead of the full input
+                local inputValueStr = type(inputValue) == "string" and inputValue or json.encode(inputValue)
+                local inputHash = crypto.digest.keccak256(inputValueStr).asHex()
+                local issuerId = vcJson.issuer and vcJson.issuer.id or "unknown"
+                
+                table.insert(self.receivedInputValues, {
+                    id = inputId, 
+                    hash = inputHash,
+                    issuer = issuerId,
+                    timestamp = os.time()
+                })
+                
                 self.currentState = self.states[transition.to]
                 
                 -- Check if we've reached a terminal state
@@ -370,13 +380,29 @@ function DFSM:getReceivedInputs()
     return self.receivedInputValues
 end
 
--- Get the most recent input value for a specific input ID
-function DFSM:getLatestInputValue(inputId)
+-- Get the most recent input hash for a specific input ID
+function DFSM:getLatestInputHash(inputId)
     -- Search from the top of the stack (most recent) down
     for i = #self.receivedInputValues, 1, -1 do
         local input = self.receivedInputValues[i]
         if input.id == inputId then
-            return input.value
+            return input.hash
+        end
+    end
+    return nil -- No input found with that ID
+end
+
+-- Get the most recent input metadata for a specific input ID
+function DFSM:getLatestInputMetadata(inputId)
+    -- Search from the top of the stack (most recent) down
+    for i = #self.receivedInputValues, 1, -1 do
+        local input = self.receivedInputValues[i]
+        if input.id == inputId then
+            return {
+                hash = input.hash,
+                issuer = input.issuer,
+                timestamp = input.timestamp
+            }
         end
     end
     return nil -- No input found with that ID
@@ -384,16 +410,20 @@ end
 
 -- Check if a specific input has been received
 function DFSM:hasReceivedInput(inputId)
-    return self:getLatestInputValue(inputId) ~= nil
+    return self:getLatestInputHash(inputId) ~= nil
 end
 
--- Get all received input values as a map of inputId to its most recent value
-function DFSM:getReceivedInputValuesMap()
+-- Get all received input hashes as a map of inputId to its most recent hash
+function DFSM:getReceivedInputHashesMap()
     local result = {}
     for i = 1, #self.receivedInputValues do
         local input = self.receivedInputValues[i]
         -- This will naturally keep overwriting with the latest value for each ID
-        result[input.id] = input.value
+        result[input.id] = {
+            hash = input.hash,
+            issuer = input.issuer,
+            timestamp = input.timestamp
+        }
     end
     return result
 end
