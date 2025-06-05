@@ -31,7 +31,7 @@ export class AgreementService {
     }
     // After processing input, update the agreement record in Mongo.
     // There is no need to fetch the document, as it doesn't change after initialization.
-    const updatedState = await queryAndUpsertAgreementRecord(id, false);
+    const updatedState = await queryAndUpsertAgreementRecord(id, false, { id: inputId, value: inputValue });
     return {
       ...result,
       updatedState,
@@ -58,10 +58,11 @@ export class AgreementService {
   }
 }
 
-async function queryAndUpsertAgreementRecord(processId: string, fetchDocument: boolean = true): Promise<AgreementRecord> {
+async function queryAndUpsertAgreementRecord(processId: string, fetchDocument: boolean = true, input?:{ id: string, value: AgreementInputVC }): Promise<AgreementRecord> {
   // Query with async-retry
   let agreementDoc = undefined;
   let agreementDocHash = undefined;
+  let receivedInputs = [];
   if (fetchDocument) {
     const document = await asyncRetry(
       async (bail, attempt) => {
@@ -83,6 +84,7 @@ async function queryAndUpsertAgreementRecord(processId: string, fetchDocument: b
     const agreementRecord = await findAgreementById(processId);
     agreementDoc = agreementRecord?.document;
     agreementDocHash = agreementRecord?.documentHash;
+    receivedInputs = agreementRecord?.state?.ReceivedInputs || [];
   }
   const state = await asyncRetry(
     async (bail, attempt) => {
@@ -98,11 +100,17 @@ async function queryAndUpsertAgreementRecord(processId: string, fetchDocument: b
 
   const contributors = extractContributors(agreementDoc, state);
   const now = new Date();
+  const newInputs = input ? [input] : [];
   const record: AgreementRecord = {
     id: processId,
     document: agreementDoc,
     documentHash: agreementDocHash,
-    state,
+    state: {
+      ...state,
+      // Adding in ReceivedInputs field to keep track of all successfully handled inputs.
+      // Not expecting the inputs to be stored inside the actor state anymore.
+      ReceivedInputs: receivedInputs.concat(newInputs),
+    },
     contributors,
     createdAt: now,
     updatedAt: now,
