@@ -229,7 +229,9 @@ This documents the allowed and forbidden transitions in the state machine.
 
 ## Test Input Format
 
-### Unwrapped Test Format
+The manifesto state machine supports both **wrapped** and **unwrapped** testing modes:
+
+### Unwrapped Test Format (`validateVC = false`)
 
 #### Controller Inputs (with Issuer Validation)
 For controller inputs (`activate`/`deactivate`), inputs must use DID format for proper issuer validation:
@@ -266,17 +268,91 @@ For signature collection, the format is simpler since no issuer validation is re
 }
 ```
 
-**Important**: 
-- Controller inputs require DID format (`did:pkh:eip155:1:<address>`) for issuer validation
-- Signature inputs use simplified format without issuer field for open access
+### Wrapped Test Format (`validateVC = true`)
+
+For wrapped tests, inputs are full Verifiable Credentials with cryptographic signatures:
+
+#### Wrapped Agreement Document
+```json
+{
+  "issuer": {
+    "id": "did:pkh:eip155:1:0x3fAC9dcd3830d147EB1361bDcf588b1E5cde4431"
+  },
+  "credentialSubject": {
+    "id": "did:example:manifesto-1",
+    "agreement": "<base64_encoded_manifesto_json>",
+    "params": {
+      "controller": "0x3fAC9dcd3830d147EB1361bDcf588b1E5cde4431"
+    }
+  },
+  "type": ["VerifiableCredential", "AgreementCredential"],
+  "proof": {
+    "type": "EthereumEip712Signature2021",
+    "proofValue": "0x...",
+    "eip712": { /* EIP-712 signature data */ }
+  }
+}
+```
+
+#### Wrapped Input Examples
+All inputs include full cryptographic proofs and are generated using Veramo:
+
+- `input-activate.wrapped.json` - Controller activation
+- `input-deactivate.wrapped.json` - Controller deactivation  
+- `input-alice-signature.wrapped.json` - Alice's signature
+- `input-bob-signature.wrapped.json` - Bob's signature
+
+### Test Coverage
+
+**Unwrapped Tests (18 tests)**:
+- ✅ State transitions (activate, deactivate, reactivate)
+- ✅ Signature collection (Alice, Bob)
+- ✅ Error handling (invalid inputs, invalid issuers)
+- ✅ State validation
+
+**Wrapped Tests (18 tests)**:
+- ✅ Cryptographically verified state transitions
+- ✅ Cryptographically verified signature collection
+- ✅ Error handling (invalid inputs)
+- ⏭️ Issuer validation (handled by crypto verification)
+
+**Total: 36 tests** covering both validation modes
+
+**Important Differences**: 
+- **Unwrapped**: Manual issuer validation using DID format
+- **Wrapped**: Cryptographic verification handles issuer validation
+- **Unwrapped**: Simplified JSON input format
+- **Wrapped**: Full Verifiable Credential format with proofs
+
+## Credential Creation
+
+Wrapped inputs are generated using the Veramo framework with EIP-712 signatures:
+
+```bash
+cd tests/veramo-scripts
+npx tsx ./src/manifesto/create-credential.ts
+```
+
+This script:
+1. **Creates the wrapped manifesto agreement** with base64-encoded JSON
+2. **Generates controller inputs** (`activate`, `deactivate`) signed by the controller
+3. **Generates signature inputs** (`alice-signature`, `bob-signature`) signed by respective parties
+4. **Applies cryptographic signatures** using EIP-712 standard
+5. **Validates all credentials** before saving
 
 ## Implementation Notes
 
-- **Issuer Validation**: The system validates that inputs come from the designated controller by comparing the issuer address extracted from the DID format with the resolved `${variables.controller.value}`
-- **Variable Resolution**: The controller address is resolved from the initialization parameters and stored as a variable
-- **State Persistence**: Each state transition is recorded with metadata including issuer and timestamp
-- **Error Handling**: Clear error messages are provided for invalid issuers, unknown inputs, and invalid transitions
-- **Security**: Only the controller can perform state transitions, ensuring access control
+- **Dual Validation Modes**: Supports both unwrapped (manual validation) and wrapped (cryptographic validation)
+- **Issuer Validation**: 
+  - **Unwrapped**: Manual validation using DID format extraction
+  - **Wrapped**: Cryptographic signature verification
+- **Variable Resolution**: Controller address resolved from initialization parameters
+- **State Persistence**: Each transition recorded with metadata (issuer, timestamp, hash)
+- **Error Handling**: Clear error messages for invalid inputs, transitions, and issuers
+- **Security**: 
+  - **Controller Actions**: Restricted to designated controller address
+  - **Signature Collection**: Open access when manifesto is active
+  - **Cryptographic Integrity**: Full EIP-712 signature verification in wrapped mode
 
 ## Differences from Other State Machines
 
