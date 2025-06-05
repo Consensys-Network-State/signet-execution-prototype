@@ -2,9 +2,9 @@
 local __modules = {}
 local __loaded = {}
 
--- Begin module: src/eip712.lua
-__modules["src/eip712"] = function()
-  if __loaded["src/eip712"] then return __loaded["src/eip712"] end
+-- Begin module: eip712.lua
+__modules["eip712"] = function()
+  if __loaded["eip712"] then return __loaded["eip712"] end
 local crypto = require(".crypto.init")
 local Array = require(".crypto.util.array")
 
@@ -436,7 +436,7 @@ local function createDomainSeparator(domain, types)
 end
 
 
-  __loaded["src/eip712"] = {
+  __loaded["eip712"] = {
     createDomainSeparator = createDomainSeparator,
     hashStruct = hashStruct,
     getSigningInput = getSigningInput,
@@ -444,13 +444,13 @@ end
     typeHash = typeHash,
     abiEncode = abiEncode
 }
-  return __loaded["src/eip712"]
+  return __loaded["eip712"]
 end
--- End module: src/eip712.lua
+-- End module: eip712.lua
 
--- Begin module: src/vc-validator.lua
-__modules["src/vc-validator"] = function()
-  if __loaded["src/vc-validator"] then return __loaded["src/vc-validator"] end
+-- Begin module: vc-validator.lua
+__modules["vc-validator"] = function()
+  if __loaded["vc-validator"] then return __loaded["vc-validator"] end
 -- Explicitly importing secp256k1 and exposing recover_public_key, which is a global var in our custom AO module.
 
 local recover_public_key = recover_public_key
@@ -459,7 +459,7 @@ local json = require("json")
 local Array = require(".crypto.util.array")
 local crypto = require(".crypto.init")
 
-local eip712 = __modules["src/eip712"]()
+local eip712 = __modules["eip712"]()
 
 local function strip_hex_prefix(hex_str)
   if hex_str:sub(1, 2) == "0x" then
@@ -558,16 +558,16 @@ local function vc_validate(vc)
 end
 
 
-  __loaded["src/vc-validator"] = {
+  __loaded["vc-validator"] = {
   validate = vc_validate,
 }
-  return __loaded["src/vc-validator"]
+  return __loaded["vc-validator"]
 end
--- End module: src/vc-validator.lua
+-- End module: vc-validator.lua
 
--- Begin module: src/variables/validation.lua
-__modules["src/variables/validation"] = function()
-  if __loaded["src/variables/validation"] then return __loaded["src/variables/validation"] end
+-- Begin module: variables/validation.lua
+__modules["variables/validation"] = function()
+  if __loaded["variables/validation"] then return __loaded["variables/validation"] end
 -- Shared validation module for both InputVerifier and VariableManager
 local ValidationModule = {}
 
@@ -630,16 +630,16 @@ function ValidationModule.validateValue(value, validation, fieldName)
 end
 
 
-  __loaded["src/variables/validation"] = ValidationModule
-  return __loaded["src/variables/validation"]
+  __loaded["variables/validation"] = ValidationModule
+  return __loaded["variables/validation"]
 end
--- End module: src/variables/validation.lua
+-- End module: variables/validation.lua
 
--- Begin module: src/variables/variable_manager.lua
-__modules["src/variables/variable_manager"] = function()
-  if __loaded["src/variables/variable_manager"] then return __loaded["src/variables/variable_manager"] end
-local VcValidator = __modules["src/vc-validator"]()
-local ValidationModule = __modules["src/variables/validation"]()
+-- Begin module: variables/variable_manager.lua
+__modules["variables/variable_manager"] = function()
+  if __loaded["variables/variable_manager"] then return __loaded["variables/variable_manager"] end
+local VcValidator = __modules["vc-validator"]()
+local ValidationModule = __modules["variables/validation"]()
 local VariableManager = {}
 
 function VariableManager.new(variables)
@@ -779,14 +779,14 @@ function VariableManager:tryResolveExactStringAsVariableObject(possibleVariableR
 end
 
 
-  __loaded["src/variables/variable_manager"] = VariableManager
-  return __loaded["src/variables/variable_manager"]
+  __loaded["variables/variable_manager"] = VariableManager
+  return __loaded["variables/variable_manager"]
 end
--- End module: src/variables/variable_manager.lua
+-- End module: variables/variable_manager.lua
 
--- Begin module: src/mock-oracle.lua
-__modules["src/mock-oracle"] = function()
-  if __loaded["src/mock-oracle"] then return __loaded["src/mock-oracle"] end
+-- Begin module: mock-oracle.lua
+__modules["mock-oracle"] = function()
+  if __loaded["mock-oracle"] then return __loaded["mock-oracle"] end
 -- MockOracle: A class that simulates an oracle by storing and retrieving data
 -- associated with transaction hashes
 local json = require("json")
@@ -851,14 +851,14 @@ function MockOracle:getAllTxHashes()
 end
 
 
-  __loaded["src/mock-oracle"] = MockOracle
-  return __loaded["src/mock-oracle"]
+  __loaded["mock-oracle"] = MockOracle
+  return __loaded["mock-oracle"]
 end
--- End module: src/mock-oracle.lua
+-- End module: mock-oracle.lua
 
--- Begin module: src/utils/table_utils.lua
-__modules["src/utils/table_utils"] = function()
-  if __loaded["src/utils/table_utils"] then return __loaded["src/utils/table_utils"] end
+-- Begin module: utils/table_utils.lua
+__modules["utils/table_utils"] = function()
+  if __loaded["utils/table_utils"] then return __loaded["utils/table_utils"] end
 -- Table utility functions
 
 -- Helper function to perform deep comparison of two values
@@ -1017,26 +1017,26 @@ local function printTable(t, indent, visited)
 end
 
 
-  __loaded["src/utils/table_utils"] = {
+  __loaded["utils/table_utils"] = {
     deepCompare = deepCompare,
     replaceVariableReferences = replaceVariableReferences,
     replaceContractReferences = replaceContractReferences,
     printTable = printTable
 }
-  return __loaded["src/utils/table_utils"]
+  return __loaded["utils/table_utils"]
 end
--- End module: src/utils/table_utils.lua
+-- End module: utils/table_utils.lua
 
--- Begin module: src/verifiers/evm_transaction_input_verifier.lua
-__modules["src/verifiers/evm_transaction_input_verifier"] = function()
-  if __loaded["src/verifiers/evm_transaction_input_verifier"] then return __loaded["src/verifiers/evm_transaction_input_verifier"] end
+-- Begin module: verifiers/evm_transaction_input_verifier.lua
+__modules["verifiers/evm_transaction_input_verifier"] = function()
+  if __loaded["verifiers/evm_transaction_input_verifier"] then return __loaded["verifiers/evm_transaction_input_verifier"] end
 
 local crypto = require(".crypto.init")
 local json = require("json")
 local base64 = require(".base64")
--- local MockOracle = __modules["src/mock-oracle"]()  -- Import the MockOracle module
-local replaceVariableReferences = __modules["src/utils/table_utils"]().replaceVariableReferences
-local replaceContractReferences = __modules["src/utils/table_utils"]().replaceContractReferences
+-- local MockOracle = __modules["mock-oracle"]()  -- Import the MockOracle module
+local replaceVariableReferences = __modules["utils/table_utils"]().replaceVariableReferences
+local replaceContractReferences = __modules["utils/table_utils"]().replaceContractReferences
 
 -- Helper functions
 -- EIP-712 specific functions
@@ -1778,19 +1778,19 @@ end
 
 -- Return the verifier function
 
-  __loaded["src/verifiers/evm_transaction_input_verifier"] = verifyEVMTransaction
-  return __loaded["src/verifiers/evm_transaction_input_verifier"]
+  __loaded["verifiers/evm_transaction_input_verifier"] = verifyEVMTransaction
+  return __loaded["verifiers/evm_transaction_input_verifier"]
 end
--- End module: src/verifiers/evm_transaction_input_verifier.lua
+-- End module: verifiers/evm_transaction_input_verifier.lua
 
--- Begin module: src/verifiers/input_verifier.lua
-__modules["src/verifiers/input_verifier"] = function()
-  if __loaded["src/verifiers/input_verifier"] then return __loaded["src/verifiers/input_verifier"] end
+-- Begin module: verifiers/input_verifier.lua
+__modules["verifiers/input_verifier"] = function()
+  if __loaded["verifiers/input_verifier"] then return __loaded["verifiers/input_verifier"] end
 local json = require("json")
 local crypto = require(".crypto")
-local VcValidator = __modules["src/vc-validator"]()
-local FieldValidator = __modules["src/variables/validation"]()
-local verifyEVMTransactionInputVerifier = __modules["src/verifiers/evm_transaction_input_verifier"]()
+local VcValidator = __modules["vc-validator"]()
+local FieldValidator = __modules["variables/validation"]()
+local verifyEVMTransactionInputVerifier = __modules["verifiers/evm_transaction_input_verifier"]()
 
 local ETHEREUM_ADDRESS_REGEX = "^0x(%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x%x)$"
 
@@ -2054,17 +2054,17 @@ local function verify(input, value, dfsm, validate)
 end
 
 
-  __loaded["src/verifiers/input_verifier"] = {
+  __loaded["verifiers/input_verifier"] = {
     verify = verify,
     ValidationUtils = ValidationUtils,
 }
-  return __loaded["src/verifiers/input_verifier"]
+  return __loaded["verifiers/input_verifier"]
 end
--- End module: src/verifiers/input_verifier.lua
+-- End module: verifiers/input_verifier.lua
 
--- Begin module: src/contracts/contract_manager.lua
-__modules["src/contracts/contract_manager"] = function()
-  if __loaded["src/contracts/contract_manager"] then return __loaded["src/contracts/contract_manager"] end
+-- Begin module: contracts/contract_manager.lua
+__modules["contracts/contract_manager"] = function()
+  if __loaded["contracts/contract_manager"] then return __loaded["contracts/contract_manager"] end
 local ContractManager = {}
 
 local crypto = require(".crypto.init")
@@ -2307,20 +2307,20 @@ function ContractManager:getAllContracts()
 end
 
 
-  __loaded["src/contracts/contract_manager"] = ContractManager
-  return __loaded["src/contracts/contract_manager"]
+  __loaded["contracts/contract_manager"] = ContractManager
+  return __loaded["contracts/contract_manager"]
 end
--- End module: src/contracts/contract_manager.lua
+-- End module: contracts/contract_manager.lua
 
--- Begin module: src/dfsm.lua
-__modules["src/dfsm"] = function()
-  if __loaded["src/dfsm"] then return __loaded["src/dfsm"] end
+-- Begin module: dfsm.lua
+__modules["dfsm"] = function()
+  if __loaded["dfsm"] then return __loaded["dfsm"] end
 -- DFSM (Deterministic Finite State Machine) implementation
-local VariableManager = __modules["src/variables/variable_manager"]()
-local InputVerifier = __modules["src/verifiers/input_verifier"]()
+local VariableManager = __modules["variables/variable_manager"]()
+local InputVerifier = __modules["verifiers/input_verifier"]()
 local json = require("json")
-local VcValidator = __modules["src/vc-validator"]()
-local ContractManager = __modules["src/contracts/contract_manager"]()
+local VcValidator = __modules["vc-validator"]()
+local ContractManager = __modules["contracts/contract_manager"]()
 local base64 = require(".base64")
 local crypto = require(".crypto.init")
 
@@ -2641,8 +2641,18 @@ function DFSM:processInput(inputValue, validateVC)
                     end
                 end
                 
-                -- Store the input on the stack and update state
-                table.insert(self.receivedInputValues, {id = inputId, value = inputValue})
+                -- Store only the hash and issuer instead of the full input
+                local inputValueStr = type(inputValue) == "string" and inputValue or json.encode(inputValue)
+                local inputHash = crypto.digest.keccak256(inputValueStr).asHex()
+                local issuerId = vcJson.issuer and vcJson.issuer.id or "unknown"
+                
+                table.insert(self.receivedInputValues, {
+                    id = inputId, 
+                    hash = inputHash,
+                    issuer = issuerId,
+                    timestamp = os.time()
+                })
+                
                 self.currentState = self.states[transition.to]
                 
                 -- Check if we've reached a terminal state
@@ -2687,13 +2697,29 @@ function DFSM:getReceivedInputs()
     return self.receivedInputValues
 end
 
--- Get the most recent input value for a specific input ID
-function DFSM:getLatestInputValue(inputId)
+-- Get the most recent input hash for a specific input ID
+function DFSM:getLatestInputHash(inputId)
     -- Search from the top of the stack (most recent) down
     for i = #self.receivedInputValues, 1, -1 do
         local input = self.receivedInputValues[i]
         if input.id == inputId then
-            return input.value
+            return input.hash
+        end
+    end
+    return nil -- No input found with that ID
+end
+
+-- Get the most recent input metadata for a specific input ID
+function DFSM:getLatestInputMetadata(inputId)
+    -- Search from the top of the stack (most recent) down
+    for i = #self.receivedInputValues, 1, -1 do
+        local input = self.receivedInputValues[i]
+        if input.id == inputId then
+            return {
+                hash = input.hash,
+                issuer = input.issuer,
+                timestamp = input.timestamp
+            }
         end
     end
     return nil -- No input found with that ID
@@ -2701,16 +2727,20 @@ end
 
 -- Check if a specific input has been received
 function DFSM:hasReceivedInput(inputId)
-    return self:getLatestInputValue(inputId) ~= nil
+    return self:getLatestInputHash(inputId) ~= nil
 end
 
--- Get all received input values as a map of inputId to its most recent value
-function DFSM:getReceivedInputValuesMap()
+-- Get all received input hashes as a map of inputId to its most recent hash
+function DFSM:getReceivedInputHashesMap()
     local result = {}
     for i = 1, #self.receivedInputValues do
         local input = self.receivedInputValues[i]
         -- This will naturally keep overwriting with the latest value for each ID
-        result[input.id] = input.value
+        result[input.id] = {
+            hash = input.hash,
+            issuer = input.issuer,
+            timestamp = input.timestamp
+        }
     end
     return result
 end
@@ -2742,19 +2772,19 @@ end
 
 -- Export the DFSM module
 
-  __loaded["src/dfsm"] = {
+  __loaded["dfsm"] = {
     new = DFSM.new,
 }
-  return __loaded["src/dfsm"]
+  return __loaded["dfsm"]
 end
--- End module: src/dfsm.lua
+-- End module: dfsm.lua
 
 -- Custom require function
 local function __require(moduleName)
   return __modules[moduleName]()
 end
 
--- Main actor file: src/apoc-v2.lua
+-- Main actor file: apoc-v2.lua
 
 
 local json = require("json")
@@ -2762,7 +2792,7 @@ local Array = require(".crypto.util.array")
 local crypto = require(".crypto.init")
 local utils = require(".utils")
 
-local DFSM = __modules["src/dfsm"]()
+local DFSM = __modules["dfsm"]()
 
 
 -- BEGIN: actor's internal state
@@ -2771,6 +2801,13 @@ Document = Document or nil
 DocumentHash = DocumentHash or nil
 DocumentOwner = DocumentOwner or nil
 -- END: actor's internal state
+
+local function resetState()
+  StateMachine = nil
+  Document = nil
+  DocumentHash = nil
+  DocumentOwner = nil
+end
 
 local function reply_error(msg, error)
   msg.reply(
@@ -2884,4 +2921,4 @@ Handlers.add(
   end
 )
 
-return Handlers
+return { Handlers = Handlers, resetState = resetState }
