@@ -56,9 +56,9 @@ LUA_INIT=@setup.lua lua run-tests.lua
 
 Once confident enough to try changes in AO (i.e. tests are passing /w wrapped inputs):
 
-- Use the bundle-lua.js script to bundle the lua code into a single file
+- Use the bundle-lua.js script to bundle the lua code into a single file (run from the `/lua-actor` directory)
   - Usage: `node bundle-lua.mjs <entry-file> [output-file]`
-  - Example: `node bundle-lua.mjs src/apoc-v2.lua apoc-v2-bundled.lua`
+  - Example: `node bundle-lua.mjs src/apoc-v2.lua src/apoc-v2-bundled.lua`
 - Upload a new AO wasm bundle to AR if secp256k1 has changed
   - update the MODULE env var with the new wasm Tx ID
 - [Optional] Deployed AO actor testing:
