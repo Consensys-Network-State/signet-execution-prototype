@@ -46,7 +46,7 @@ Writing test cases:
 
 * To run all test suites (from within `./lua-actor/src`):
 ```
-LUA_INIT=@setup.lua lua run-tests.lua
+./run-tests.sh
 ```
 * Adding new test data:
   * recreate an existing `test-data` directory, or edit an existing one
@@ -56,9 +56,12 @@ LUA_INIT=@setup.lua lua run-tests.lua
 
 Once confident enough to try changes in AO (i.e. tests are passing /w wrapped inputs):
 
-- Use the bundle-lua.js script to bundle the lua code into a single file (run from the `/lua-actor` directory)
+- Rebuild default bundle: `./rebuild_bundle.sh` (from within `./lua-actor/src`)
+
+- To build a specific bundle, you can use the bundle-lua.js script to bundle the lua code into a single file (run from the `/lua-actor` directory)
   - Usage: `node bundle-lua.mjs <entry-file> [output-file]`
   - Example: `node bundle-lua.mjs src/apoc-v2.lua src/apoc-v2-bundled.lua`
+  
 - Upload a new AO wasm bundle to AR if secp256k1 has changed
   - update the MODULE env var with the new wasm Tx ID
 - [Optional] Deployed AO actor testing:
