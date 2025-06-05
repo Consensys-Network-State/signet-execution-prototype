@@ -29,46 +29,39 @@ stateDiagram-v2
 
 ## Test Scenarios
 
-### 1. Complete Manifesto Lifecycle (Main Happy Path)
-This test demonstrates the core functionality: initialization, activation, signature collection, and state management.
+### 1. Manifesto Signature Collection (Main Happy Path)
+This demonstrates the primary use case: collecting signatures from multiple parties when the manifesto is active.
 
 ```mermaid
 stateDiagram-v2
     direction LR
     [*] --> INITIALIZED: "✅ Initialize"
-    INITIALIZED --> ACTIVE: "✅ Activate manifesto for first time"
-    ACTIVE --> INACTIVE: "✅ Deactivate manifesto"
-    INACTIVE --> INACTIVE: "❌ Try deactivate when already inactive"
-    INACTIVE --> ACTIVE: "✅ Reactivate manifesto"
-    ACTIVE --> ACTIVE: "✅ Alice signs manifesto"
-    ACTIVE --> ACTIVE: "✅ Bob signs manifesto"
-    ACTIVE --> ACTIVE: "❌ Invalid input ID"
-    ACTIVE --> ACTIVE: "❌ Invalid issuer (unwrapped only)"
+    INITIALIZED --> ACTIVE: "✅ Controller Activates"
+    ACTIVE --> ACTIVE: "✅ Alice Signs"
+    ACTIVE --> ACTIVE: "✅ Bob Signs"
+    ACTIVE --> ACTIVE: "✅ More Signatures..."
+    ACTIVE --> INACTIVE: "✅ Controller Deactivates"
+    INACTIVE --> [*]: "Complete"
 ```
 
-Test Steps:
-1. **Initialization Check**:
-   - Verify the manifesto starts in `INITIALIZED` state
-2. **Activate manifesto for first time**:
+Happy Path Steps:
+1. **Initialization**:
+   - Manifesto is created and starts in `INITIALIZED` state
+2. **Controller Activation**:
    - Controller activates the manifesto (`INITIALIZED → ACTIVE`)
-3. **Deactivate manifesto**:
-   - Controller deactivates the manifesto (`ACTIVE → INACTIVE`)
-4. **Try to deactivate when already inactive**:
-   - Attempt to deactivate when already inactive (should fail with "No valid transition")
-   - State remains `INACTIVE`
-5. **Reactivate manifesto**:
-   - Controller reactivates the manifesto (`INACTIVE → ACTIVE`)
-6. **Alice signs the manifesto** (Main Happy Path):
-   - Alice signs the manifesto (`ACTIVE → ACTIVE`)
+   - Manifesto is now ready to accept signatures
+3. **Alice Signs**:
+   - Alice submits her signature (`ACTIVE → ACTIVE`)
    - State remains `ACTIVE` to continue collecting signatures
-7. **Bob signs the manifesto** (Main Happy Path):
-   - Bob signs the manifesto (`ACTIVE → ACTIVE`)
-   - State remains `ACTIVE` to continue collecting signatures
-8. **Invalid input ID**:
-   - Test invalid input ID (should fail with "Unknown input")
-9. **Invalid issuer (unwrapped only)**:
-   - Test invalid issuer/controller (should fail with "Issuer mismatch")
-   - Skipped for wrapped tests (handled by cryptographic verification)
+4. **Bob Signs**:
+   - Bob submits his signature (`ACTIVE → ACTIVE`)
+   - State remains `ACTIVE` for additional signatures
+5. **Continue Collection**:
+   - More parties can sign while manifesto remains `ACTIVE`
+   - Each signature keeps the state as `ACTIVE`
+6. **Controller Deactivation** (Optional):
+   - Controller can deactivate when signature collection is complete (`ACTIVE → INACTIVE`)
+   - No more signatures can be collected in `INACTIVE` state
 
 ### 2. Signature Collection Flow
 This demonstrates the main use case: collecting signatures from multiple parties when the manifesto is active.
@@ -117,7 +110,34 @@ Test Cases:
    - Invalid input IDs should be rejected
    - Should fail with "Unknown input" error
 
-### 4. State Transition Rules
+### 4. Complete Test Coverage
+This shows all test scenarios including error cases and edge conditions:
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> INITIALIZED: "✅ Initialize"
+    INITIALIZED --> ACTIVE: "✅ Activate manifesto for first time"
+    ACTIVE --> INACTIVE: "✅ Deactivate manifesto"
+    INACTIVE --> INACTIVE: "❌ Try deactivate when already inactive"
+    INACTIVE --> ACTIVE: "✅ Reactivate manifesto"
+    ACTIVE --> ACTIVE: "✅ Alice signs manifesto"
+    ACTIVE --> ACTIVE: "✅ Bob signs manifesto"
+    ACTIVE --> ACTIVE: "❌ Invalid input ID"
+    ACTIVE --> ACTIVE: "❌ Invalid issuer (unwrapped only)"
+```
+
+Test Scenarios:
+1. **Activate manifesto for first time** (`INITIALIZED → ACTIVE`)
+2. **Deactivate manifesto** (`ACTIVE → INACTIVE`)
+3. **Try to deactivate when already inactive** (should fail with "No valid transition")
+4. **Reactivate manifesto** (`INACTIVE → ACTIVE`)
+5. **Alice signs the manifesto** (`ACTIVE → ACTIVE`)
+6. **Bob signs the manifesto** (`ACTIVE → ACTIVE`)
+7. **Invalid input ID** (should fail with "Unknown input")
+8. **Invalid issuer** (unwrapped only - should fail with "Issuer mismatch")
+
+### 5. State Transition Rules
 This documents the allowed and forbidden transitions in the state machine.
 
 **Allowed Transitions:**
