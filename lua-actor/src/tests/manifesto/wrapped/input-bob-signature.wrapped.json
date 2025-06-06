@@ -7,25 +7,24 @@
     "type": "signedFields",
     "values": {
       "signerName": "Bob Smith",
-      "signerAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065",
-      "signature": "Bob's digital signature endorsing the manifesto"
+      "signerAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
     },
-    "documentHash": "0x71fe85099d6224908521cfd2cf17eba0fb75fe7c55fabfc4b0e74ab88d1124e4"
+    "documentHash": "0xda4ac725b4bd54ceaaceb25adffa0fd427ae5e9e8dd951ad41ce2caf74365a31"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-06-05T17:52:22.348Z",
+  "issuanceDate": "2025-06-06T16:55:49.639Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0xBe32388C134a952cdBCc5673E93d46FfD8b85065#blockchainAccountId",
-    "created": "2025-06-05T17:52:22.348Z",
+    "created": "2025-06-06T16:55:49.639Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0xeef3edc671d4edadbbe846ece243a9519c4fd2ba0ebef5f57b855993a099fb8651a107f8e5ca2e54e6fe6c6342da61eb5a8021913b5a86dab7c8f832a2b63dc41c",
+    "proofValue": "0x6c19ce03ba61469eea686a6caeaeb6fb03f432ad31f7cf513487b7179b90d6150b2d57d97097eae7185bff3965549d7f284a957b472b1efd88d69951e937d8681c",
     "eip712": {
       "domain": {
         "chainId": 1,
@@ -66,10 +65,6 @@
           }
         ],
         "Values": [
-          {
-            "name": "signature",
-            "type": "string"
-          },
           {
             "name": "signerAddress",
             "type": "string"

@@ -33,14 +33,6 @@
       "validation": {
         "required": true
       }
-    },
-    "signature": {
-      "type": "string",
-      "name": "Digital Signature",
-      "description": "Digital signature of the manifesto",
-      "validation": {
-        "required": true
-      }
     }
   },
   "content": {
@@ -97,8 +89,7 @@
         "description": "Sign the manifesto agreement",
         "data": {
           "signerName": "${variables.signerName}",
-          "signerAddress": "${variables.signerAddress}",
-          "signature": "${variables.signature}"
+          "signerAddress": "${variables.signerAddress}"
         }
       }
     },

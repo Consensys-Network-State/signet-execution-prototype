@@ -7,25 +7,24 @@
     "type": "signedFields",
     "values": {
       "signerName": "Alice Johnson",
-      "signerAddress": "0x67fD5A5ec681b1208308813a2B3A0DD431Be7278",
-      "signature": "Alice's digital signature of the manifesto agreement"
+      "signerAddress": "0x67fD5A5ec681b1208308813a2B3A0DD431Be7278"
     },
-    "documentHash": "0x71fe85099d6224908521cfd2cf17eba0fb75fe7c55fabfc4b0e74ab88d1124e4"
+    "documentHash": "0xda4ac725b4bd54ceaaceb25adffa0fd427ae5e9e8dd951ad41ce2caf74365a31"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-06-05T17:52:22.338Z",
+  "issuanceDate": "2025-06-06T16:55:49.628Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
-    "created": "2025-06-05T17:52:22.338Z",
+    "created": "2025-06-06T16:55:49.628Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0x82bd1e1762bdd9091c85ddac3c96370b4cb961226679d2eb0e7f601402b8798e5f2f4f7194bbcd50876aa0da907e3199c9aa1f9ccaf550466d52aac20a922cbd1b",
+    "proofValue": "0x9e81fa2c02f4dbe145fdd02252f0d6704aa32d5eef57b4b3e6d5bde272b5c11d163b50aa8b2f62428b3c1d969d355090b21990ec6d5234a064521a47d0544c411c",
     "eip712": {
       "domain": {
         "chainId": 1,
@@ -66,10 +65,6 @@
           }
         ],
         "Values": [
-          {
-            "name": "signature",
-            "type": "string"
-          },
           {
             "name": "signerAddress",
             "type": "string"
