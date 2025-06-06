@@ -73,14 +73,6 @@ Once confident enough to try changes in AO (i.e. tests are passing /w wrapped in
 - Update alpha env, env-to-end testing
   - Run requests against API to test
 
-## Legacy libs
-
-To run a test suite for the lua-only library (no longer used by our actor code) from within `lua-actor/src`:
-
-`LUA_INIT=@setup.lua lua es256k-test.lua`
-
-I'm including it and the test suite here for posterity, and since its public interface is slightly different (JWT and signature validation VS VC validation). Most of the logic however is implementing the base EC signature validation, which is slower than using the wrapped C lib.
-
 ## AO Deployment Scripts
 
 Two scripts are provided for deploying and initializing agreements on the AO network:
@@ -172,3 +164,11 @@ Here's a complete workflow from deployment to initialization:
    ```
 
 Both scripts include comprehensive error handling, cost warnings, and help functionality (`--help` flag).
+
+## Legacy libs
+
+To run a test suite for the lua-only library (no longer used by our actor code) from within `lua-actor/src`:
+
+`LUA_INIT=@setup.lua lua es256k-test.lua`
+
+I'm including it and the test suite here for posterity, and since its public interface is slightly different (JWT and signature validation VS VC validation). Most of the logic however is implementing the base EC signature validation, which is slower than using the wrapped C lib.
