@@ -5,7 +5,7 @@
   "credentialSubject": {
     "inputId": "activate",
     "type": "signedFields",
-    "documentHash": "0xda4ac725b4bd54ceaaceb25adffa0fd427ae5e9e8dd951ad41ce2caf74365a31",
+    "documentHash": "0x50a94e7e2cbaa9c5a063705ac95bc9b98eed690d4d080567c8fb9bc4b8afa835",
     "values": {
       "activation": "ACTIVATE"
     }
@@ -14,16 +14,16 @@
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-06-06T16:55:49.648Z",
+  "issuanceDate": "2025-06-09T14:25:39.979Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x3fAC9dcd3830d147EB1361bDcf588b1E5cde4431#blockchainAccountId",
-    "created": "2025-06-06T16:55:49.648Z",
+    "created": "2025-06-09T14:25:39.979Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0xf4eab2770a5341ad3d4c374a8d7763262c36d7cc177d8123d39370be971b3fc11d677336d294f0d8fdabc03b1442961d7407f47815cde3222eed059bdb5c9f441b",
+    "proofValue": "0x7fff7b6272915873995349eeeb0d3d78c2229bd630ba5dc814f4f4174bad74b44f740afc2c2d5ceb0d3575c7122d7d4e5de07da58cb70db64c0848b0e5390fe61b",
     "eip712": {
       "domain": {
         "chainId": 1,
