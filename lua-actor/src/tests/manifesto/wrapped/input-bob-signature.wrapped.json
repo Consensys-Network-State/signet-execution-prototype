@@ -9,22 +9,22 @@
       "signerName": "Bob Smith",
       "signerAddress": "0xBe32388C134a952cdBCc5673E93d46FfD8b85065"
     },
-    "documentHash": "0xda4ac725b4bd54ceaaceb25adffa0fd427ae5e9e8dd951ad41ce2caf74365a31"
+    "documentHash": "0x50a94e7e2cbaa9c5a063705ac95bc9b98eed690d4d080567c8fb9bc4b8afa835"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-06-06T16:55:49.639Z",
+  "issuanceDate": "2025-06-09T14:25:39.969Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0xBe32388C134a952cdBCc5673E93d46FfD8b85065#blockchainAccountId",
-    "created": "2025-06-06T16:55:49.639Z",
+    "created": "2025-06-09T14:25:39.969Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0x6c19ce03ba61469eea686a6caeaeb6fb03f432ad31f7cf513487b7179b90d6150b2d57d97097eae7185bff3965549d7f284a957b472b1efd88d69951e937d8681c",
+    "proofValue": "0xb74a98ff88fc04641bc79a3207e4f45acc83a1133e4a057807241a7749feaa4e05c938a4e27b9bf8212550e1dc973519e21573fdc434295e4b1a004fee1d1dc01b",
     "eip712": {
       "domain": {
         "chainId": 1,
