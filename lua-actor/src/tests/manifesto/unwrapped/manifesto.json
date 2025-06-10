@@ -57,6 +57,7 @@
     "initialize": {
       "name": "Initialize",
       "description": "Initialize the manifesto with the controller",
+      "initialState": "INITIALIZED",
       "data": {
         "controller": "${variables.controller}"
       }

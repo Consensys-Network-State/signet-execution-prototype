@@ -9,22 +9,22 @@
       "partyAAcceptance": "ACCEPTED",
       "partyASignature": "Damian's signature"
     },
-    "documentHash": "0xb4ecf6443c783f68889414326c13e10b641e4e0442e1cb97eaa1e5e91af138cb"
+    "documentHash": "0xe9f006fb6a4864068af5698f5a72ad56024bb00a809a590eb2517daff52934fa"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-22T14:55:28.827Z",
+  "issuanceDate": "2025-06-10T15:39:00.939Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
-    "created": "2025-05-22T14:55:28.827Z",
+    "created": "2025-06-10T15:39:00.939Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0xf2d1bd6f0d23f51eda211cc58a1c36f2475e9b6a7c2320bb7767fc1654b373b2482f608b2f9af467fdb20edf014c8aa7da6c44c76286fc9e0c0debb40072313c1c",
+    "proofValue": "0x0dad039a7af8be0c39e0832acbf73778cc850a34c95fc5c6ed8bd7271a021a75516c775c4760607dbbe6be0310652a3e1bfd51e09ca47af24055d78dfce8348a1c",
     "eip712": {
       "domain": {
         "chainId": 1,

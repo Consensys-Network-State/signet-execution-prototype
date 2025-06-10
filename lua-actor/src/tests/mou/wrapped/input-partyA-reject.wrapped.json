@@ -8,22 +8,22 @@
     "values": {
       "partyARejection": "REJECTED"
     },
-    "documentHash": "0xb4ecf6443c783f68889414326c13e10b641e4e0442e1cb97eaa1e5e91af138cb"
+    "documentHash": "0xe9f006fb6a4864068af5698f5a72ad56024bb00a809a590eb2517daff52934fa"
   },
   "type": [
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-05-22T14:55:28.835Z",
+  "issuanceDate": "2025-06-10T15:39:00.947Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
-    "created": "2025-05-22T14:55:28.835Z",
+    "created": "2025-06-10T15:39:00.947Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0x0b2e1caa44e86ad4a3c8a9761ff2c3c31feffc9c9236b280f20bcfa771c017bd26e312245963640908a9bfca5a45f2bb0ca319d67b687dc468c0a42aa68cba5b1b",
+    "proofValue": "0x250af304976b3612d4bfa2f494057b069f354ba59a5cee9177571803c289d2e1192db515e285553ba573f6a01be5e359531c7ac1cbf3eb79c9f734d1bcc2e2681c",
     "eip712": {
       "domain": {
         "chainId": 1,
