@@ -14,16 +14,16 @@
     "VerifiableCredential",
     "AgreementCredential"
   ],
-  "issuanceDate": "2025-06-10T15:38:43.442Z",
+  "issuanceDate": "2025-06-10T15:56:26.364Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x3fAC9dcd3830d147EB1361bDcf588b1E5cde4431#blockchainAccountId",
-    "created": "2025-06-10T15:38:43.442Z",
+    "created": "2025-06-10T15:56:26.364Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0xdd74f03d8bb7993bce2b8a66ef40e1e4928ccb0eac1ab11d23f0bf6f4d94d04045837269a60027fdc108a8ae9a3d52b61ff5fdc500fcee85a69233dc3ffc0d031b",
+    "proofValue": "0x6e3a97eca32021f375ab97d3c97e0ea7222994975fe708d769d039b8b5cd951674e63f5e09e634e6af294244bd41ed0c1b9563cc6d782d55be3f2ab26c0066981b",
     "eip712": {
       "domain": {
         "chainId": 1,

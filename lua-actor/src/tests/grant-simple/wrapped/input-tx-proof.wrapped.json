@@ -4,7 +4,7 @@
   },
   "credentialSubject": {
     "inputId": "workTokenSentTx",
-    "documentHash": "0x6636988b402ab90ad4f19634eaf154aa8b33d6b8e016ff1360550967896ed6dd",
+    "documentHash": "0x6668dd0a5d1ca40298dff5687a5a339c15de196b6a0b1c94a59a4f6886c39916",
     "values": {
       "workTokenSentTx": {
         "value": "0x15cdc2d5157685faaca3da6928fe412608747e76a7daee0800d5c79c2b76a0cd",
@@ -16,16 +16,16 @@
     "VerifiableCredential",
     "AgreementInputCredential"
   ],
-  "issuanceDate": "2025-06-10T15:38:51.089Z",
+  "issuanceDate": "2025-06-10T15:56:28.504Z",
   "@context": [
     "https://www.w3.org/2018/credentials/v1"
   ],
   "proof": {
     "verificationMethod": "did:pkh:eip155:1:0x67fD5A5ec681b1208308813a2B3A0DD431Be7278#blockchainAccountId",
-    "created": "2025-06-10T15:38:51.089Z",
+    "created": "2025-06-10T15:56:28.504Z",
     "proofPurpose": "assertionMethod",
     "type": "EthereumEip712Signature2021",
-    "proofValue": "0x922a8de9b5bd1b0bd85f0693bac441e33500fdd631795ad87b7191c01cda1360338022ae35da1bcc0bd70a2283ab7202d95b85d0be8d4f54eed4b50eb81606391c",
+    "proofValue": "0x662acc7ac898bdd66d056dc55bd7dbf4bf2cc3c4cde1036727704fc1ae710a043dc8e8dbafccc93c38085d851aa720326751f815a533d621b2d03299c5d8f9e31b",
     "eip712": {
       "domain": {
         "chainId": 1,
